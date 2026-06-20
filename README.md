@@ -2,7 +2,7 @@
 
 Loop it is a portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-The goal is not to replace the Forward Future Loop Library. The useful version 1 is a small adapter: it helps an agent pick or design a loop, add checks and stop conditions, then run one verified iteration at a time.
+The useful version 1 is small: it helps an agent pick or design a loop, add checks and stop conditions, then run one verified iteration at a time.
 
 ## What it includes
 
@@ -85,7 +85,6 @@ Loop it deliberately avoids scheduling, production automation, multi-agent orche
 
 ## References
 
-- Forward Future Loop Library: https://signals.forwardfuture.ai/loop-library/
 - OpenAI Codex Agent Skills: https://developers.openai.com/codex/skills
 - Claude Code Skills: https://code.claude.com/docs/en/skills
 - Cursor Skills and Rules: https://cursor.com/docs/skills and https://cursor.com/docs/rules

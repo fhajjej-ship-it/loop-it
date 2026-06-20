@@ -1,6 +1,6 @@
 ---
 name: loop-it
-description: Design, adapt, export, or run bounded AI-agent coding loops for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks to set up an agent loop, wants a Loop Library workflow adapted to a coding task, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
+description: Design, adapt, export, or run bounded AI-agent coding loops for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks to set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
 ---
 
 # Loop It
@@ -33,11 +33,7 @@ Push back when the requested loop is just "keep improving" without a check. Offe
 
 ## Select A Loop
 
-If current internet access is available and the user wants a published loop, inspect the live Loop Library before recommending a specific published workflow:
-
-`https://signals.forwardfuture.ai/loop-library/`
-
-Use the library as inspiration, not as a hidden dependency. If the catalog is unavailable, read `references/loop-template.md` and choose the closest starter shape.
+Read `references/loop-template.md` when the task needs a starter shape, durable state file, or examples of common coding loops.
 
 Common coding loop shapes:
 
