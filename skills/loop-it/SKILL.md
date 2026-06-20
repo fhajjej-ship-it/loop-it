@@ -1,21 +1,23 @@
 ---
 name: loop-it
-description: Design, adapt, export, or run bounded AI-agent coding loops for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks to set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
+description: Find, recommend, design, adapt, export, or run bounded AI-agent coding loops from the Loop It library for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks what should be looped next, asks to choose a loop from a library, asks to set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
 ---
 
 # Loop It
 
-Turn an open-ended coding objective into a bounded, verifiable loop. A good loop tells the agent what to do next, how to check whether it worked, what to record, and when to stop or hand control back.
+Turn an open-ended coding objective into a bounded, verifiable loop. Loop It is also a loop library: choose the right starter loop, adapt it to the user's context, and track progress so the next loop is obvious.
 
 ## Decision
 
 First decide which mode the user needs:
 
+- **Find from library**: select a bundled loop for the user's goal.
+- **Next from progress**: inspect `.loop-it/progress.json` or `.loop-it/LOOP.md` and recommend what to loop next.
 - **Design only**: produce a reusable loop prompt or project-local loop file.
 - **Run now**: execute one bounded iteration at a time, verify it, and decide whether another iteration is justified.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
 
-If the task is vague, do not ask a broad discovery questionnaire. Make the smallest useful assumption and state it. Ask one targeted question only when the success check, repository scope, or approval boundary is genuinely blocking.
+If the task is vague, do not ask a broad discovery questionnaire. First recommend the best likely library loop and state the assumption. Ask up to three targeted questions only when the goal, success check, repository scope, or approval boundary is genuinely blocking.
 
 ## Contract
 
@@ -33,16 +35,41 @@ Push back when the requested loop is just "keep improving" without a check. Offe
 
 ## Select A Loop
 
-Read `references/loop-template.md` when the task needs a starter shape, durable state file, or examples of common coding loops.
+Prefer the bundled library over inventing a loop from scratch.
 
-Common coding loop shapes:
+Use the selector script when available:
+
+```bash
+node <skill-dir>/scripts/select-loop.mjs list
+node <skill-dir>/scripts/select-loop.mjs search "failing ci"
+node <skill-dir>/scripts/select-loop.mjs recommend --goal "fix failing checkout test"
+node <skill-dir>/scripts/select-loop.mjs next --cwd <project>
+```
+
+Resolve `<skill-dir>` to this skill's folder. In Claude Code, `${CLAUDE_SKILL_DIR}` may be available. In other agents, locate the directory that contains this `SKILL.md`.
+
+When selecting:
+
+1. Check `.loop-it/progress.json` first when the user asks what to loop next.
+2. If no progress exists, match the user's goal against `references/library/loops.json`.
+3. Recommend one loop, plus at most two alternatives.
+4. Explain the match in one sentence.
+5. Ask the loop's top questions only if needed.
+6. If no library loop fits, design a custom loop and say it should be considered for the library after it proves useful.
+
+Read `references/library/loops.json` only when the selector script is unavailable or manual inspection is needed. Read `references/loop-template.md` when the task needs the generic durable state shape.
+
+Current library categories include:
 
 - Ticket to verified fix: reproduce, diagnose, patch, add regression coverage, verify.
+- Failing CI repair: inspect failing output, reproduce, patch, rerun the failed check.
 - Docs sweep: compare docs to implementation, update stale docs, verify examples or links.
 - Product evaluation: define scenarios and criteria, test, fix misses, rerun affected and full checks.
 - Performance loop: measure baseline, make one focused change, remeasure, keep only proven wins.
 - Review repair loop: review diff, fix blocking findings, rerun checks, repeat until only accepted risk remains.
 - Fresh setup loop: start from a clean environment, follow documented setup, fix hidden assumptions, retry cleanly.
+- Release readiness: verify package, deploy, or public install paths before publishing.
+- UX polish, dependency upgrade, security hardening, refactor containment, and test coverage gap loops.
 
 ## Draft The Loop
 
@@ -60,9 +87,10 @@ When a durable state file is useful, create `.loop-it/LOOP.md` from `references/
 
 ```bash
 node <skill-dir>/scripts/create-loop.mjs --name "Loop name" --objective "Concrete outcome" --check "Verification command or criterion"
+node <skill-dir>/scripts/create-loop.mjs --from failing-ci-repair
 ```
 
-Resolve `<skill-dir>` to this skill's folder. In Claude Code, `${CLAUDE_SKILL_DIR}` may be available. In other agents, locate the directory that contains this `SKILL.md`.
+Library-backed loop files also create `.loop-it/progress.json` unless `--no-progress` is passed.
 
 ## Run The Loop
 
@@ -72,7 +100,7 @@ For each iteration:
 2. Inspect only the context needed for the next bounded action.
 3. Make the smallest credible change.
 4. Run the narrowest relevant verification first, then broader checks only if needed.
-5. Record evidence in `.loop-it/LOOP.md` when a state file exists.
+5. Record evidence in `.loop-it/LOOP.md` when a state file exists and update `.loop-it/progress.json` when present.
 6. Decide: stop, continue, ask approval, or report blocked.
 
 Stop immediately when continuing would require hidden assumptions about safety, credentials, production data, billing, user messaging, destructive git operations, or deployment approval.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- Bundled loop library with curated coding loops for CI repair, bug fixes, docs, review repair, release readiness, setup, testing, UX, performance, dependencies, security, refactoring, and product evaluation.
+- Offline loop selector CLI for listing, searching, recommending, and choosing the next loop from `.loop-it` progress.
+- `loop-it new --from <loop-id>` for generating library-backed loop contracts.
+- `.loop-it/progress.json` creation for machine-readable loop progress.
+
 ## 0.1.1
 
 ### Changed

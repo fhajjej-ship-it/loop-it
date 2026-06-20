@@ -10,9 +10,9 @@
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-111111.svg)](package.json)
 [![npm package](https://img.shields.io/badge/npm-%40fhajjej%2Floop--it-111111.svg)](https://www.npmjs.com/package/@fhajjej/loop-it)
 
-Loop it is a portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
+Loop it is a portable loop library and Agent Skill for finding, recommending, and running bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-It turns a vague instruction like "keep fixing it" into a clear loop: choose the agent, choose the job, define proof, set a pass limit, then stop when the loop is done or no longer useful.
+It turns a vague instruction like "keep fixing it" into a clear loop: find the right loop, choose the agent, define proof, set a pass limit, track progress, then stop when the loop is done or no longer useful.
 
 Product page: https://swarmixai.com/experiments/loop-it-poc
 
@@ -20,6 +20,8 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 
 - `skills/loop-it/SKILL.md`: the canonical portable skill.
 - `bin/loop-it.mjs`: installer and loop-file helper.
+- `skills/loop-it/references/library/loops.json`: bundled loop library.
+- `skills/loop-it/scripts/select-loop.mjs`: zero-dependency loop selector and recommender.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
 - `.codex-plugin/plugin.json`: Codex plugin metadata.
@@ -81,6 +83,25 @@ Stop when the test passes with regression coverage, the same failure repeats twi
 
 More examples: [docs/examples.md](docs/examples.md).
 
+## Loop Library
+
+Find the right loop before writing the prompt:
+
+```bash
+node ./bin/loop-it.mjs library list
+node ./bin/loop-it.mjs library search "failing ci"
+node ./bin/loop-it.mjs recommend --goal "fix failing checkout test"
+node ./bin/loop-it.mjs next --cwd .
+```
+
+Create a loop from the bundled library:
+
+```bash
+node ./bin/loop-it.mjs new --from failing-ci-repair
+```
+
+Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
+
 ## Good Loop Contract
 
 Every useful loop needs:
@@ -103,7 +124,7 @@ node ./bin/loop-it.mjs new \
   --max-iterations 3
 ```
 
-This creates `.loop-it/LOOP.md` in the current directory.
+This creates `.loop-it/LOOP.md` and `.loop-it/progress.json` in the current directory.
 
 ## Host Notes
 
@@ -127,10 +148,12 @@ npm run check
 npm run smoke
 npm publish --dry-run --access public
 node ./bin/loop-it.mjs install --agent all --scope project
+node ./bin/loop-it.mjs library search "release readiness"
+node ./bin/loop-it.mjs recommend --goal "fix failing CI"
 node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare public release" --check "npm run check"
 ```
 
-`npm run check` verifies CLI syntax, skill generator syntax, plugin metadata JSON, Codex/Claude/Cursor installs, loop-file creation, packed-tarball execution, and package contents.
+`npm run check` verifies CLI syntax, selector syntax, skill generator syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection, loop-file creation, packed-tarball execution, and package contents.
 
 ## Release Status
 
@@ -142,7 +165,7 @@ npx @fhajjej/loop-it@latest install --agent all --scope project
 
 ## Version 1 Boundaries
 
-Loop it deliberately avoids scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. Those should come after a manual loop proves the workflow is worth automating.
+Loop it deliberately avoids hosted accounts, ratings, scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. Those should come after the local loop library proves the workflow is worth automating.
 
 ## License
 

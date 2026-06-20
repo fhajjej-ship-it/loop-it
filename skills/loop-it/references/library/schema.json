@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loop It Library",
+  "type": "object",
+  "required": ["version", "loops"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "loops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "summary",
+          "aliases",
+          "bestFor",
+          "avoidWhen",
+          "defaultObjective",
+          "defaultCheck",
+          "maxIterations",
+          "stopConditions",
+          "approvalGates",
+          "questions",
+          "body",
+          "progressSignals"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "summary": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "bestFor": { "type": "array", "items": { "type": "string" } },
+          "avoidWhen": { "type": "array", "items": { "type": "string" } },
+          "defaultObjective": { "type": "string" },
+          "defaultCheck": { "type": "string" },
+          "maxIterations": { "type": "integer", "minimum": 1 },
+          "stopConditions": { "type": "array", "items": { "type": "string" } },
+          "approvalGates": { "type": "array", "items": { "type": "string" } },
+          "questions": { "type": "array", "items": { "type": "string" } },
+          "body": { "type": "string" },
+          "progressSignals": {
+            "type": "object",
+            "required": ["keywords"],
+            "properties": {
+              "keywords": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

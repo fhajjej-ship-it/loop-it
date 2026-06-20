@@ -39,3 +39,10 @@ Check that `SKILL.md` exists in the selected host path, then ask your agent to u
 ```text
 Use $loop-it to create a bounded docs sweep loop for this repository.
 ```
+
+You can also verify the local library selector:
+
+```bash
+node ./bin/loop-it.mjs library list
+node ./bin/loop-it.mjs recommend --goal "fix failing CI"
+```
