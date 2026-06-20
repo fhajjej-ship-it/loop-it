@@ -8,12 +8,18 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 
 ## Quick start
 
-Clone the repo and install the skill into your current project:
+Current public install:
 
 ```bash
 git clone https://github.com/fhajjej-ship-it/loop-it.git
 cd loop-it
 node ./bin/loop-it.mjs install --agent all --scope project
+```
+
+NPM install path, ready for the first npm release:
+
+```bash
+npx loop-it@latest install --agent all --scope project
 ```
 
 That copies the skill into:
@@ -95,6 +101,10 @@ This creates `.loop-it/LOOP.md` in the current directory.
 ## Version 1 boundaries
 
 Loop it deliberately avoids scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. Those should come after a manual loop proves the workflow is worth automating.
+
+## Release status
+
+The package is prepared for npm publishing with `npm run check` and `npm publish --dry-run --access public`. Publishing requires an authenticated npm session or a GitHub `NPM_TOKEN` secret.
 
 ## References
 

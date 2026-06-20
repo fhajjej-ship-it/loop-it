@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "homepage": "https://github.com/fhajjej-ship-it/loop-it#readme",
   "repository": {
     "type": "git",
@@ -12,7 +15,7 @@
     "url": "https://github.com/fhajjej-ship-it/loop-it/issues"
   },
   "bin": {
-    "loop-it": "./bin/loop-it.mjs"
+    "loop-it": "bin/loop-it.mjs"
   },
   "files": [
     ".codex-plugin",
@@ -22,7 +25,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node -e \"JSON.parse(require('fs').readFileSync('.codex-plugin/plugin.json', 'utf8'))\""
+    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check tests/smoke-install.mjs && node -e \"JSON.parse(require('fs').readFileSync('.codex-plugin/plugin.json', 'utf8'))\" && npm run smoke && npm pack --dry-run",
+    "smoke": "node tests/smoke-install.mjs",
+    "prepublishOnly": "npm run check"
   },
   "keywords": [
     "agent-skills",
