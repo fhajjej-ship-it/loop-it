@@ -2,6 +2,21 @@
 
 Use these prompts after installing Loop it.
 
+## End-to-end library flow
+
+```bash
+npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
+npx @fhajjej/loop-it@latest new --from failing-ci-repair
+```
+
+Run the generated loop with Codex, Claude Code, Cursor, or another `SKILL.md`-compatible agent. After each pass, update `.loop-it/progress.json` with the last result, blockers, remaining risks, and recommended next action.
+
+```bash
+npx @fhajjej/loop-it@latest next --cwd .
+```
+
+Use `next` to continue an active loop or select the next loop from recorded progress.
+
 ## Codex: ticket to verified fix
 
 ```text

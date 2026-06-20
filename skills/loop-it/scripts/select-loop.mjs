@@ -89,12 +89,13 @@ export function readProgress(cwd = process.cwd()) {
 export function recommendLoop(options = {}) {
   const library = options.library ?? loadLibrary();
   const progress = options.progress ?? null;
+  const status = String(progress?.data?.status ?? "").toLowerCase();
+  const inactiveStatuses = ["complete", "completed", "stopped", "blocked"];
 
   if (progress?.data?.activeLoopId) {
-    const status = String(progress.data.status ?? "").toLowerCase();
     const activeLoop = findLoopById(progress.data.activeLoopId, library);
-    if (activeLoop && !["complete", "completed", "stopped"].includes(status)) {
-      return {
+    if (activeLoop && !inactiveStatuses.includes(status)) {
+      return withWorkflow({
         source: "progress",
         selected: {
           loop: activeLoop,
@@ -103,18 +104,22 @@ export function recommendLoop(options = {}) {
         },
         alternatives: rankLoops(progress.text, { library, limit: 4 }).filter((item) => item.loop.id !== activeLoop.id).slice(0, 2),
         progress,
-      };
+      });
     }
   }
 
   const query = [options.goal, progress?.text].filter(Boolean).join("\n");
-  const ranked = rankLoops(query, { library, limit: 3 });
-  return {
+  const excludeActiveLoop =
+    progress?.data?.activeLoopId && inactiveStatuses.includes(status) ? progress.data.activeLoopId : null;
+  const ranked = rankLoops(query, { library, limit: library.loops.length })
+    .filter((item) => item.loop.id !== excludeActiveLoop)
+    .slice(0, 3);
+  return withWorkflow({
     source: progress ? "progress" : "goal",
     selected: ranked[0] ?? null,
     alternatives: ranked.slice(1),
     progress,
-  };
+  });
 }
 
 export function loopDefaults(loop) {
@@ -126,6 +131,31 @@ export function loopDefaults(loop) {
     stop: loop.stopConditions.join("; "),
     approval: loop.approvalGates.join(", "),
   };
+}
+
+export function loopWorkflow(loop) {
+  return {
+    choose: first(loop.bestFor) ?? loop.summary,
+    create: `loop-it new --from ${loop.id}`,
+    proof: loop.defaultCheck,
+    track:
+      "Update .loop-it/progress.json with lastResult, blockers, remainingRisks, and recommendedNextAction.",
+    next: "Run loop-it next --cwd . when the loop is complete, stopped, or blocked.",
+  };
+}
+
+function withWorkflow(recommendation) {
+  if (!recommendation.selected?.loop) {
+    return recommendation;
+  }
+  return {
+    ...recommendation,
+    workflow: loopWorkflow(recommendation.selected.loop),
+  };
+}
+
+function first(values) {
+  return Array.isArray(values) && values.length > 0 ? values[0] : null;
 }
 
 function scoreLoop(loop, tokens, rawQuery) {
@@ -314,6 +344,13 @@ function printShow(args) {
   console.log(`Default check: ${loop.defaultCheck}`);
   console.log(`Max iterations: ${loop.maxIterations}`);
   console.log("");
+  console.log("Workflow:");
+  const workflow = loopWorkflow(loop);
+  console.log(`1. Choose: ${workflow.choose}`);
+  console.log(`2. Create/run: ${workflow.create}`);
+  console.log(`3. Track: ${workflow.track}`);
+  console.log(`4. Next: ${workflow.next}`);
+  console.log("");
   console.log("Questions if context is unclear:");
   for (const question of loop.questions.slice(0, 3)) {
     console.log(`- ${question}`);
@@ -373,6 +410,8 @@ function printRanked(title, results) {
   for (const item of results) {
     console.log(`- ${item.loop.id}: ${item.loop.title} (${item.score})`);
     console.log(`  ${item.loop.summary}`);
+    console.log(`  Proof: ${item.loop.defaultCheck}`);
+    console.log(`  Create: loop-it new --from ${item.loop.id}`);
     if (item.reasons.length > 0) {
       console.log(`  Why: ${item.reasons.join(", ")}`);
     }
@@ -393,8 +432,13 @@ function printRecommendation(recommendation, sourceLabel) {
     console.log(`Why: ${reasons.join(", ")}`);
   }
   console.log("");
-  console.log("Create it:");
-  console.log(`  loop-it new --from ${loop.id}`);
+  const workflow = recommendation.workflow ?? loopWorkflow(loop);
+  console.log("How to use it:");
+  console.log(`1. Choose: ${workflow.choose}`);
+  console.log(`2. Create/run: ${workflow.create}`);
+  console.log(`3. Prove: ${workflow.proof}`);
+  console.log(`4. Track: ${workflow.track}`);
+  console.log(`5. Next: ${workflow.next}`);
   console.log("");
   console.log("Questions if this is still unclear:");
   for (const question of loop.questions.slice(0, 3)) {
