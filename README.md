@@ -8,7 +8,7 @@
 [![Check](https://github.com/fhajjej-ship-it/loop-it/actions/workflows/check.yml/badge.svg)](https://github.com/fhajjej-ship-it/loop-it/actions/workflows/check.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-111111.svg)](package.json)
-[![npm ready](https://img.shields.io/badge/npm-ready-111111.svg)](RELEASE.md)
+[![npm package](https://img.shields.io/badge/npm-%40fhajjej%2Floop--it-111111.svg)](https://www.npmjs.com/package/@fhajjej/loop-it)
 
 Loop it is a portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
@@ -32,15 +32,15 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 Current public install:
 
 ```bash
+npx @fhajjej/loop-it@latest install --agent all --scope project
+```
+
+GitHub install:
+
+```bash
 git clone https://github.com/fhajjej-ship-it/loop-it.git
 cd loop-it
 node ./bin/loop-it.mjs install --agent all --scope project
-```
-
-NPM command after the first npm release:
-
-```bash
-npx loop-it@latest install --agent all --scope project
 ```
 
 That copies the skill into:
@@ -134,12 +134,10 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 
 ## Release Status
 
-Loop it is ready for a `v0.1.0` GitHub release and npm publishing dry-run. npm publishing is intentionally gated until an authenticated npm session or GitHub `NPM_TOKEN` is available.
-
-After npm is live, the product page should make this the primary install path:
+Loop it is published as the scoped npm package `@fhajjej/loop-it`.
 
 ```bash
-npx loop-it@latest install --agent all --scope project
+npx @fhajjej/loop-it@latest install --agent all --scope project
 ```
 
 ## Version 1 Boundaries

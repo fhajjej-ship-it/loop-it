@@ -5,15 +5,15 @@ Loop it installs one portable skill into the agent host directory you choose.
 ## Current public install
 
 ```bash
+npx @fhajjej/loop-it@latest install --agent all --scope project
+```
+
+## GitHub install
+
+```bash
 git clone https://github.com/fhajjej-ship-it/loop-it.git
 cd loop-it
 node ./bin/loop-it.mjs install --agent all --scope project
-```
-
-## NPM path after publish
-
-```bash
-npx loop-it@latest install --agent all --scope project
 ```
 
 ## Project install paths

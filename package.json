@@ -1,6 +1,6 @@
 {
-  "name": "loop-it",
-  "version": "0.1.0",
+  "name": "@fhajjej/loop-it",
+  "version": "0.1.1",
   "description": "Portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
   "type": "module",
   "author": {

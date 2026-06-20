@@ -29,6 +29,6 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 
 ## Release proof
 
-- [ ] `v0.1.0` GitHub release exists.
-- [ ] npm package is published or README clearly states npm is pending.
+- [ ] `v0.1.1` GitHub release exists.
+- [ ] `@fhajjej/loop-it` npm package is published.
 - [ ] Product page install command matches the real public install path.

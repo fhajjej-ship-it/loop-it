@@ -1,13 +1,13 @@
 # Release checklist
 
-Use this checklist before publishing `loop-it` to npm.
+Use this checklist before publishing `@fhajjej/loop-it` to npm.
 
 ## Preconditions
 
-- Confirm the package name is still available or owned by this project:
+- Confirm the scoped package name is available or owned by this project:
 
 ```bash
-npm view loop-it name version
+npm view @fhajjej/loop-it name version
 ```
 
 - Authenticate locally with `npm login`, or add `NPM_TOKEN` to GitHub Actions secrets.
@@ -46,8 +46,8 @@ GitHub publish:
 ## Post-publish verification
 
 ```bash
-npm view loop-it name version bin
-npx loop-it@latest install --agent all --scope project --cwd /tmp/loop-it-npx-smoke
+npm view @fhajjej/loop-it name version bin
+npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /tmp/loop-it-npx-smoke
 ```
 
-After npm is live, make the product page use `npx loop-it@latest install --agent all --scope project` as the primary command.
+After npm is live, make the product page use `npx @fhajjej/loop-it@latest install --agent all --scope project` as the primary command.

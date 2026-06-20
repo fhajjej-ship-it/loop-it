@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+### Changed
+
+- Renamed the npm package to `@fhajjej/loop-it` to comply with npm package-name similarity checks.
+- Updated public install docs to use the scoped npm package.
+
 ## 0.1.0
 
 Initial public release candidate.
@@ -16,4 +23,4 @@ Initial public release candidate.
 ### Release status
 
 - GitHub release path is ready.
-- npm package is prepared but not published until npm authentication is available.
+- npm package is prepared for scoped public publishing.
