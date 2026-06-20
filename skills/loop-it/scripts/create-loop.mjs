@@ -38,6 +38,19 @@ const librarySection = libraryLoop
 ${libraryLoop.questions.slice(0, 3).map((question) => `- ${question}`).join("\n")}
 `
   : "";
+const trackingSection = `
+## Evidence To Track
+- Last check: ${check}
+- Last result: pass, fail, blocked, or not-run.
+- Changed files or artifacts.
+- Blockers and remaining risks.
+- Recommended next action: continue this loop, stop, or run \`loop-it next --cwd .\`.
+
+## Next Loop Decision
+- Continue this loop only when the next pass has a clear expected improvement.
+- Stop when a stop condition is met or approval is required.
+- Run \`loop-it next --cwd .\` after the loop is complete, stopped, or blocked.
+`;
 
 const content = `# ${name}
 
@@ -68,6 +81,7 @@ ${objective}
 ## Approval Gates
 - ${approval}
 ${librarySection}
+${trackingSection}
 
 ## Loop Body
 ${libraryLoop ? libraryLoop.body : "1. Inspect the smallest relevant context.\n2. Make one focused change or decision.\n3. Run the success check or the narrowest useful proxy.\n4. Record evidence and remaining risk.\n5. Continue only if the next pass has a clear expected improvement."}
@@ -164,7 +178,9 @@ function progressState() {
     lastResult: "not-run",
     blockers: [],
     remainingRisks: [],
-    recommendedNextAction: "Run the first loop iteration.",
+    evidenceToRecord: ["changed files", "verification output", "blockers", "remaining risks"],
+    recommendedNextAction: "Run the first loop iteration, then update this progress file.",
+    nextLoopCommand: "loop-it next --cwd .",
     updatedAt: now,
   };
 }

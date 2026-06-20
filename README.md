@@ -61,6 +61,23 @@ node ./bin/loop-it.mjs install --agent all --scope global
 
 See [docs/install.md](docs/install.md) for host paths, global install notes, and verification steps.
 
+## Four-Step Workflow
+
+Loop it is meant to answer four questions in order:
+
+1. Choose the right loop from the library.
+2. Create and run the bounded loop in Codex, Claude Code, or Cursor.
+3. Track evidence in `.loop-it/progress.json`.
+4. Ask what should be looped next.
+
+```bash
+npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
+npx @fhajjej/loop-it@latest new --from failing-ci-repair
+npx @fhajjej/loop-it@latest next --cwd .
+```
+
+`next` continues an active loop when progress is still open. When progress is complete, stopped, or blocked, it uses the recorded evidence to recommend the next loop.
+
 ## First Loop
 
 Codex example:
