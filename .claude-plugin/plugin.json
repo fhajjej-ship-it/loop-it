@@ -1,0 +1,12 @@
+{
+  "name": "loop-it",
+  "version": "0.1.0",
+  "description": "Set bounded, verifiable coding loops for AI agents.",
+  "author": {
+    "name": "Loop it",
+    "url": "https://github.com/fhajjej-ship-it/loop-it"
+  },
+  "homepage": "https://swarmixai.com/experiments/loop-it-poc",
+  "license": "MIT",
+  "skills": "./skills/"
+}

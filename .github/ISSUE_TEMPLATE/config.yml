@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Product page
+    url: https://swarmixai.com/experiments/loop-it-poc
+    about: Read the public product page and quickstart.
