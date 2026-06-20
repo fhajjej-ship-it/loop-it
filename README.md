@@ -2,28 +2,27 @@
 
 Loop it is a portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-The useful version 1 is small: it helps an agent pick or design a loop, add checks and stop conditions, then run one verified iteration at a time.
+It turns a vague instruction like "keep fixing it" into a clear loop: choose the agent, choose the job, define proof, set a pass limit, then stop when the loop is done or no longer useful.
 
-## What it includes
+Product page: https://swarmixai.com/experiments/loop-it-poc
 
-- `skills/loop-it/SKILL.md`: the canonical portable skill.
-- `skills/loop-it/references/loop-template.md`: a durable loop state template.
-- `skills/loop-it/scripts/create-loop.mjs`: a zero-dependency loop contract generator.
-- `bin/loop-it.mjs`: installer and loop file helper.
-- `.codex-plugin/plugin.json`: Codex plugin metadata that points at the same skill.
+## Quick start
 
-## Install locally from this repo
+Clone the repo and install the skill into your current project:
 
 ```bash
-npm install
+git clone https://github.com/fhajjej-ship-it/loop-it.git
+cd loop-it
 node ./bin/loop-it.mjs install --agent all --scope project
 ```
 
 That copies the skill into:
 
-- Codex: `.agents/skills/loop-it/`
-- Claude Code: `.claude/skills/loop-it/`
-- Cursor: `.cursor/skills/loop-it/`
+| Agent | Install path | Invoke with |
+| --- | --- | --- |
+| Codex | `.agents/skills/loop-it/` | `Use $loop-it` |
+| Claude Code | `.claude/skills/loop-it/` | `/loop-it` |
+| Cursor | `.cursor/skills/loop-it/` | `/loop-it` |
 
 For a global install:
 
@@ -31,28 +30,24 @@ For a global install:
 node ./bin/loop-it.mjs install --agent all --scope global
 ```
 
-## Install from GitHub
+## Run a loop
 
-If your agent supports the Agent Skills installer:
-
-```bash
-npx skills add fhajjej-ship-it/loop-it --skill loop-it -g
-```
-
-Or clone the repo and run the bundled installer:
-
-```bash
-git clone https://github.com/fhajjej-ship-it/loop-it.git
-cd loop-it
-node ./bin/loop-it.mjs install --agent all --scope global
-```
-
-## Use it
-
-Codex:
+Codex example:
 
 ```text
-Use $loop-it to turn this flaky-test task into a bounded repair loop.
+Use $loop-it to fix the failing checkout test.
+
+Objective:
+Fix the regression without unrelated refactors.
+
+Success check:
+npm test -- checkout
+
+Iteration budget:
+3 passes maximum.
+
+Stop conditions:
+Stop when the test passes with regression coverage, the same failure repeats twice, or approval is needed.
 ```
 
 Claude Code:
@@ -67,7 +62,17 @@ Cursor:
 /loop-it design a performance loop for the slow dashboard route
 ```
 
-## Create a loop state file
+## What a good loop includes
+
+- Objective: the concrete outcome, not a theme.
+- Scope: repository, files, feature area, data source, or environment.
+- Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
+- Iteration cap: maximum passes or time budget.
+- Stop conditions: success, repeated failure, blocked access, unsafe action, or approval requirement.
+- Evidence: changed files, verification output, residual risk, and the next decision.
+- Approval gates: production writes, external messages, payments, destructive git operations, credentials, deploys, or irreversible data changes.
+
+## Create a durable loop file
 
 ```bash
 node ./bin/loop-it.mjs new \
@@ -78,6 +83,14 @@ node ./bin/loop-it.mjs new \
 ```
 
 This creates `.loop-it/LOOP.md` in the current directory.
+
+## What it includes
+
+- `skills/loop-it/SKILL.md`: the canonical portable skill.
+- `skills/loop-it/references/loop-template.md`: a durable loop state template.
+- `skills/loop-it/scripts/create-loop.mjs`: a zero-dependency loop contract generator.
+- `bin/loop-it.mjs`: installer and loop file helper.
+- `.codex-plugin/plugin.json`: Codex plugin metadata that points at the same skill.
 
 ## Version 1 boundaries
 
