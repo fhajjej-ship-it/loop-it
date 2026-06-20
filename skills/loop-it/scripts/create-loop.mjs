@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { findLoopById, loopDefaults } from "./select-loop.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -9,20 +10,34 @@ if (args.help || args.h) {
   process.exit(0);
 }
 
-const name = stringArg(args.name, "Working Loop");
-const objective = stringArg(args.objective, "<Concrete outcome>");
-const check = stringArg(args.check, "<Verification command or criterion>");
+const libraryLoop = args.from ? findLibraryLoop(args.from) : null;
+const defaults = libraryLoop ? loopDefaults(libraryLoop) : {};
+const name = stringArg(args.name, defaults.name ?? "Working Loop");
+const objective = stringArg(args.objective, defaults.objective ?? "<Concrete outcome>");
+const check = stringArg(args.check, defaults.check ?? "<Verification command or criterion>");
 const output = stringArg(args.output, ".loop-it/LOOP.md");
-const maxIterations = stringArg(args["max-iterations"], "5");
+const maxIterations = stringArg(args["max-iterations"], defaults.maxIterations ?? "5");
 const stop = stringArg(
   args.stop,
-  "success, exhausted iteration budget, repeated failure, blocked access, or approval required"
+  defaults.stop ?? "success, exhausted iteration budget, repeated failure, blocked access, or approval required"
 );
 const approval = stringArg(
   args.approval,
-  "production writes, external messages, destructive git operations, credentials, deploys, or irreversible data changes"
+  defaults.approval ??
+    "production writes, external messages, destructive git operations, credentials, deploys, or irreversible data changes"
 );
 const now = new Date().toISOString();
+const librarySection = libraryLoop
+  ? `
+## Library Source
+- Loop id: ${libraryLoop.id}
+- Category: ${libraryLoop.category}
+- Summary: ${libraryLoop.summary}
+
+## Recommended Questions
+${libraryLoop.questions.slice(0, 3).map((question) => `- ${question}`).join("\n")}
+`
+  : "";
 
 const content = `# ${name}
 
@@ -52,13 +67,10 @@ ${objective}
 
 ## Approval Gates
 - ${approval}
+${librarySection}
 
 ## Loop Body
-1. Inspect the smallest relevant context.
-2. Make one focused change or decision.
-3. Run the success check or the narrowest useful proxy.
-4. Record evidence and remaining risk.
-5. Continue only if the next pass has a clear expected improvement.
+${libraryLoop ? libraryLoop.body : "1. Inspect the smallest relevant context.\n2. Make one focused change or decision.\n3. Run the success check or the narrowest useful proxy.\n4. Record evidence and remaining risk.\n5. Continue only if the next pass has a clear expected improvement."}
 
 ## Stop Conditions
 - ${stop}
@@ -85,12 +97,22 @@ if (args.print) {
 }
 
 const target = resolve(process.cwd(), output);
+const progressTarget = resolve(dirname(target), "progress.json");
 if (existsSync(target) && !args.force) {
   fail(`${output} already exists. Re-run with --force to replace it.`);
 }
 
+if (!args["no-progress"] && existsSync(progressTarget) && !args.force) {
+  fail(`${progressTarget} already exists. Re-run with --force to replace it.`);
+}
+
 mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, content, "utf8");
+
+if (!args["no-progress"]) {
+  writeFileSync(progressTarget, JSON.stringify(progressState(), null, 2) + "\n", "utf8");
+}
+
 console.log(`Created ${output}`);
 
 function parseArgs(argv) {
@@ -102,7 +124,7 @@ function parseArgs(argv) {
     }
 
     const key = token.slice(2);
-    if (["force", "print", "help", "h"].includes(key)) {
+    if (["force", "print", "help", "h", "no-progress"].includes(key)) {
       parsed[key] = true;
       continue;
     }
@@ -124,11 +146,36 @@ function stringArg(value, fallback) {
   return value.trim();
 }
 
+function findLibraryLoop(id) {
+  const loop = findLoopById(id);
+  if (!loop) {
+    fail(`Unknown loop id: ${id}`);
+  }
+  return loop;
+}
+
+function progressState() {
+  return {
+    activeLoopId: libraryLoop?.id ?? null,
+    loopName: name,
+    status: "draft",
+    objective,
+    lastCheck: check,
+    lastResult: "not-run",
+    blockers: [],
+    remainingRisks: [],
+    recommendedNextAction: "Run the first loop iteration.",
+    updatedAt: now,
+  };
+}
+
 function printUsage() {
   console.log(`Usage:
   create-loop.mjs --name "Docs sweep" --objective "Update stale docs" --check "npm test"
+  create-loop.mjs --from failing-ci-repair
 
 Options:
+  --from <loop-id>          Use a loop from the bundled library
   --name <text>             Loop title
   --objective <text>        Concrete outcome
   --check <text>            Verification command or criterion
@@ -137,6 +184,7 @@ Options:
   --approval <text>         Approval gates
   --output <path>           Output file, default .loop-it/LOOP.md
   --print                   Print markdown instead of writing a file
+  --no-progress             Do not write progress.json beside the loop file
   --force                   Replace an existing output file`);
 }
 

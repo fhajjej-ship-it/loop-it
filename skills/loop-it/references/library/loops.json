@@ -1,0 +1,509 @@
+{
+  "version": "1",
+  "loops": [
+    {
+      "id": "ticket-to-verified-fix",
+      "title": "Ticket to verified fix",
+      "category": "engineering",
+      "summary": "Turn a bug report or small defect into the smallest patch with proof.",
+      "aliases": ["bug", "defect", "ticket", "regression", "customer issue", "broken behavior"],
+      "bestFor": [
+        "A concrete behavior is wrong or failing.",
+        "The expected behavior is known.",
+        "A focused test or reproduction can prove the fix."
+      ],
+      "avoidWhen": [
+        "The product decision is still unresolved.",
+        "The requested change is a broad refactor without a failing behavior."
+      ],
+      "defaultObjective": "Fix the reported behavior without unrelated refactors.",
+      "defaultCheck": "Run the original reproduction and the narrowest relevant regression check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The reproduction and regression check pass.",
+        "The issue cannot be reproduced after two serious attempts.",
+        "The next step requires product clarification or access approval."
+      ],
+      "approvalGates": [
+        "destructive git operations",
+        "production writes",
+        "credentials",
+        "deploys"
+      ],
+      "questions": [
+        "What exact behavior is wrong?",
+        "What command, test, or click path proves the bug?",
+        "What changed most recently around this area?"
+      ],
+      "body": "Reproduce the issue, identify the smallest root cause, patch it, add or update regression coverage when practical, rerun the reproduction and relevant checks, then decide whether another pass is justified.",
+      "progressSignals": {
+        "keywords": ["bug", "broken", "regression", "repro", "reproduce", "failing test", "customer issue"]
+      }
+    },
+    {
+      "id": "failing-ci-repair",
+      "title": "Failing CI repair",
+      "category": "engineering",
+      "summary": "Repair a failing build, lint, type-check, or test job with the smallest verified change.",
+      "aliases": ["ci", "build failed", "checks failed", "lint failed", "typecheck failed", "test failed"],
+      "bestFor": [
+        "A specific CI job or local command is failing.",
+        "Logs or failure output are available.",
+        "The goal is to get checks green without broad cleanup."
+      ],
+      "avoidWhen": [
+        "There is no failure output or command to inspect.",
+        "The failure depends on missing secrets or production-only access."
+      ],
+      "defaultObjective": "Fix the failing check with the smallest safe change.",
+      "defaultCheck": "Run the failing command locally or the closest available equivalent.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The failing check passes.",
+        "The same failure repeats twice without new evidence.",
+        "The check requires unavailable secrets, services, or approval."
+      ],
+      "approvalGates": [
+        "credential changes",
+        "CI secret changes",
+        "destructive git operations",
+        "deploys"
+      ],
+      "questions": [
+        "Which CI job or command is failing?",
+        "What is the most relevant failure output?",
+        "Did the failure start after a specific commit or dependency change?"
+      ],
+      "body": "Read the failing output first, reproduce locally when practical, isolate the smallest failing surface, patch the root cause, rerun the failing command, then broaden verification only after the narrow check passes.",
+      "progressSignals": {
+        "keywords": ["ci", "build", "lint", "eslint", "typecheck", "tsc", "test failed", "red check", "workflow"]
+      }
+    },
+    {
+      "id": "docs-sweep",
+      "title": "Documentation sweep",
+      "category": "content",
+      "summary": "Find and fix stale setup, API, command, or workflow documentation.",
+      "aliases": ["docs", "documentation", "readme", "guide", "instructions", "stale docs"],
+      "bestFor": [
+        "Docs may not match the current implementation.",
+        "Install, usage, or release steps need verification.",
+        "The work can be scoped to a small doc surface."
+      ],
+      "avoidWhen": [
+        "The implementation itself is still changing rapidly.",
+        "The requested output is marketing copy with no implementation reference."
+      ],
+      "defaultObjective": "Update stale documentation for the current codebase.",
+      "defaultCheck": "Verify changed commands, links, examples, and referenced file paths.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "No material mismatch remains in the selected scope.",
+        "Verification is blocked by missing access or external services.",
+        "The iteration budget is reached."
+      ],
+      "approvalGates": [
+        "publishing docs externally",
+        "deleting existing docs",
+        "changing public API promises"
+      ],
+      "questions": [
+        "Which docs or workflow feel stale?",
+        "What command or behavior should the docs match?",
+        "Is this for users, maintainers, or reviewers?"
+      ],
+      "body": "Compare the selected docs to the actual code and package behavior, update the highest-impact mismatch, verify examples or links where practical, then rescan for the next mismatch.",
+      "progressSignals": {
+        "keywords": ["docs", "readme", "install", "example", "guide", "stale", "copy", "release notes"]
+      }
+    },
+    {
+      "id": "review-repair",
+      "title": "Review repair",
+      "category": "operations",
+      "summary": "Address blocking review findings until the diff is ready to ship.",
+      "aliases": ["review", "code review", "pr comments", "feedback", "hardening", "readiness"],
+      "bestFor": [
+        "There is a diff, PR, or reviewer feedback to address.",
+        "Findings can be ordered by severity.",
+        "Relevant checks can be rerun after each repair."
+      ],
+      "avoidWhen": [
+        "There is no concrete diff or finding.",
+        "The requested change is a redesign rather than repair."
+      ],
+      "defaultObjective": "Fix blocking review findings and prove the diff is ready for review.",
+      "defaultCheck": "Run the narrowest checks covering the repaired findings.",
+      "maxIterations": 4,
+      "stopConditions": [
+        "Only accepted low-risk findings remain.",
+        "Verification is blocked.",
+        "A finding requires product or security approval."
+      ],
+      "approvalGates": [
+        "scope expansion",
+        "security-sensitive changes",
+        "destructive git operations",
+        "deploys"
+      ],
+      "questions": [
+        "Where is the diff or reviewer feedback?",
+        "Which finding blocks shipping?",
+        "What check should prove the repair?"
+      ],
+      "body": "Review the diff for correctness, tests, security, UX, and maintainability risks; fix the highest-severity actionable finding; rerun relevant checks; repeat until no blocking findings remain.",
+      "progressSignals": {
+        "keywords": ["review", "pr", "pull request", "feedback", "comment", "finding", "blocking"]
+      }
+    },
+    {
+      "id": "release-readiness",
+      "title": "Release readiness",
+      "category": "operations",
+      "summary": "Prepare a package, app, or feature for a public release with evidence.",
+      "aliases": ["release", "publish", "npm", "tag", "changelog", "ship", "launch"],
+      "bestFor": [
+        "The feature is implemented and needs final packaging.",
+        "Release notes, versioning, and install checks matter.",
+        "The user needs a clear go/no-go answer."
+      ],
+      "avoidWhen": [
+        "Core implementation is still incomplete.",
+        "Publishing requires credentials or external approval not yet granted."
+      ],
+      "defaultObjective": "Prepare the current change for release and prove the public install or usage path works.",
+      "defaultCheck": "Run package checks, dry-run publish or build, and a fresh install or production smoke.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Release verification passes.",
+        "Publishing needs explicit approval.",
+        "A blocking package, build, or deployment failure remains."
+      ],
+      "approvalGates": [
+        "npm publish",
+        "GitHub release creation",
+        "production deploy",
+        "version tag push"
+      ],
+      "questions": [
+        "What artifact is being released?",
+        "What install or usage path must work for a new user?",
+        "Do you want publish/deploy actions performed or only prepared?"
+      ],
+      "body": "Check versioning and public docs, run the package or app verification gate, dry-run the release path, perform approved publishing steps, then verify from a fresh environment or production URL.",
+      "progressSignals": {
+        "keywords": ["release", "publish", "npm", "tag", "version", "changelog", "deploy", "production", "launch"]
+      }
+    },
+    {
+      "id": "fresh-setup",
+      "title": "Fresh setup",
+      "category": "engineering",
+      "summary": "Validate a clean checkout or clean project setup and repair hidden assumptions.",
+      "aliases": ["setup", "install", "onboarding", "clean checkout", "bootstrap", "getting started"],
+      "bestFor": [
+        "A new user or agent must install and run the project.",
+        "Setup docs may hide missing prerequisites.",
+        "The work should expose first-run failures."
+      ],
+      "avoidWhen": [
+        "The environment requires private credentials that cannot be mocked.",
+        "The goal is feature work unrelated to setup."
+      ],
+      "defaultObjective": "Prove a fresh project setup works from the documented instructions.",
+      "defaultCheck": "Run the documented install and first verification command from a clean directory.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Fresh setup succeeds.",
+        "A required private dependency or credential blocks verification.",
+        "The same setup failure repeats after a documented repair."
+      ],
+      "approvalGates": [
+        "installing global tools",
+        "writing outside the project",
+        "changing secrets",
+        "deleting user files"
+      ],
+      "questions": [
+        "Which setup path should a new user follow?",
+        "What command proves setup is complete?",
+        "Can private services be mocked or skipped?"
+      ],
+      "body": "Start from a clean directory, follow the documented setup, record the first failure, fix the smallest missing assumption in docs or code, then retry cleanly.",
+      "progressSignals": {
+        "keywords": ["setup", "install", "bootstrap", "clean", "first run", "onboarding", "getting started"]
+      }
+    },
+    {
+      "id": "test-coverage-gap",
+      "title": "Test coverage gap",
+      "category": "evaluation",
+      "summary": "Add focused tests around risky behavior without broad test churn.",
+      "aliases": ["coverage", "tests", "regression test", "missing test", "test gap"],
+      "bestFor": [
+        "A behavior is important but poorly covered.",
+        "A recent fix needs regression coverage.",
+        "The target test layer is known."
+      ],
+      "avoidWhen": [
+        "The desired behavior is not defined.",
+        "The test suite is too unstable to trust."
+      ],
+      "defaultObjective": "Add focused coverage for the risky behavior without unrelated rewrites.",
+      "defaultCheck": "Run the new or changed tests and the narrowest related suite.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The target behavior is covered and checks pass.",
+        "The behavior needs product clarification.",
+        "The same test infrastructure failure repeats."
+      ],
+      "approvalGates": [
+        "large fixture rewrites",
+        "deleting existing tests",
+        "changing product behavior only to satisfy tests"
+      ],
+      "questions": [
+        "Which behavior is under-tested?",
+        "Which test layer should cover it?",
+        "What failure would the test catch?"
+      ],
+      "body": "Identify the smallest behavior contract, add a focused test that would fail without the intended behavior, run the narrow test, then broaden only if the change touches shared behavior.",
+      "progressSignals": {
+        "keywords": ["coverage", "test", "regression", "missing test", "untested", "spec"]
+      }
+    },
+    {
+      "id": "ux-polish",
+      "title": "UX polish",
+      "category": "product",
+      "summary": "Improve a specific user flow for clarity, responsiveness, and accessibility.",
+      "aliases": ["ux", "ui", "polish", "copy", "mobile", "accessibility", "flow"],
+      "bestFor": [
+        "The screen exists but users may not understand what to do.",
+        "A specific page or flow needs clearer hierarchy.",
+        "Responsiveness or accessibility can be checked."
+      ],
+      "avoidWhen": [
+        "The product goal is not defined.",
+        "The request is purely decorative without a user action."
+      ],
+      "defaultObjective": "Make the selected flow easier to understand and complete without adding unnecessary scope.",
+      "defaultCheck": "Run the relevant UI smoke test or manually verify desktop and mobile states.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The primary user action is clear and verified.",
+        "Further changes are subjective without user feedback.",
+        "The next improvement requires a product decision."
+      ],
+      "approvalGates": [
+        "major layout rewrites",
+        "brand direction changes",
+        "removing existing product functionality"
+      ],
+      "questions": [
+        "What is the one user action this flow must make easier?",
+        "Which screen or viewport is confusing?",
+        "How should we verify the improvement?"
+      ],
+      "body": "Identify the primary user action, remove or rewrite confusing UI, verify key states and responsive behavior, then stop when the flow is understandable without extra explanation.",
+      "progressSignals": {
+        "keywords": ["ux", "ui", "copy", "mobile", "responsive", "accessibility", "confusing", "page"]
+      }
+    },
+    {
+      "id": "performance-measurement",
+      "title": "Performance measurement",
+      "category": "engineering",
+      "summary": "Improve speed, memory, bundle size, or latency using before-and-after evidence.",
+      "aliases": ["performance", "latency", "speed", "slow", "bundle", "memory", "benchmark"],
+      "bestFor": [
+        "There is a measurable target or known slow path.",
+        "A baseline can be captured before changes.",
+        "Correctness checks can run after optimization."
+      ],
+      "avoidWhen": [
+        "No reliable measurement exists.",
+        "The proposed change sacrifices correctness or UX without proof."
+      ],
+      "defaultObjective": "Improve the measured bottleneck while preserving behavior.",
+      "defaultCheck": "Record a baseline, rerun the same measurement, and run the relevant correctness check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The target threshold is met.",
+        "Measurement is unreliable.",
+        "Changes stop producing meaningful improvement."
+      ],
+      "approvalGates": [
+        "architecture rewrites",
+        "caching that changes freshness semantics",
+        "infrastructure changes"
+      ],
+      "questions": [
+        "What metric should improve?",
+        "How do we measure the baseline?",
+        "What correctness check must still pass?"
+      ],
+      "body": "Capture a baseline, make one focused optimization, remeasure under the same conditions, keep only proven wins, then target the next bottleneck if another pass is justified.",
+      "progressSignals": {
+        "keywords": ["performance", "slow", "latency", "speed", "bundle", "memory", "benchmark", "optimize"]
+      }
+    },
+    {
+      "id": "dependency-upgrade",
+      "title": "Dependency upgrade",
+      "category": "engineering",
+      "summary": "Upgrade one dependency or toolchain surface with compatibility proof.",
+      "aliases": ["upgrade", "dependency", "package", "version", "migration", "breaking change"],
+      "bestFor": [
+        "One dependency or small dependency group needs upgrading.",
+        "Release notes or migration notes are known.",
+        "Compatibility can be verified with existing checks."
+      ],
+      "avoidWhen": [
+        "The upgrade spans many unrelated packages.",
+        "The package is security-sensitive and lacks a rollback plan."
+      ],
+      "defaultObjective": "Upgrade the selected dependency with the smallest compatibility patch.",
+      "defaultCheck": "Run install, type-check, tests, and the narrow feature smoke covering the dependency.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The upgrade passes compatibility checks.",
+        "A breaking change requires design approval.",
+        "The dependency introduces unacceptable risk."
+      ],
+      "approvalGates": [
+        "major version upgrades",
+        "lockfile-wide churn",
+        "security-sensitive dependencies",
+        "production deploys"
+      ],
+      "questions": [
+        "Which dependency should be upgraded?",
+        "Is this a patch, minor, or major upgrade?",
+        "What feature or check proves compatibility?"
+      ],
+      "body": "Upgrade the smallest dependency surface, inspect migration notes when needed, repair compatibility issues, run focused checks, and stop before broad lockfile churn.",
+      "progressSignals": {
+        "keywords": ["upgrade", "dependency", "package", "npm", "version", "migration", "lockfile"]
+      }
+    },
+    {
+      "id": "security-hardening",
+      "title": "Security hardening",
+      "category": "security",
+      "summary": "Reduce a concrete security risk with scoped evidence and approval gates.",
+      "aliases": ["security", "vulnerability", "secret", "auth", "authorization", "xss", "csrf"],
+      "bestFor": [
+        "A specific security concern or finding exists.",
+        "The affected boundary can be scoped.",
+        "A test, review, or config check can prove the fix."
+      ],
+      "avoidWhen": [
+        "The request is a broad audit with no target.",
+        "The fix would require secret rotation or production changes without approval."
+      ],
+      "defaultObjective": "Fix the concrete security risk without unrelated refactors.",
+      "defaultCheck": "Run the relevant security, auth, validation, or regression check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The security finding is addressed with evidence.",
+        "The next step requires credentials, production access, or policy approval.",
+        "The risk cannot be reproduced from available context."
+      ],
+      "approvalGates": [
+        "secret rotation",
+        "permission changes",
+        "production data access",
+        "external disclosure",
+        "deploys"
+      ],
+      "questions": [
+        "What specific risk or finding should be fixed?",
+        "Where is the trust boundary?",
+        "What check or review proves the risk is reduced?"
+      ],
+      "body": "Scope the trust boundary, reproduce or reason about the risk, patch the smallest risky path, add validation or regression coverage when practical, and document residual risk.",
+      "progressSignals": {
+        "keywords": ["security", "vulnerability", "secret", "auth", "authorization", "xss", "csrf", "permission"]
+      }
+    },
+    {
+      "id": "refactor-containment",
+      "title": "Refactor containment",
+      "category": "engineering",
+      "summary": "Refactor a narrow area while proving behavior stays the same.",
+      "aliases": ["refactor", "cleanup", "simplify", "architecture", "duplication", "maintainability"],
+      "bestFor": [
+        "The behavior should stay the same.",
+        "The scope can be limited to one module or boundary.",
+        "Tests or snapshots can prove no regression."
+      ],
+      "avoidWhen": [
+        "The refactor is mixed with feature work.",
+        "There is no behavior-preserving verification path."
+      ],
+      "defaultObjective": "Improve the selected code structure without changing behavior.",
+      "defaultCheck": "Run the narrowest tests or build checks covering the refactored boundary.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Behavior-preserving checks pass.",
+        "The refactor starts expanding beyond the selected boundary.",
+        "Verification is insufficient to prove safety."
+      ],
+      "approvalGates": [
+        "public API renames",
+        "database schema changes",
+        "large file moves",
+        "broad architectural rewrites"
+      ],
+      "questions": [
+        "Which module or boundary should be improved?",
+        "What behavior must not change?",
+        "Which checks prove safety?"
+      ],
+      "body": "Define the behavior-preserving boundary, make one structural improvement, rerun focused checks, and stop before the refactor expands into feature work.",
+      "progressSignals": {
+        "keywords": ["refactor", "cleanup", "simplify", "duplication", "architecture", "maintainability"]
+      }
+    },
+    {
+      "id": "product-evaluation",
+      "title": "Product evaluation",
+      "category": "evaluation",
+      "summary": "Run realistic scenarios, repair misses, and prove the flow meets a quality bar.",
+      "aliases": ["evaluation", "eval", "scenario", "quality", "acceptance", "manual qa"],
+      "bestFor": [
+        "A feature works but quality is uncertain.",
+        "Realistic scenarios can be defined.",
+        "Pass/fail criteria can be written before fixes."
+      ],
+      "avoidWhen": [
+        "The product goal is still unknown.",
+        "The scenario needs unavailable users or production data."
+      ],
+      "defaultObjective": "Prove the core user flow across realistic scenarios.",
+      "defaultCheck": "Run the defined scenarios and record pass/fail evidence.",
+      "maxIterations": 4,
+      "stopConditions": [
+        "All scenarios pass.",
+        "The quality bar needs human judgment.",
+        "Repeated failures indicate the product needs redesign."
+      ],
+      "approvalGates": [
+        "changing product requirements",
+        "using real customer data",
+        "external user messaging",
+        "deploys"
+      ],
+      "questions": [
+        "Which user flow should be evaluated?",
+        "What scenarios represent real use?",
+        "What pass/fail criteria matter?"
+      ],
+      "body": "Define realistic scenarios and criteria, run them consistently, fix underlying causes of failures, rerun affected scenarios, and periodically rerun the full set.",
+      "progressSignals": {
+        "keywords": ["evaluation", "eval", "scenario", "quality", "qa", "acceptance", "user flow"]
+      }
+    }
+  ]
+}

@@ -59,3 +59,19 @@ node ./bin/loop-it.mjs new \
   --check "npm run check" \
   --max-iterations 3
 ```
+
+## Find a loop from the library
+
+```bash
+node ./bin/loop-it.mjs library search "failing ci"
+node ./bin/loop-it.mjs recommend --goal "fix failing checkout test"
+node ./bin/loop-it.mjs new --from failing-ci-repair
+```
+
+## Recommend the next loop from progress
+
+```bash
+node ./bin/loop-it.mjs next --cwd .
+```
+
+`next` reads `.loop-it/progress.json` first, then falls back to `.loop-it/LOOP.md`.
