@@ -1,0 +1,5 @@
+.DS_Store
+Loop it Logos/
+node_modules/
+npm-debug.log*
+dist/

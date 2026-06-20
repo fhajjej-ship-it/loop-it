@@ -1,0 +1,7 @@
+interface:
+  display_name: "Loop it"
+  short_description: "Design bounded agent loops"
+  icon_small: "./assets/loop-it-logo-black.svg"
+  icon_large: "./assets/loop-it-logo-black.svg"
+  brand_color: "#111111"
+  default_prompt: "Use $loop-it to turn this task into a bounded coding loop."

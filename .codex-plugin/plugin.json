@@ -1,0 +1,39 @@
+{
+  "name": "loop-it",
+  "version": "0.1.0",
+  "description": "Set bounded, verifiable coding loops for AI agents.",
+  "author": {
+    "name": "Loop it",
+    "url": "https://github.com/fhajjej-ship-it/loop-it"
+  },
+  "homepage": "https://github.com/fhajjej-ship-it/loop-it#readme",
+  "repository": "https://github.com/fhajjej-ship-it/loop-it",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "loop",
+    "workflow",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Loop it",
+    "shortDescription": "Set bounded coding loops for agents.",
+    "longDescription": "Loop it packages a portable Agent Skill that helps Codex turn open-ended coding work into bounded, verifiable loops with explicit checks, budgets, stop conditions, approval gates, and evidence logs.",
+    "developerName": "Loop it",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use $loop-it to create a verified bug-fix loop.",
+      "Use $loop-it to design a docs sweep loop.",
+      "Use $loop-it to run one bounded repair pass."
+    ],
+    "brandColor": "#111111",
+    "composerIcon": "./skills/loop-it/assets/loop-it-logo-black.svg",
+    "logo": "./skills/loop-it/assets/loop-it-logo-black.svg"
+  }
+}

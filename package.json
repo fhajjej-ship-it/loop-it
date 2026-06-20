@@ -1,0 +1,36 @@
+{
+  "name": "loop-it",
+  "version": "0.1.0",
+  "description": "Portable Agent Skill for setting bounded coding loops in Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
+  "type": "module",
+  "homepage": "https://github.com/fhajjej-ship-it/loop-it#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fhajjej-ship-it/loop-it.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fhajjej-ship-it/loop-it/issues"
+  },
+  "bin": {
+    "loop-it": "./bin/loop-it.mjs"
+  },
+  "files": [
+    ".codex-plugin",
+    "bin",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node -e \"JSON.parse(require('fs').readFileSync('.codex-plugin/plugin.json', 'utf8'))\""
+  },
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "claude-code",
+    "cursor",
+    "ai-agents",
+    "developer-workflow"
+  ],
+  "license": "MIT"
+}
