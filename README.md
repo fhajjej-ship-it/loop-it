@@ -102,6 +102,24 @@ node ./bin/loop-it.mjs new --from failing-ci-repair
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
 
+The bundled catalog currently includes 13 local-first loops:
+
+| Loop | Category | Best for |
+| --- | --- | --- |
+| `ticket-to-verified-fix` | engineering | Turn a bug report or small defect into the smallest patch with proof. |
+| `failing-ci-repair` | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
+| `docs-sweep` | content | Find and fix stale setup, API, command, or workflow documentation. |
+| `review-repair` | operations | Address blocking review findings until the diff is ready to ship. |
+| `release-readiness` | operations | Prepare a package, app, or feature for a public release with evidence. |
+| `fresh-setup` | engineering | Validate a clean checkout or clean project setup and repair hidden assumptions. |
+| `test-coverage-gap` | evaluation | Add focused tests around risky behavior without broad test churn. |
+| `ux-polish` | product | Improve a specific user flow for clarity, responsiveness, and accessibility. |
+| `performance-measurement` | engineering | Improve speed, memory, bundle size, or latency using before-and-after evidence. |
+| `dependency-upgrade` | engineering | Upgrade one dependency or toolchain surface with compatibility proof. |
+| `security-hardening` | security | Reduce a concrete security risk with scoped evidence and approval gates. |
+| `refactor-containment` | engineering | Refactor a narrow area while proving behavior stays the same. |
+| `product-evaluation` | evaluation | Run realistic scenarios, repair misses, and prove the flow meets a quality bar. |
+
 ## Good Loop Contract
 
 Every useful loop needs:
