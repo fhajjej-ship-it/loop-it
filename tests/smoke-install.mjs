@@ -90,6 +90,49 @@ function smokeLibrarySelection() {
   if (next.selected?.loop?.id !== "release-readiness") {
     fail("Expected next to continue the active release-readiness loop");
   }
+
+  const blockedProjectDir = resolve(tempRoot, "next-from-blocked-progress");
+  writeProgress(blockedProjectDir, {
+    activeLoopId: "failing-ci-repair",
+    loopName: "Failing CI repair",
+    status: "blocked",
+    objective: "Fix the failing checkout test",
+    lastCheck: "npm test -- checkout",
+    lastResult: "blocked",
+    blockers: ["Need regression coverage before more code changes"],
+    remainingRisks: ["Checkout edge case lacks focused tests"],
+    recommendedNextAction: "Add focused test coverage around the checkout regression",
+  });
+  const blockedNext = JSON.parse(run(nodeBin, [cliPath, "next", "--cwd", blockedProjectDir, "--json"]).stdout);
+  if (blockedNext.selected?.loop?.id !== "test-coverage-gap") {
+    fail("Expected blocked progress to recommend test-coverage-gap");
+  }
+  if (blockedNext.selected?.loop?.id === "failing-ci-repair") {
+    fail("Expected blocked progress not to continue the blocked active loop");
+  }
+  if (blockedNext.workflow?.create !== "loop-it new --from test-coverage-gap") {
+    fail("Expected blocked progress recommendation to include the next loop workflow");
+  }
+
+  const completedProjectDir = resolve(tempRoot, "next-from-completed-progress");
+  writeProgress(completedProjectDir, {
+    activeLoopId: "release-readiness",
+    loopName: "Release readiness",
+    status: "completed",
+    objective: "Prepare package release",
+    lastCheck: "npm run check",
+    lastResult: "pass",
+    blockers: [],
+    remainingRisks: ["Setup docs may be stale after release"],
+    recommendedNextAction: "Run a docs sweep for setup commands and examples",
+  });
+  const completedNext = JSON.parse(run(nodeBin, [cliPath, "next", "--cwd", completedProjectDir, "--json"]).stdout);
+  if (completedNext.selected?.loop?.id !== "docs-sweep") {
+    fail("Expected completed progress to recommend docs-sweep");
+  }
+  if (completedNext.selected?.loop?.id === "release-readiness") {
+    fail("Expected completed progress not to continue the completed active loop");
+  }
 }
 
 function smokeLoopFileCreation() {
@@ -217,6 +260,12 @@ function assertFile(path) {
   if (!existsSync(path)) {
     fail(`Expected file to exist: ${path}`);
   }
+}
+
+function writeProgress(projectDir, progress) {
+  const loopDir = resolve(projectDir, ".loop-it");
+  mkdirSync(loopDir, { recursive: true });
+  writeFileSync(resolve(loopDir, "progress.json"), JSON.stringify(progress, null, 2));
 }
 
 function fail(message) {
