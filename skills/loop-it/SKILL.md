@@ -92,6 +92,17 @@ node <skill-dir>/scripts/create-loop.mjs --from failing-ci-repair
 
 Library-backed loop files also create `.loop-it/progress.json` unless `--no-progress` is passed.
 
+## Host Goal Behavior
+
+Loop It is portable loop state first. Native host automation is optional.
+
+- **Codex**: If the current Codex host exposes a goal/task capability and the user explicitly asks to set a Codex goal, start the native Codex goal using the selected loop objective, success check, stop conditions, and evidence requirements. Also create or update `.loop-it/LOOP.md` and `.loop-it/progress.json` when durable project state is useful.
+- **Codex fallback**: If no native goal capability is available, do not claim that a Codex Goal was started. Create the portable loop files and tell the user to run the loop with `$loop-it`.
+- **Claude Code**: Claude Code does not have Codex Goals. Create or update `.loop-it/LOOP.md` and `.loop-it/progress.json`, then run one bounded terminal-first pass with `/loop-it`.
+- **Cursor**: Cursor does not have Codex Goals. Create or update `.loop-it/LOOP.md` and `.loop-it/progress.json`, then run one bounded Agent-chat pass with `/loop-it` or a direct loop request.
+
+Never describe portable `.loop-it` state as a native Codex Goal. Say which mechanism was used: native Codex goal, portable loop files, or both.
+
 ## Run The Loop
 
 For each iteration:
