@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- Workflow guidance in loop recommendations so users can choose, create, track, and ask for the next loop from one CLI response.
+- Evidence tracking and next-loop instructions in generated `.loop-it/LOOP.md` and `progress.json` files.
+- Regression smoke coverage for terminal progress states so completed or blocked loops recommend a next loop instead of continuing the old active loop.
+
 ## 0.2.0
 
 ### Added
