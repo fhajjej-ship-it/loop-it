@@ -1,6 +1,6 @@
 {
   "name": "loop-it",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Find and run bounded, verifiable coding loops for AI agents.",
   "author": {
     "name": "Loop it",

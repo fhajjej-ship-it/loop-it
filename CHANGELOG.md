@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+### Changed
+
+- Documented Codex Goal behavior separately from portable `.loop-it` state, including fallback behavior when a native Codex goal tool is unavailable.
+- Clarified that Claude Code and Cursor use portable loop files rather than Codex Goals.
+- Aligned Codex, Claude Code, and Cursor plugin metadata versions with the package release.
+
 ## 0.2.1
 
 ### Added
