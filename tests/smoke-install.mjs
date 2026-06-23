@@ -138,7 +138,7 @@ function smokeLibrarySelection() {
 function smokeLoopFileCreation() {
   const projectDir = resolve(tempRoot, "loop-file");
   mkdirSync(projectDir, { recursive: true });
-  run(nodeBin, [
+  const created = run(nodeBin, [
     cliPath,
     "new",
     "--name",
@@ -150,6 +150,11 @@ function smokeLoopFileCreation() {
     "--max-iterations",
     "3",
   ], { cwd: projectDir });
+  for (const text of ["Created .loop-it/LOOP.md", "Created .loop-it/progress.json"]) {
+    if (!created.stdout.includes(text)) {
+      fail(`Expected loop creation output to include ${JSON.stringify(text)}`);
+    }
+  }
 
   const loopFile = resolve(projectDir, ".loop-it", "LOOP.md");
   const progressFile = resolve(projectDir, ".loop-it", "progress.json");

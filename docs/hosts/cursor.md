@@ -3,7 +3,7 @@
 Install Loop it into a project:
 
 ```bash
-node ./bin/loop-it.mjs install --agent cursor --scope project
+npx @fhajjej/loop-it@latest install --agent cursor --scope project
 ```
 
 This creates:
@@ -11,6 +11,8 @@ This creates:
 ```text
 .cursor/skills/loop-it/SKILL.md
 ```
+
+Run the command from the project root, or pass `--cwd /real/path/to/your-project`.
 
 Invoke it in Cursor Agent chat:
 

@@ -31,10 +31,18 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 
 ## Quickstart
 
+Run the install command from the project where you want Loop it available:
+
 Current public install:
 
 ```bash
 npx @fhajjej/loop-it@latest install --agent all --scope project
+```
+
+If you are following an example that says `cd /path/to/your-project`, replace that placeholder with a real project folder on your machine. You can also stay anywhere and pass the project explicitly:
+
+```bash
+npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /real/path/to/your-project
 ```
 
 GitHub install:
@@ -56,7 +64,7 @@ That copies the skill into:
 For a global install:
 
 ```bash
-node ./bin/loop-it.mjs install --agent all --scope global
+npx @fhajjej/loop-it@latest install --agent all --scope global
 ```
 
 See [docs/install.md](docs/install.md) for host paths, global install notes, and verification steps.
@@ -105,16 +113,16 @@ More examples: [docs/examples.md](docs/examples.md).
 Find the right loop before writing the prompt:
 
 ```bash
-node ./bin/loop-it.mjs library list
-node ./bin/loop-it.mjs library search "failing ci"
-node ./bin/loop-it.mjs recommend --goal "fix failing checkout test"
-node ./bin/loop-it.mjs next --cwd .
+npx @fhajjej/loop-it@latest library list
+npx @fhajjej/loop-it@latest library search "failing ci"
+npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
+npx @fhajjej/loop-it@latest next --cwd .
 ```
 
 Create a loop from the bundled library:
 
 ```bash
-node ./bin/loop-it.mjs new --from failing-ci-repair
+npx @fhajjej/loop-it@latest new --from failing-ci-repair
 ```
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
@@ -152,7 +160,7 @@ Every useful loop needs:
 Create a durable loop file:
 
 ```bash
-node ./bin/loop-it.mjs new \
+npx @fhajjej/loop-it@latest new \
   --name "Docs sweep" \
   --objective "Find and update stale setup documentation" \
   --check "run the documented setup commands from a clean checkout" \

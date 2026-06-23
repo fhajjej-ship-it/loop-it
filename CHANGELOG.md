@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+### Changed
+
+- Clarified public npm install commands for first-time Codex, Claude Code, and Cursor setup.
+- Made loop creation output list both `.loop-it/LOOP.md` and `.loop-it/progress.json` when progress tracking is enabled.
+
 ## 0.2.2
 
 ### Changed

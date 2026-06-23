@@ -112,6 +112,7 @@ if (args.print) {
 
 const target = resolve(process.cwd(), output);
 const progressTarget = resolve(dirname(target), "progress.json");
+const progressOutput = `${dirname(output)}/progress.json`;
 if (existsSync(target) && !args.force) {
   fail(`${output} already exists. Re-run with --force to replace it.`);
 }
@@ -128,6 +129,9 @@ if (!args["no-progress"]) {
 }
 
 console.log(`Created ${output}`);
+if (!args["no-progress"]) {
+  console.log(`Created ${progressOutput}`);
+}
 
 function parseArgs(argv) {
   const parsed = {};
