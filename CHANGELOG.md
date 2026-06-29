@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- Added `loop-it write` as the product-facing loop authoring command for writing verifier-gated loop contracts.
+- Added `loop-it start` to compile a goal, verifier gate, iteration cap, stop conditions, approval gates, durable loop state, and host-specific launch prompt.
+- Added `.loop-it/LAUNCH.md` generation for Codex, Claude Code, and Cursor.
+- Added smoke coverage for loop writing, launcher output, required verifier validation, and packed-tarball launcher execution.
+
+### Changed
+
+- Repositioned Loop it around writing loops, choosing from the loop library, and launching verifier-gated loops.
+- Updated host docs to use native `/goal` launch prompts for Codex and Claude Code finish-line work, with portable state fallback where needed.
+
 ## 0.2.3
 
 ### Changed

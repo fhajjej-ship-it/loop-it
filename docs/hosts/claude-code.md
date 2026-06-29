@@ -20,11 +20,20 @@ Invoke it in Claude Code:
 /loop-it create a docs sweep loop for this repository
 ```
 
-Goal behavior:
+Generate a Claude Code launch prompt:
 
-- Claude Code does not have Codex Goals.
-- Loop it creates portable `.loop-it/LOOP.md` and `.loop-it/progress.json` files when durable state is useful.
-- Use those files as the shared loop contract across Claude Code, Codex, Cursor, and other `SKILL.md`-compatible agents.
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --agent claude
+```
+
+Claude Code launch behavior:
+
+- For finish-line work, Loop it generates a `/goal` prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
+- It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
+- Use Claude Code `/loop` for polling or interval work. Use `/goal` when the task has a verifier and a finish line.
 
 Recommended Claude Code use:
 

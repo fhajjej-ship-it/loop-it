@@ -2,6 +2,29 @@
 
 Use these prompts after installing Loop it.
 
+## Write a verifier-gated loop
+
+```bash
+npx @fhajjej/loop-it@latest write \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --max-iterations 5
+```
+
+This writes `.loop-it/LOOP.md` and `.loop-it/progress.json`.
+
+## Start a verifier-gated loop
+
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --max-iterations 5 \
+  --agent all
+```
+
+Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required.
+
 ## End-to-end library flow
 
 ```bash
@@ -73,6 +96,21 @@ node ./bin/loop-it.mjs new \
   --objective "Prepare the repo for a public release" \
   --check "npm run check" \
   --max-iterations 3
+```
+
+## Launch from a library loop
+
+```bash
+node ./bin/loop-it.mjs write \
+  --from failing-ci-repair \
+  --goal "Fix the failing CI job with the smallest safe change" \
+  --check "npm run check"
+
+node ./bin/loop-it.mjs start \
+  --from failing-ci-repair \
+  --goal "Fix the failing CI job with the smallest safe change" \
+  --check "npm run check" \
+  --agent codex
 ```
 
 ## Find a loop from the library

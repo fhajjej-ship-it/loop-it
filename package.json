@@ -1,7 +1,7 @@
 {
   "name": "@fhajjej/loop-it",
-  "version": "0.2.3",
-  "description": "Portable loop library and Agent Skill for finding, recommending, and running bounded coding loops in Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
+  "version": "0.3.0",
+  "description": "Portable loop writer, library, launcher, and Agent Skill for writing, choosing, and launching verifier-gated coding loops for Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
   "type": "module",
   "author": {
     "name": "Loop it",
@@ -37,7 +37,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check tests/smoke-install.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && npm run smoke && npm pack --dry-run",
+    "test": "node tests/smoke-install.mjs",
+    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check skills/loop-it/scripts/start-loop.mjs && node --check tests/smoke-install.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && npm run smoke && npm pack --dry-run",
     "smoke": "node tests/smoke-install.mjs",
     "prepublishOnly": "npm run check"
   },

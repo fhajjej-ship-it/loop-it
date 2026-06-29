@@ -1,18 +1,20 @@
 ---
 name: loop-it
-description: Find, recommend, design, adapt, export, or run bounded AI-agent coding loops from the Loop It library for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks what should be looped next, asks to choose a loop from a library, asks to set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
+description: Write, choose, compile, launch, find, recommend, design, adapt, export, or run bounded AI-agent coding loops with explicit goals, verifier gates, iteration caps, stop conditions, library patterns, and host-specific launch prompts for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks what should be looped next, asks to choose a loop from a library, asks to write or set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
 ---
 
 # Loop It
 
-Turn an open-ended coding objective into a bounded, verifiable loop. Loop It is also a loop library: choose the right starter loop, adapt it to the user's context, and track progress so the next loop is obvious.
+Turn an open-ended coding objective into a bounded, verifier-gated loop. Loop It helps write loops, choose from a loop library, and launch host-specific loop prompts: define the goal, choose the hard check, reuse a proven pattern when one fits, track evidence, and stop when the verifier passes or the budget is spent.
 
 ## Decision
 
 First decide which mode the user needs:
 
+- **Write a loop**: author a custom loop contract with a concrete goal, verifier, cap, stop rules, approval gates, and evidence fields.
 - **Find from library**: select a bundled loop for the user's goal.
 - **Next from progress**: inspect `.loop-it/progress.json` or `.loop-it/LOOP.md` and recommend what to loop next.
+- **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt.
 - **Design only**: produce a reusable loop prompt or project-local loop file.
 - **Run now**: execute one bounded iteration at a time, verify it, and decide whether another iteration is justified.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
@@ -71,6 +73,23 @@ Current library categories include:
 - Release readiness: verify package, deploy, or public install paths before publishing.
 - UX polish, dependency upgrade, security hardening, refactor containment, and test coverage gap loops.
 
+## Launch A Loop
+
+For finish-line work, prefer a launch contract over a loose prompt. Use the launcher script when available:
+
+```bash
+node <skill-dir>/scripts/start-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent all
+node <skill-dir>/scripts/start-loop.mjs --from failing-ci-repair --goal "Fix failing CI" --check "npm run check" --agent codex
+```
+
+The launcher writes:
+
+- `.loop-it/LOOP.md`: durable goal, verifier, protocol, caps, and stop rules.
+- `.loop-it/progress.json`: machine-readable status and evidence fields.
+- `.loop-it/LAUNCH.md`: Codex, Claude Code, and/or Cursor launch prompts.
+
+For a useful launch, require a verifier gate. Do not start a loop from only "improve this" or "keep going" unless you can name how bad output will be rejected.
+
 ## Draft The Loop
 
 Use this structure for loop prompts and state files:
@@ -86,6 +105,7 @@ Keep version 1 narrow: one repository, one primary role, one primary success che
 When a durable state file is useful, create `.loop-it/LOOP.md` from `references/loop-template.md` or run:
 
 ```bash
+node <skill-dir>/scripts/create-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --require-fields
 node <skill-dir>/scripts/create-loop.mjs --name "Loop name" --objective "Concrete outcome" --check "Verification command or criterion"
 node <skill-dir>/scripts/create-loop.mjs --from failing-ci-repair
 ```
@@ -94,14 +114,14 @@ Library-backed loop files also create `.loop-it/progress.json` unless `--no-prog
 
 ## Host Goal Behavior
 
-Loop It is portable loop state first. Native host automation is optional.
+Loop It compiles host launch prompts and portable loop state. Native host automation is used when the host provides it.
 
-- **Codex**: If the current Codex host exposes a goal/task capability and the user explicitly asks to set a Codex goal, start the native Codex goal using the selected loop objective, success check, stop conditions, and evidence requirements. Also create or update `.loop-it/LOOP.md` and `.loop-it/progress.json` when durable project state is useful.
-- **Codex fallback**: If no native goal capability is available, do not claim that a Codex Goal was started. Create the portable loop files and tell the user to run the loop with `$loop-it`.
-- **Claude Code**: Claude Code does not have Codex Goals. Create or update `.loop-it/LOOP.md` and `.loop-it/progress.json`, then run one bounded terminal-first pass with `/loop-it`.
-- **Cursor**: Cursor does not have Codex Goals. Create or update `.loop-it/LOOP.md` and `.loop-it/progress.json`, then run one bounded Agent-chat pass with `/loop-it` or a direct loop request.
+- **Codex**: For finish-line work, generate or use a `/goal` prompt with the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. Also create or update `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` when durable project state is useful.
+- **Codex fallback**: If `/goal` or a native goal/task capability is unavailable, do not claim that a native goal was started. Use the fallback launch prompt and run one bounded `$loop-it` iteration at a time.
+- **Claude Code**: For finish-line work, use `/goal` with the verifier and cap. Use Claude Code `/loop` for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
+- **Cursor**: Cursor does not provide the same native finish-line `/goal` primitive here. Use `.loop-it/LOOP.md`, `.loop-it/progress.json`, `.loop-it/LAUNCH.md`, and a bounded `/loop-it` Agent-chat prompt.
 
-Never describe portable `.loop-it` state as a native Codex Goal. Say which mechanism was used: native Codex goal, portable loop files, or both.
+Never describe portable `.loop-it` state as a native host goal. Say which mechanism was used: native `/goal`, portable loop files, or both.
 
 ## Run The Loop
 

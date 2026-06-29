@@ -134,9 +134,13 @@ export function loopDefaults(loop) {
 }
 
 export function loopWorkflow(loop) {
+  const goal = shellQuote(loop.defaultObjective);
+  const check = shellQuote(loop.defaultCheck);
   return {
     choose: first(loop.bestFor) ?? loop.summary,
-    create: `loop-it new --from ${loop.id}`,
+    write: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
+    start: `loop-it start --from ${loop.id} --goal ${goal} --check ${check}`,
+    create: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
     proof: loop.defaultCheck,
     track:
       "Update .loop-it/progress.json with lastResult, blockers, remainingRisks, and recommendedNextAction.",
@@ -156,6 +160,10 @@ function withWorkflow(recommendation) {
 
 function first(values) {
   return Array.isArray(values) && values.length > 0 ? values[0] : null;
+}
+
+function shellQuote(value) {
+  return `"${String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
 function scoreLoop(loop, tokens, rawQuery) {
@@ -347,9 +355,10 @@ function printShow(args) {
   console.log("Workflow:");
   const workflow = loopWorkflow(loop);
   console.log(`1. Choose: ${workflow.choose}`);
-  console.log(`2. Create/run: ${workflow.create}`);
-  console.log(`3. Track: ${workflow.track}`);
-  console.log(`4. Next: ${workflow.next}`);
+  console.log(`2. Write: ${workflow.write}`);
+  console.log(`3. Launch: ${workflow.start}`);
+  console.log(`4. Track: ${workflow.track}`);
+  console.log(`5. Next: ${workflow.next}`);
   console.log("");
   console.log("Questions if context is unclear:");
   for (const question of loop.questions.slice(0, 3)) {
@@ -411,7 +420,7 @@ function printRanked(title, results) {
     console.log(`- ${item.loop.id}: ${item.loop.title} (${item.score})`);
     console.log(`  ${item.loop.summary}`);
     console.log(`  Proof: ${item.loop.defaultCheck}`);
-    console.log(`  Create: loop-it new --from ${item.loop.id}`);
+    console.log(`  Write: ${loopWorkflow(item.loop).write}`);
     if (item.reasons.length > 0) {
       console.log(`  Why: ${item.reasons.join(", ")}`);
     }
@@ -435,10 +444,11 @@ function printRecommendation(recommendation, sourceLabel) {
   const workflow = recommendation.workflow ?? loopWorkflow(loop);
   console.log("How to use it:");
   console.log(`1. Choose: ${workflow.choose}`);
-  console.log(`2. Create/run: ${workflow.create}`);
-  console.log(`3. Prove: ${workflow.proof}`);
-  console.log(`4. Track: ${workflow.track}`);
-  console.log(`5. Next: ${workflow.next}`);
+  console.log(`2. Write: ${workflow.write}`);
+  console.log(`3. Launch: ${workflow.start}`);
+  console.log(`4. Prove: ${workflow.proof}`);
+  console.log(`5. Track: ${workflow.track}`);
+  console.log(`6. Next: ${workflow.next}`);
   console.log("");
   console.log("Questions if this is still unclear:");
   for (const question of loop.questions.slice(0, 3)) {

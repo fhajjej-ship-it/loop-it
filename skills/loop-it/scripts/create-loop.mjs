@@ -13,7 +13,7 @@ if (args.help || args.h) {
 const libraryLoop = args.from ? findLibraryLoop(args.from) : null;
 const defaults = libraryLoop ? loopDefaults(libraryLoop) : {};
 const name = stringArg(args.name, defaults.name ?? "Working Loop");
-const objective = stringArg(args.objective, defaults.objective ?? "<Concrete outcome>");
+const objective = stringArg(args.objective ?? args.goal, defaults.objective ?? "<Concrete outcome>");
 const check = stringArg(args.check, defaults.check ?? "<Verification command or criterion>");
 const output = stringArg(args.output, ".loop-it/LOOP.md");
 const maxIterations = stringArg(args["max-iterations"], defaults.maxIterations ?? "5");
@@ -27,6 +27,16 @@ const approval = stringArg(
     "production writes, external messages, destructive git operations, credentials, deploys, or irreversible data changes"
 );
 const now = new Date().toISOString();
+
+if (args["require-fields"]) {
+  if (!hasConcreteValue(args.objective ?? args.goal, defaults.objective)) {
+    fail("--goal is required");
+  }
+  if (!hasConcreteValue(args.check, defaults.check)) {
+    fail("--check is required");
+  }
+}
+
 const librarySection = libraryLoop
   ? `
 ## Library Source
@@ -142,7 +152,7 @@ function parseArgs(argv) {
     }
 
     const key = token.slice(2);
-    if (["force", "print", "help", "h", "no-progress"].includes(key)) {
+    if (["force", "print", "help", "h", "no-progress", "require-fields"].includes(key)) {
       parsed[key] = true;
       continue;
     }
@@ -162,6 +172,11 @@ function stringArg(value, fallback) {
     return fallback;
   }
   return value.trim();
+}
+
+function hasConcreteValue(value, fallback) {
+  const result = stringArg(value, fallback ?? "");
+  return result !== "" && !result.startsWith("<");
 }
 
 function findLibraryLoop(id) {
@@ -191,12 +206,14 @@ function progressState() {
 
 function printUsage() {
   console.log(`Usage:
-  create-loop.mjs --name "Docs sweep" --objective "Update stale docs" --check "npm test"
+  loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
+  loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
   create-loop.mjs --from failing-ci-repair
 
 Options:
   --from <loop-id>          Use a loop from the bundled library
   --name <text>             Loop title
+  --goal <text>             Alias for --objective
   --objective <text>        Concrete outcome
   --check <text>            Verification command or criterion
   --max-iterations <n>      Iteration cap, default 5
@@ -205,6 +222,7 @@ Options:
   --output <path>           Output file, default .loop-it/LOOP.md
   --print                   Print markdown instead of writing a file
   --no-progress             Do not write progress.json beside the loop file
+  --require-fields          Require a concrete goal and check
   --force                   Replace an existing output file`);
 }
 

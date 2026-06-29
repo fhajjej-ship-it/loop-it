@@ -5,7 +5,7 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 ## Product basics
 
 - [ ] Clear name: Loop it
-- [ ] One-sentence description: Set bounded, verifiable coding loops for AI agents.
+- [ ] One-sentence description: Write, choose, and launch verifier-gated coding loops for AI agents.
 - [ ] Public repo: https://github.com/fhajjej-ship-it/loop-it
 - [ ] Product page: https://swarmixai.com/experiments/loop-it-poc
 - [ ] License: MIT
@@ -16,6 +16,8 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 - [ ] Fresh project install works for Codex.
 - [ ] Fresh project install works for Claude Code.
 - [ ] Fresh project install works for Cursor.
+- [ ] Fresh project `loop-it write` creates `.loop-it/LOOP.md` and `.loop-it/progress.json`.
+- [ ] Fresh project `loop-it start` creates `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 - [ ] Packed npm tarball execution works.
 - [ ] npm publish dry-run passes.
 

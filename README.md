@@ -10,18 +10,19 @@
 [![Node >=18](https://img.shields.io/badge/node-%3E%3D18-111111.svg)](package.json)
 [![npm package](https://img.shields.io/badge/npm-%40fhajjej%2Floop--it-111111.svg)](https://www.npmjs.com/package/@fhajjej/loop-it)
 
-Loop it is a portable loop library and Agent Skill for finding, recommending, and running bounded coding loops in Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
+Loop it is a portable loop writer, library, launcher, and Agent Skill for turning coding goals into verifier-gated loops for Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-It turns a vague instruction like "keep fixing it" into a clear loop: find the right loop, choose the agent, define proof, set a pass limit, track progress, then stop when the loop is done or no longer useful.
+It turns a vague instruction like "keep fixing it" into a useful loop: write the loop contract, choose a proven pattern from the library when one fits, launch it in the right agent, track evidence, then stop when the verifier passes or the budget is spent.
 
 Product page: https://swarmixai.com/experiments/loop-it-poc
 
 ## What Is Inside
 
 - `skills/loop-it/SKILL.md`: the canonical portable skill.
-- `bin/loop-it.mjs`: installer and loop-file helper.
+- `bin/loop-it.mjs`: installer, loop writer, loop launcher, and loop-file helper.
 - `skills/loop-it/references/library/loops.json`: bundled loop library.
 - `skills/loop-it/scripts/select-loop.mjs`: zero-dependency loop selector and recommender.
+- `skills/loop-it/scripts/start-loop.mjs`: zero-dependency goal/verifier launcher.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
 - `.codex-plugin/plugin.json`: Codex plugin metadata.
@@ -69,18 +70,55 @@ npx @fhajjej/loop-it@latest install --agent all --scope global
 
 See [docs/install.md](docs/install.md) for host paths, global install notes, and verification steps.
 
+## Write, Choose, Launch
+
+Loop it has three product verbs:
+
+1. **Write** a verifier-gated loop when you know the goal and check.
+2. **Choose** a proven loop from the bundled library when you want a starter pattern.
+3. **Launch** the loop into Codex, Claude Code, or Cursor with the right host prompt.
+
+Write a custom loop:
+
+```bash
+npx @fhajjej/loop-it@latest write \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --max-iterations 5
+```
+
+Choose from the library:
+
+```bash
+npx @fhajjej/loop-it@latest recommend --goal "fix failing CI"
+npx @fhajjej/loop-it@latest write --from failing-ci-repair --goal "Fix failing CI" --check "npm run check"
+```
+
+## Start A Loop
+
+For finish-line work, start with the verifier gate. `start` writes `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`, then prints the host-specific launch prompt.
+
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --max-iterations 5 \
+  --agent codex
+```
+
+Use `--agent claude` for Claude Code, `--agent cursor` for Cursor, or `--agent all` to generate every host prompt.
+
 ## Four-Step Workflow
 
 Loop it is meant to answer four questions in order:
 
-1. Choose the right loop from the library.
-2. Create and run the bounded loop in Codex, Claude Code, or Cursor.
-3. Track evidence in `.loop-it/progress.json`.
-4. Ask what should be looped next.
+1. What is the goal?
+2. What verifier rejects bad output?
+3. Does a library loop already fit?
+4. Which host should launch the loop?
 
 ```bash
-npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
-npx @fhajjej/loop-it@latest new --from failing-ci-repair
+npx @fhajjej/loop-it@latest start --goal "fix failing checkout test" --check "npm test -- checkout" --agent all
 npx @fhajjej/loop-it@latest next --cwd .
 ```
 
@@ -90,27 +128,21 @@ npx @fhajjej/loop-it@latest next --cwd .
 
 Codex example:
 
-```text
-Use $loop-it to fix the failing checkout test.
-
-Objective:
-Fix the regression without unrelated refactors.
-
-Success check:
-npm test -- checkout
-
-Iteration budget:
-3 passes maximum.
-
-Stop conditions:
-Stop when the test passes with regression coverage, the same failure repeats twice, or approval is needed.
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix the failing checkout test without unrelated refactors" \
+  --check "npm test -- checkout" \
+  --max-iterations 3 \
+  --agent codex
 ```
+
+Paste the generated Codex launch prompt. It uses `/goal` when available and falls back to the portable `.loop-it` contract when native goals are unavailable.
 
 More examples: [docs/examples.md](docs/examples.md).
 
 ## Loop Library
 
-Find the right loop before writing the prompt:
+The library is still useful, but it is no longer the product center. Use it to pick a proven loop shape, then launch with a concrete goal and verifier.
 
 ```bash
 npx @fhajjej/loop-it@latest library list
@@ -123,6 +155,7 @@ Create a loop from the bundled library:
 
 ```bash
 npx @fhajjej/loop-it@latest new --from failing-ci-repair
+npx @fhajjej/loop-it@latest start --from failing-ci-repair --goal "Fix failing CI" --check "npm run check"
 ```
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
@@ -151,7 +184,7 @@ Every useful loop needs:
 
 - Objective: the concrete outcome, not a theme.
 - Scope: repository, files, feature area, data source, or environment.
-- Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
+- Verifier gate: command, benchmark, manual inspection, review criterion, or measurable threshold that can reject bad output.
 - Iteration cap: maximum passes or time budget.
 - Stop conditions: success, repeated failure, blocked access, unsafe action, or approval requirement.
 - Evidence: changed files, verification output, residual risk, and the next decision.
@@ -191,12 +224,14 @@ npm run check
 npm run smoke
 npm publish --dry-run --access public
 node ./bin/loop-it.mjs install --agent all --scope project
+node ./bin/loop-it.mjs write --goal "Fix failing CI" --check "npm run check"
+node ./bin/loop-it.mjs start --goal "Fix failing CI" --check "npm run check" --agent all
 node ./bin/loop-it.mjs library search "release readiness"
 node ./bin/loop-it.mjs recommend --goal "fix failing CI"
 node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare public release" --check "npm run check"
 ```
 
-`npm run check` verifies CLI syntax, selector syntax, skill generator syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection, loop-file creation, packed-tarball execution, and package contents.
+`npm run check` verifies CLI syntax, selector syntax, skill generator syntax, loop launcher syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection, loop-file creation, loop launch creation, packed-tarball execution, and package contents.
 
 ## Release Status
 
@@ -206,9 +241,9 @@ Loop it is published as the scoped npm package `@fhajjej/loop-it`.
 npx @fhajjej/loop-it@latest install --agent all --scope project
 ```
 
-## Version 1 Boundaries
+## Version Boundaries
 
-Loop it deliberately avoids hosted accounts, ratings, scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. Those should come after the local loop library proves the workflow is worth automating.
+Loop it deliberately avoids hosted accounts, ratings, background scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It compiles and launches local verifier-gated loops; host tools provide the actual heartbeat when they support one.
 
 ## License
 

@@ -1,7 +1,7 @@
 {
   "name": "loop-it",
-  "version": "0.2.3",
-  "description": "Find and run bounded, verifiable coding loops for AI agents.",
+  "version": "0.3.0",
+  "description": "Write, choose, and launch verifier-gated coding loops for AI agents.",
   "author": {
     "name": "Loop it",
     "url": "https://github.com/fhajjej-ship-it/loop-it"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Loop it",
-    "shortDescription": "Find and run bounded coding loops for agents.",
-    "longDescription": "Loop it packages a portable loop library and Agent Skill that helps Codex choose the right coding loop, turn open-ended work into bounded passes, and track progress with explicit checks, budgets, stop conditions, approval gates, and evidence logs.",
+    "shortDescription": "Write, choose, and launch agent loops.",
+    "longDescription": "Loop it packages a portable loop writer, library, launcher, and Agent Skill that helps Codex turn open-ended work into a goal, verifier gate, proven loop pattern, host launch prompt, bounded passes, stop conditions, approval gates, and evidence logs.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [

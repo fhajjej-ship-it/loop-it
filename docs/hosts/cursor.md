@@ -20,11 +20,20 @@ Invoke it in Cursor Agent chat:
 /loop-it design a performance loop for the slow dashboard route
 ```
 
-Goal behavior:
+Generate a Cursor launch prompt:
 
-- Cursor does not have Codex Goals.
-- Loop it creates portable `.loop-it/LOOP.md` and `.loop-it/progress.json` files when durable state is useful.
-- Use Cursor rules for always-on project conventions, not as a replacement for the procedural loop state.
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --agent cursor
+```
+
+Cursor launch behavior:
+
+- Cursor does not expose the same native finish-line `/goal` primitive here.
+- Loop it creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
+- Paste the generated Cursor prompt into Agent chat. Use Cursor rules for always-on project conventions, not as a replacement for the procedural loop state.
 
 Recommended Cursor use:
 

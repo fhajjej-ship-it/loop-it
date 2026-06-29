@@ -19,6 +19,10 @@ if (command === "install") {
   install(parseArgs(argv));
 } else if (command === "new") {
   runCreateLoop(argv);
+} else if (command === "write") {
+  runWriteLoop(argv);
+} else if (command === "start") {
+  runStartLoop(argv);
 } else if (command === "library") {
   runSelectLoop(argv);
 } else if (command === "recommend") {
@@ -82,6 +86,24 @@ function runCreateLoop(args) {
   process.exit(result.status ?? 1);
 }
 
+function runWriteLoop(args) {
+  const script = resolve(skillSource, "scripts", "create-loop.mjs");
+  const result = spawnSync(process.execPath, [script, "--require-fields", ...args], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+  });
+  process.exit(result.status ?? 1);
+}
+
+function runStartLoop(args) {
+  const script = resolve(skillSource, "scripts", "start-loop.mjs");
+  const result = spawnSync(process.execPath, [script, ...args], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+  });
+  process.exit(result.status ?? 1);
+}
+
 function runSelectLoop(args) {
   const script = resolve(skillSource, "scripts", "select-loop.mjs");
   const result = spawnSync(process.execPath, [script, ...args], {
@@ -126,6 +148,8 @@ function printUsage() {
   console.log(`Usage:
   loop-it install --agent all --scope project
   loop-it install --agent codex --scope global
+  loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
+  loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
   loop-it new --from failing-ci-repair
   loop-it library list
@@ -135,6 +159,8 @@ function printUsage() {
 
 Commands:
   install   Copy the loop-it skill into Codex, Claude Code, and/or Cursor skill folders.
+  write     Write a verifier-gated .loop-it/LOOP.md contract.
+  start     Compile a goal, verifier, stop rules, and host launch prompt.
   new       Create a .loop-it/LOOP.md loop contract in the current directory.
   library   List, search, or show bundled loops.
   recommend Select a loop from a goal.

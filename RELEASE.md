@@ -24,9 +24,12 @@ The check script verifies:
 
 - CLI syntax for `bin/loop-it.mjs`
 - loop generator syntax for `skills/loop-it/scripts/create-loop.mjs`
+- loop launcher syntax for `skills/loop-it/scripts/start-loop.mjs`
 - plugin metadata JSON
 - project installs for Codex, Claude Code, and Cursor
+- `loop-it write` creation from a goal and verifier
 - `.loop-it/LOOP.md` creation
+- `.loop-it/LAUNCH.md` creation
 - execution from a packed npm tarball
 - npm package contents through `npm pack --dry-run`
 
@@ -48,6 +51,7 @@ GitHub publish:
 ```bash
 npm view @fhajjej/loop-it name version bin
 npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /tmp/loop-it-npx-smoke
+npx @fhajjej/loop-it@latest start --goal "Verify public launcher" --check "npm test" --agent all --force
 ```
 
 After npm is live, make the product page use `npx @fhajjej/loop-it@latest install --agent all --scope project` as the primary command.

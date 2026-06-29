@@ -20,11 +20,20 @@ Invoke it in Codex:
 Use $loop-it to create a bounded repair loop for this bug.
 ```
 
-Codex Goal behavior:
+Generate a Codex launch prompt:
 
-- If this Codex environment exposes a native goal/task capability, Loop it can use it when you explicitly ask to set a Codex goal.
-- If no native goal capability is available, Loop it creates portable `.loop-it/LOOP.md` and `.loop-it/progress.json` files instead.
-- Portable loop files are not the same thing as a native Codex Goal; they are durable project state that any supported agent can read.
+```bash
+npx @fhajjej/loop-it@latest start \
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --agent codex
+```
+
+Codex launch behavior:
+
+- For finish-line work, Loop it generates a `/goal` prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
+- It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
+- If `/goal` is unavailable in the current Codex host, use the fallback prompt in `.loop-it/LAUNCH.md` and run one bounded iteration at a time.
 
 Recommended Codex use:
 

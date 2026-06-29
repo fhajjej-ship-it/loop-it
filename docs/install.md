@@ -42,7 +42,16 @@ Use `--force` to replace an existing install after reviewing what will be overwr
 
 ## Verify install
 
-Check that `SKILL.md` exists in the selected host path, then ask your agent to use Loop it:
+Check that `SKILL.md` exists in the selected host path, then compile a verifier-gated loop:
+
+```bash
+npx @fhajjej/loop-it@latest write --goal "Fix failing CI" --check "npm run check"
+npx @fhajjej/loop-it@latest start --goal "Fix failing CI" --check "npm run check" --agent all
+```
+
+Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor.
+
+You can also ask your agent to use Loop it directly:
 
 ```text
 Use $loop-it to create a bounded docs sweep loop for this repository.

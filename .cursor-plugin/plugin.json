@@ -1,7 +1,7 @@
 {
   "name": "loop-it",
-  "version": "0.2.3",
-  "description": "Find and run bounded, verifiable coding loops for AI agents.",
+  "version": "0.3.0",
+  "description": "Write, choose, and launch verifier-gated coding loops for AI agents.",
   "homepage": "https://swarmixai.com/experiments/loop-it-poc",
   "license": "MIT",
   "skills": "./skills/"

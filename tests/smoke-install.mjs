@@ -14,6 +14,8 @@ try {
   smokeProjectInstall();
   smokeLibrarySelection();
   smokeLoopFileCreation();
+  smokeLoopWriting();
+  smokeLoopStart();
   smokePackedCli();
   console.log("Smoke install checks passed");
 } finally {
@@ -110,8 +112,11 @@ function smokeLibrarySelection() {
   if (blockedNext.selected?.loop?.id === "failing-ci-repair") {
     fail("Expected blocked progress not to continue the blocked active loop");
   }
-  if (blockedNext.workflow?.create !== "loop-it new --from test-coverage-gap") {
-    fail("Expected blocked progress recommendation to include the next loop workflow");
+  if (!blockedNext.workflow?.write?.startsWith("loop-it write --from test-coverage-gap")) {
+    fail("Expected blocked progress recommendation to include the next loop write workflow");
+  }
+  if (!blockedNext.workflow?.start?.startsWith("loop-it start --from test-coverage-gap")) {
+    fail("Expected blocked progress recommendation to include the next loop launch workflow");
   }
 
   const completedProjectDir = resolve(tempRoot, "next-from-completed-progress");
@@ -198,6 +203,116 @@ function smokeLoopFileCreation() {
   }
 }
 
+function smokeLoopWriting() {
+  const projectDir = resolve(tempRoot, "loop-write");
+  mkdirSync(projectDir, { recursive: true });
+  const written = run(nodeBin, [
+    cliPath,
+    "write",
+    "--goal",
+    "Fix failing checkout tests",
+    "--check",
+    "npm test -- checkout",
+    "--max-iterations",
+    "4",
+  ], { cwd: projectDir });
+
+  for (const text of ["Created .loop-it/LOOP.md", "Created .loop-it/progress.json"]) {
+    if (!written.stdout.includes(text)) {
+      fail(`Expected loop write output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const loopFile = resolve(projectDir, ".loop-it", "LOOP.md");
+  const progressFile = resolve(projectDir, ".loop-it", "progress.json");
+  assertFile(loopFile);
+  assertFile(progressFile);
+
+  const content = readFileSync(loopFile, "utf8");
+  for (const text of ["Fix failing checkout tests", "npm test -- checkout", "Max iterations: 4"]) {
+    if (!content.includes(text)) {
+      fail(`Expected ${loopFile} to contain ${JSON.stringify(text)}`);
+    }
+  }
+
+  const progress = JSON.parse(readFileSync(progressFile, "utf8"));
+  if (progress.objective !== "Fix failing checkout tests" || progress.lastCheck !== "npm test -- checkout") {
+    fail("Expected progress.json to track the written loop goal and verifier");
+  }
+
+  const missingCheck = spawnSync(nodeBin, [cliPath, "write", "--goal", "Missing verifier"], {
+    cwd: projectDir,
+    encoding: "utf8",
+  });
+  if (missingCheck.status === 0 || !missingCheck.stderr.includes("--check is required")) {
+    fail("Expected loop write without --check to fail clearly");
+  }
+}
+
+function smokeLoopStart() {
+  const projectDir = resolve(tempRoot, "loop-start");
+  mkdirSync(projectDir, { recursive: true });
+  const started = run(nodeBin, [
+    cliPath,
+    "start",
+    "--goal",
+    "Fix failing checkout tests",
+    "--check",
+    "npm test -- checkout",
+    "--agent",
+    "all",
+    "--max-iterations",
+    "4",
+  ], { cwd: projectDir });
+
+  for (const text of [
+    "Created .loop-it/LOOP.md",
+    "Created .loop-it/progress.json",
+    "Created .loop-it/LAUNCH.md",
+    "## Codex Launch",
+    "## Claude Code Launch",
+    "## Cursor Launch",
+    "/goal Fix failing checkout tests",
+    "Verifier: npm test -- checkout",
+    "Iteration cap: 4",
+  ]) {
+    if (!started.stdout.includes(text)) {
+      fail(`Expected loop start output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const loopFile = resolve(projectDir, ".loop-it", "LOOP.md");
+  const launchFile = resolve(projectDir, ".loop-it", "LAUNCH.md");
+  const progressFile = resolve(projectDir, ".loop-it", "progress.json");
+  assertFile(loopFile);
+  assertFile(launchFile);
+  assertFile(progressFile);
+
+  const launchContent = readFileSync(launchFile, "utf8");
+  for (const text of [
+    "Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.",
+    "Use Claude Code `/loop` only for polling or interval work.",
+    "Cursor does not provide the same native finish-line `/goal` primitive here",
+  ]) {
+    if (!launchContent.includes(text)) {
+      fail(`Expected ${launchFile} to contain ${JSON.stringify(text)}`);
+    }
+  }
+
+  const progress = JSON.parse(readFileSync(progressFile, "utf8"));
+  if (progress.status !== "ready" || progress.verifier !== "npm test -- checkout" || progress.maxIterations !== 4) {
+    fail("Expected progress.json to track the started loop launcher contract");
+  }
+
+  const missingCheck = spawnSync(nodeBin, [cliPath, "start", "--goal", "Missing verifier"], {
+    cwd: projectDir,
+    encoding: "utf8",
+  });
+  if (missingCheck.status === 0 || !missingCheck.stderr.includes("--check is required")) {
+    fail("Expected loop start without --check to fail clearly");
+  }
+}
+
 function smokePackedCli() {
   const packDir = resolve(tempRoot, "pack");
   const projectDir = resolve(tempRoot, "packed-project");
@@ -224,12 +339,31 @@ function smokePackedCli() {
     projectDir,
   ]);
 
+  run("npm", [
+    "exec",
+    "--yes",
+    "--package",
+    tarballPath,
+    "--",
+    "loop-it",
+    "start",
+    "--goal",
+    "Verify packed launcher",
+    "--check",
+    "npm test",
+    "--agent",
+    "codex",
+    "--force",
+  ], { cwd: projectDir });
+
   for (const target of [
     ".agents/skills/loop-it/SKILL.md",
     ".claude/skills/loop-it/SKILL.md",
     ".cursor/skills/loop-it/SKILL.md",
     ".agents/skills/loop-it/references/library/loops.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
+    ".loop-it/LOOP.md",
+    ".loop-it/LAUNCH.md",
   ]) {
     assertFile(resolve(projectDir, target));
   }
