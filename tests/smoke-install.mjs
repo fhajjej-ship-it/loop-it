@@ -1,16 +1,27 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const skillSource = resolve(repoRoot, "skills", "loop-it");
 const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-smoke-"));
 
 try {
+  smokePackageMetadata();
   smokeProjectInstall();
   smokeLibrarySelection();
   smokeLoopFileCreation();
@@ -20,6 +31,20 @@ try {
   console.log("Smoke install checks passed");
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
+}
+
+function smokePackageMetadata() {
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
+  for (const file of [
+    ".claude-plugin/plugin.json",
+    ".codex-plugin/plugin.json",
+    ".cursor-plugin/plugin.json",
+  ]) {
+    const metadata = JSON.parse(readFileSync(resolve(repoRoot, file), "utf8"));
+    if (metadata.version !== packageJson.version) {
+      fail(`Expected ${file} version ${metadata.version} to match package.json version ${packageJson.version}`);
+    }
+  }
 }
 
 function smokeProjectInstall() {
@@ -35,8 +60,17 @@ function smokeProjectInstall() {
     ".agents/skills/loop-it/references/library/loops.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
     ".agents/skills/loop-it/scripts/create-loop.mjs",
+    ".agents/skills/loop-it/scripts/start-loop.mjs",
   ]) {
     assertFile(resolve(projectDir, target));
+  }
+
+  for (const target of [
+    ".agents/skills/loop-it",
+    ".claude/skills/loop-it",
+    ".cursor/skills/loop-it",
+  ]) {
+    assertDirectoryMatches(skillSource, resolve(projectDir, target));
   }
 
   const duplicate = spawnSync(nodeBin, [cliPath, "install", "--agent", "codex", "--scope", "project", "--cwd", projectDir], {
@@ -362,10 +396,19 @@ function smokePackedCli() {
     ".cursor/skills/loop-it/SKILL.md",
     ".agents/skills/loop-it/references/library/loops.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
+    ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".loop-it/LOOP.md",
     ".loop-it/LAUNCH.md",
   ]) {
     assertFile(resolve(projectDir, target));
+  }
+
+  for (const target of [
+    ".agents/skills/loop-it",
+    ".claude/skills/loop-it",
+    ".cursor/skills/loop-it",
+  ]) {
+    assertDirectoryMatches(skillSource, resolve(projectDir, target));
   }
 }
 
@@ -398,6 +441,42 @@ function run(command, args, options = {}) {
 function assertFile(path) {
   if (!existsSync(path)) {
     fail(`Expected file to exist: ${path}`);
+  }
+}
+
+function assertDirectoryMatches(sourceDir, targetDir) {
+  const sourceFiles = relativeFileList(sourceDir);
+  const targetFiles = relativeFileList(targetDir);
+  if (JSON.stringify(sourceFiles) !== JSON.stringify(targetFiles)) {
+    fail(`Expected ${targetDir} to contain the same files as ${sourceDir}`);
+  }
+
+  for (const file of sourceFiles) {
+    const sourceBytes = readFileSync(resolve(sourceDir, file));
+    const targetBytes = readFileSync(resolve(targetDir, file));
+    if (Buffer.compare(sourceBytes, targetBytes) !== 0) {
+      fail(`Expected ${resolve(targetDir, file)} to match ${resolve(sourceDir, file)}`);
+    }
+  }
+}
+
+function relativeFileList(rootDir) {
+  const files = [];
+  collectFiles(rootDir, "", files);
+  return files.sort();
+}
+
+function collectFiles(rootDir, relativeDir, files) {
+  const currentDir = resolve(rootDir, relativeDir);
+  for (const entry of readdirSync(currentDir).sort()) {
+    const relativePath = relativeDir ? `${relativeDir}/${entry}` : entry;
+    const fullPath = resolve(rootDir, relativePath);
+    const stat = statSync(fullPath);
+    if (stat.isDirectory()) {
+      collectFiles(rootDir, relativePath, files);
+    } else if (stat.isFile()) {
+      files.push(relativePath);
+    }
   }
 }
 

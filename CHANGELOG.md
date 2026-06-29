@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1
+
+### Added
+
+- Added `npm run sync:project` to refresh local Codex, Claude Code, and Cursor project skill installs from the canonical `skills/loop-it/` source.
+- Added smoke coverage that fails when generated host installs drift from the canonical skill source or plugin manifest versions drift from `package.json`.
+
+### Changed
+
+- Documented the source-of-truth update flow for refreshing existing host installs after skill changes.
+- Ignored generated local host installs and `.loop-it` state so duplicate skill copies do not become source files.
+
 ## 0.3.0
 
 ### Added

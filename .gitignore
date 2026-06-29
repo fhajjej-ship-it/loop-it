@@ -3,3 +3,9 @@ Loop it Logos/
 node_modules/
 npm-debug.log*
 dist/
+
+# Generated local installs and loop state. The canonical skill source is skills/loop-it/.
+.agents/
+.claude/
+.cursor/
+.loop-it/

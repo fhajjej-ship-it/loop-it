@@ -40,6 +40,22 @@ npx @fhajjej/loop-it@latest install --agent all --scope global
 
 Use `--force` to replace an existing install after reviewing what will be overwritten.
 
+## Update an existing install
+
+Treat `skills/loop-it/` as the source of truth. After changing the skill source in this repository, refresh all local project host installs:
+
+```bash
+npm run sync:project
+```
+
+For a different project, run:
+
+```bash
+npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /real/path/to/your-project --force
+```
+
+`npm run check` verifies that fresh Codex, Claude Code, and Cursor installs exactly match the canonical skill source.
+
 ## Verify install
 
 Check that `SKILL.md` exists in the selected host path, then compile a verifier-gated loop:
