@@ -71,7 +71,9 @@ Current library categories include:
 - Review repair loop: review diff, fix blocking findings, rerun checks, repeat until only accepted risk remains.
 - Fresh setup loop: start from a clean environment, follow documented setup, fix hidden assumptions, retry cleanly.
 - Release readiness: verify package, deploy, or public install paths before publishing.
-- UX polish, dependency upgrade, security hardening, refactor containment, and test coverage gap loops.
+- UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, and skill instruction hardening loops.
+
+The library entries include example prompts, counterexamples, required signals, example checks, and common misroutes. Prefer those fields when explaining why one loop fits better than another.
 
 ## Launch A Loop
 

@@ -26,7 +26,12 @@
           "approvalGates",
           "questions",
           "body",
-          "progressSignals"
+          "progressSignals",
+          "requiredSignals",
+          "goodExamples",
+          "badExamples",
+          "exampleChecks",
+          "commonMisroutes"
         ],
         "properties": {
           "id": { "type": "string" },
@@ -48,6 +53,22 @@
             "required": ["keywords"],
             "properties": {
               "keywords": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "requiredSignals": { "type": "array", "items": { "type": "string" } },
+          "goodExamples": { "type": "array", "items": { "type": "string" } },
+          "badExamples": { "type": "array", "items": { "type": "string" } },
+          "exampleChecks": { "type": "array", "items": { "type": "string" } },
+          "commonMisroutes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["query", "reason"],
+              "properties": {
+                "query": { "type": "string" },
+                "preferLoopId": { "type": "string" },
+                "reason": { "type": "string" }
+              }
             }
           }
         }

@@ -46,7 +46,7 @@ export function rankLoops(query, options = {}) {
   const tokens = tokenize(query);
   const ranked = library.loops
     .map((loop) => {
-      const score = scoreLoop(loop, tokens, query);
+      const score = scoreLoop(loop, tokens, query, library);
       return {
         loop,
         score: score.total,
@@ -55,7 +55,10 @@ export function rankLoops(query, options = {}) {
     })
     .sort((a, b) => b.score - a.score || a.loop.title.localeCompare(b.loop.title));
 
-  return ranked.slice(0, limit);
+  return ranked.map((item, index) => ({
+    ...item,
+    confidence: confidenceFor(item, ranked[index + 1] ?? null),
+  })).slice(0, limit);
 }
 
 export function readProgress(cwd = process.cwd()) {
@@ -101,6 +104,7 @@ export function recommendLoop(options = {}) {
           loop: activeLoop,
           score: 999,
           reasons: [`active progress is still ${status || "not complete"}`],
+          confidence: "high",
         },
         alternatives: rankLoops(progress.text, { library, limit: 4 }).filter((item) => item.loop.id !== activeLoop.id).slice(0, 2),
         progress,
@@ -155,6 +159,7 @@ function withWorkflow(recommendation) {
   return {
     ...recommendation,
     workflow: loopWorkflow(recommendation.selected.loop),
+    decision: recommendationDecision(recommendation.selected, recommendation.alternatives ?? []),
   };
 }
 
@@ -166,7 +171,7 @@ function shellQuote(value) {
   return `"${String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
-function scoreLoop(loop, tokens, rawQuery) {
+function scoreLoop(loop, tokens, rawQuery, library) {
   const loweredQuery = String(rawQuery ?? "").toLowerCase();
   const corpus = [
     loop.id,
@@ -177,6 +182,9 @@ function scoreLoop(loop, tokens, rawQuery) {
     ...(loop.bestFor ?? []),
     ...(loop.defaultObjective ? [loop.defaultObjective] : []),
     ...(loop.defaultCheck ? [loop.defaultCheck] : []),
+    ...(loop.requiredSignals ?? []),
+    ...(loop.goodExamples ?? []),
+    ...(loop.exampleChecks ?? []),
     ...((loop.progressSignals && loop.progressSignals.keywords) ?? []),
   ]
     .join(" ")
@@ -203,6 +211,43 @@ function scoreLoop(loop, tokens, rawQuery) {
     }
   }
 
+  for (const example of loop.goodExamples ?? []) {
+    if (matchesPhrase(loweredQuery, example)) {
+      total += 12;
+      reasons.add(`matched example "${example}"`);
+    }
+  }
+
+  for (const signal of loop.requiredSignals ?? []) {
+    if (matchesPhrase(loweredQuery, signal)) {
+      total += 5;
+      reasons.add(`matched required signal "${signal}"`);
+    }
+  }
+
+  for (const example of loop.badExamples ?? []) {
+    if (matchesPhrase(loweredQuery, example)) {
+      total -= 8;
+      reasons.add(`matched avoid example "${example}"`);
+    }
+  }
+
+  for (const candidate of library.loops) {
+    for (const misroute of candidate.commonMisroutes ?? []) {
+      if (!matchesPhrase(loweredQuery, misroute.query)) {
+        continue;
+      }
+
+      if (misroute.preferLoopId === loop.id) {
+        total += 10;
+        reasons.add(`preferred over common misroute "${misroute.query}"`);
+      } else if (candidate.id === loop.id && misroute.preferLoopId) {
+        total -= 10;
+        reasons.add(`common misroute prefers ${misroute.preferLoopId}`);
+      }
+    }
+  }
+
   for (const token of tokens) {
     if (normalizeId(loop.id).includes(token)) {
       total += 4;
@@ -225,6 +270,51 @@ function scoreLoop(loop, tokens, rawQuery) {
     total,
     reasons: [...reasons],
   };
+}
+
+function recommendationDecision(selected, alternatives) {
+  return {
+    confidence: selected.confidence ?? confidenceFor(selected, alternatives[0] ?? null),
+    matchedSignals: selected.reasons ?? [],
+    whyNotAlternatives: alternatives.slice(0, 2).map((alternative) => ({
+      loopId: alternative.loop.id,
+      title: alternative.loop.title,
+      reason: alternative.score > 0
+        ? `Lower score (${alternative.score}) from ${alternative.reasons.join(", ") || "weaker signal match"}.`
+        : "No strong matching signal in the goal or progress state.",
+    })),
+    clarifyingQuestion:
+      (selected.confidence ?? confidenceFor(selected, alternatives[0] ?? null)) === "low"
+        ? first(selected.loop.questions)
+        : null,
+  };
+}
+
+function confidenceFor(item, nextItem) {
+  if (!item || item.score <= 0) {
+    return "low";
+  }
+
+  const gap = item.score - (nextItem?.score ?? 0);
+  if (item.score >= 18 && gap >= 6) {
+    return "high";
+  }
+  if (item.score >= 8 && gap >= 3) {
+    return "medium";
+  }
+  return "low";
+}
+
+function matchesPhrase(loweredQuery, phrase) {
+  const phraseText = String(phrase ?? "").toLowerCase();
+  if (!phraseText) {
+    return false;
+  }
+  if (loweredQuery.includes(phraseText)) {
+    return true;
+  }
+  const tokens = tokenize(phraseText);
+  return tokens.length > 0 && tokens.every((token) => loweredQuery.includes(token));
 }
 
 function progressText(data) {
@@ -420,6 +510,7 @@ function printRanked(title, results) {
     console.log(`- ${item.loop.id}: ${item.loop.title} (${item.score})`);
     console.log(`  ${item.loop.summary}`);
     console.log(`  Proof: ${item.loop.defaultCheck}`);
+    console.log(`  Confidence: ${item.confidence}`);
     console.log(`  Write: ${loopWorkflow(item.loop).write}`);
     if (item.reasons.length > 0) {
       console.log(`  Why: ${item.reasons.join(", ")}`);
@@ -437,6 +528,9 @@ function printRecommendation(recommendation, sourceLabel) {
   console.log(`Recommended loop: ${loop.title} (${loop.id})`);
   console.log(`Source: ${sourceLabel}`);
   console.log(`Score: ${score}`);
+  if (recommendation.decision?.confidence) {
+    console.log(`Confidence: ${recommendation.decision.confidence}`);
+  }
   if (reasons.length > 0) {
     console.log(`Why: ${reasons.join(", ")}`);
   }
@@ -453,6 +547,14 @@ function printRecommendation(recommendation, sourceLabel) {
   console.log("Questions if this is still unclear:");
   for (const question of loop.questions.slice(0, 3)) {
     console.log(`- ${question}`);
+  }
+
+  if (recommendation.decision?.whyNotAlternatives?.length) {
+    console.log("");
+    console.log("Why not the alternatives:");
+    for (const item of recommendation.decision.whyNotAlternatives) {
+      console.log(`- ${item.title}: ${item.reason}`);
+    }
   }
 
   if (recommendation.alternatives.length > 0) {

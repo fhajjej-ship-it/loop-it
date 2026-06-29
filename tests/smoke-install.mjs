@@ -85,13 +85,24 @@ function smokeProjectInstall() {
 
 function smokeLibrarySelection() {
   const list = JSON.parse(run(nodeBin, [cliPath, "library", "list", "--json"]).stdout);
-  if (!Array.isArray(list.loops) || list.loops.length < 10) {
-    fail("Expected bundled loop library to include at least 10 loops");
+  if (!Array.isArray(list.loops) || list.loops.length < 14) {
+    fail("Expected bundled loop library to include at least 14 loops");
+  }
+
+  for (const loop of list.loops) {
+    for (const field of ["requiredSignals", "goodExamples", "badExamples", "exampleChecks", "commonMisroutes"]) {
+      if (!Array.isArray(loop[field]) || loop[field].length === 0) {
+        fail(`Expected ${loop.id} to include non-empty ${field}`);
+      }
+    }
   }
 
   const search = JSON.parse(run(nodeBin, [cliPath, "library", "search", "failing ci", "--json"]).stdout);
   if (search.results?.[0]?.loop?.id !== "failing-ci-repair") {
     fail("Expected failing-ci-repair to be the top result for failing ci");
+  }
+  if (!["high", "medium"].includes(search.results?.[0]?.confidence)) {
+    fail("Expected failing-ci-repair search to include usable confidence");
   }
 
   const recommendation = JSON.parse(
@@ -99,6 +110,19 @@ function smokeLibrarySelection() {
   );
   if (recommendation.selected?.loop?.id !== "failing-ci-repair") {
     fail("Expected failing-ci-repair recommendation for a failing checkout test");
+  }
+  if (!recommendation.decision?.confidence || !Array.isArray(recommendation.decision?.whyNotAlternatives)) {
+    fail("Expected recommendations to include decision confidence and alternative rationale");
+  }
+
+  for (const [goal, expectedLoopId] of [
+    ["publish npm package", "release-readiness"],
+    ["fix stale installed skill copies", "fresh-setup"],
+    ["improve Loop It skill routing and examples", "skill-instruction-hardening"],
+    ["evaluate Loop It recommendation quality", "product-evaluation"],
+    ["sanitize unsafe user input", "security-hardening"],
+  ]) {
+    assertRecommendedLoop(goal, expectedLoopId);
   }
 
   const projectDir = resolve(tempRoot, "next-from-progress");
@@ -441,6 +465,16 @@ function run(command, args, options = {}) {
 function assertFile(path) {
   if (!existsSync(path)) {
     fail(`Expected file to exist: ${path}`);
+  }
+}
+
+function assertRecommendedLoop(goal, expectedLoopId) {
+  const recommendation = JSON.parse(run(nodeBin, [cliPath, "recommend", "--goal", goal, "--json"]).stdout);
+  if (recommendation.selected?.loop?.id !== expectedLoopId) {
+    fail(`Expected ${JSON.stringify(goal)} to recommend ${expectedLoopId}, got ${recommendation.selected?.loop?.id}`);
+  }
+  if (!recommendation.decision?.confidence || recommendation.decision.confidence === "low") {
+    fail(`Expected ${JSON.stringify(goal)} to have non-low recommendation confidence`);
   }
 }
 

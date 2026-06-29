@@ -6,7 +6,14 @@
       "title": "Ticket to verified fix",
       "category": "engineering",
       "summary": "Turn a bug report or small defect into the smallest patch with proof.",
-      "aliases": ["bug", "defect", "ticket", "regression", "customer issue", "broken behavior"],
+      "aliases": [
+        "bug",
+        "defect",
+        "ticket",
+        "regression",
+        "customer issue",
+        "broken behavior"
+      ],
       "bestFor": [
         "A concrete behavior is wrong or failing.",
         "The expected behavior is known.",
@@ -37,15 +44,62 @@
       ],
       "body": "Reproduce the issue, identify the smallest root cause, patch it, add or update regression coverage when practical, rerun the reproduction and relevant checks, then decide whether another pass is justified.",
       "progressSignals": {
-        "keywords": ["bug", "broken", "regression", "repro", "reproduce", "failing test", "customer issue"]
-      }
+        "keywords": [
+          "bug",
+          "broken",
+          "regression",
+          "repro",
+          "reproduce",
+          "failing test",
+          "customer issue"
+        ]
+      },
+      "requiredSignals": [
+        "wrong behavior",
+        "expected behavior",
+        "reproduction or regression check"
+      ],
+      "goodExamples": [
+        "fix a broken checkout redirect",
+        "repair a customer-reported regression",
+        "make the repro pass with a focused patch"
+      ],
+      "badExamples": [
+        "red CI job with logs",
+        "broad refactor with no failing behavior",
+        "undefined product decision"
+      ],
+      "exampleChecks": [
+        "Run the original reproduction",
+        "Run the narrowest regression test",
+        "Run the related feature smoke"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing ci",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "CI failure repair starts from job output, not a product bug report."
+        },
+        {
+          "query": "add missing tests",
+          "preferLoopId": "test-coverage-gap",
+          "reason": "Coverage work starts from an uncovered behavior, not a reported defect."
+        }
+      ]
     },
     {
       "id": "failing-ci-repair",
       "title": "Failing CI repair",
       "category": "engineering",
       "summary": "Repair a failing build, lint, type-check, or test job with the smallest verified change.",
-      "aliases": ["ci", "build failed", "checks failed", "lint failed", "typecheck failed", "test failed"],
+      "aliases": [
+        "ci",
+        "build failed",
+        "checks failed",
+        "lint failed",
+        "typecheck failed",
+        "test failed"
+      ],
       "bestFor": [
         "A specific CI job or local command is failing.",
         "Logs or failure output are available.",
@@ -76,15 +130,64 @@
       ],
       "body": "Read the failing output first, reproduce locally when practical, isolate the smallest failing surface, patch the root cause, rerun the failing command, then broaden verification only after the narrow check passes.",
       "progressSignals": {
-        "keywords": ["ci", "build", "lint", "eslint", "typecheck", "tsc", "test failed", "red check", "workflow"]
-      }
+        "keywords": [
+          "ci",
+          "build",
+          "lint",
+          "eslint",
+          "typecheck",
+          "tsc",
+          "test failed",
+          "red check",
+          "workflow"
+        ]
+      },
+      "requiredSignals": [
+        "specific failing command or CI job",
+        "failure output",
+        "green check is the goal"
+      ],
+      "goodExamples": [
+        "fix failing CI",
+        "repair npm run check",
+        "make lint pass after dependency update"
+      ],
+      "badExamples": [
+        "feature quality is uncertain",
+        "fresh install fails for a new user",
+        "security risk with no CI failure"
+      ],
+      "exampleChecks": [
+        "Run the failing command locally",
+        "Rerun the CI-equivalent check",
+        "Broaden to npm run check after the narrow check passes"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fresh install fails",
+          "preferLoopId": "fresh-setup",
+          "reason": "First-run setup failures need a clean-environment loop."
+        },
+        {
+          "query": "publish npm package",
+          "preferLoopId": "release-readiness",
+          "reason": "Publishing needs release verification and approval gates."
+        }
+      ]
     },
     {
       "id": "docs-sweep",
       "title": "Documentation sweep",
       "category": "content",
       "summary": "Find and fix stale setup, API, command, or workflow documentation.",
-      "aliases": ["docs", "documentation", "readme", "guide", "instructions", "stale docs"],
+      "aliases": [
+        "docs",
+        "documentation",
+        "readme",
+        "guide",
+        "instructions",
+        "stale docs"
+      ],
       "bestFor": [
         "Docs may not match the current implementation.",
         "Install, usage, or release steps need verification.",
@@ -114,15 +217,63 @@
       ],
       "body": "Compare the selected docs to the actual code and package behavior, update the highest-impact mismatch, verify examples or links where practical, then rescan for the next mismatch.",
       "progressSignals": {
-        "keywords": ["docs", "readme", "install", "example", "guide", "stale", "copy", "release notes"]
-      }
+        "keywords": [
+          "docs",
+          "readme",
+          "install",
+          "example",
+          "guide",
+          "stale",
+          "copy",
+          "release notes"
+        ]
+      },
+      "requiredSignals": [
+        "specific docs surface",
+        "implementation or command to compare against",
+        "reader audience"
+      ],
+      "goodExamples": [
+        "update stale README install steps",
+        "verify examples after CLI changes",
+        "fix docs for host-specific setup"
+      ],
+      "badExamples": [
+        "write marketing copy from scratch",
+        "implementation is not settled",
+        "fix a runtime bug"
+      ],
+      "exampleChecks": [
+        "Run documented commands where practical",
+        "Check links and referenced paths",
+        "Compare docs against current CLI help"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "first setup fails",
+          "preferLoopId": "fresh-setup",
+          "reason": "Clean setup validates the full first-run path before docs-only cleanup."
+        },
+        {
+          "query": "release notes and publish",
+          "preferLoopId": "release-readiness",
+          "reason": "Release work includes docs plus package and install proof."
+        }
+      ]
     },
     {
       "id": "review-repair",
       "title": "Review repair",
       "category": "operations",
       "summary": "Address blocking review findings until the diff is ready to ship.",
-      "aliases": ["review", "code review", "pr comments", "feedback", "hardening", "readiness"],
+      "aliases": [
+        "review",
+        "code review",
+        "pr comments",
+        "feedback",
+        "hardening",
+        "readiness"
+      ],
       "bestFor": [
         "There is a diff, PR, or reviewer feedback to address.",
         "Findings can be ordered by severity.",
@@ -153,15 +304,63 @@
       ],
       "body": "Review the diff for correctness, tests, security, UX, and maintainability risks; fix the highest-severity actionable finding; rerun relevant checks; repeat until no blocking findings remain.",
       "progressSignals": {
-        "keywords": ["review", "pr", "pull request", "feedback", "comment", "finding", "blocking"]
-      }
+        "keywords": [
+          "review",
+          "pr",
+          "pull request",
+          "feedback",
+          "comment",
+          "finding",
+          "blocking"
+        ]
+      },
+      "requiredSignals": [
+        "diff or PR exists",
+        "blocking review finding",
+        "check covering the finding"
+      ],
+      "goodExamples": [
+        "address blocking PR feedback",
+        "fix reviewer finding and rerun checks",
+        "repair code review comments before merge"
+      ],
+      "badExamples": [
+        "no concrete diff",
+        "new feature design",
+        "open-ended polish"
+      ],
+      "exampleChecks": [
+        "Run the tests covering the repaired finding",
+        "Re-run lint/type-check for touched files",
+        "Confirm only accepted low-risk findings remain"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "evaluate product flow",
+          "preferLoopId": "product-evaluation",
+          "reason": "Scenario evaluation starts with user flows rather than review comments."
+        },
+        {
+          "query": "security finding",
+          "preferLoopId": "security-hardening",
+          "reason": "Security findings need explicit trust-boundary and approval gates."
+        }
+      ]
     },
     {
       "id": "release-readiness",
       "title": "Release readiness",
       "category": "operations",
       "summary": "Prepare a package, app, or feature for a public release with evidence.",
-      "aliases": ["release", "publish", "npm", "tag", "changelog", "ship", "launch"],
+      "aliases": [
+        "release",
+        "publish",
+        "npm",
+        "tag",
+        "changelog",
+        "ship",
+        "launch"
+      ],
       "bestFor": [
         "The feature is implemented and needs final packaging.",
         "Release notes, versioning, and install checks matter.",
@@ -192,15 +391,64 @@
       ],
       "body": "Check versioning and public docs, run the package or app verification gate, dry-run the release path, perform approved publishing steps, then verify from a fresh environment or production URL.",
       "progressSignals": {
-        "keywords": ["release", "publish", "npm", "tag", "version", "changelog", "deploy", "production", "launch"]
-      }
+        "keywords": [
+          "release",
+          "publish",
+          "npm",
+          "tag",
+          "version",
+          "changelog",
+          "deploy",
+          "production",
+          "launch"
+        ]
+      },
+      "requiredSignals": [
+        "artifact to release",
+        "version or changelog impact",
+        "fresh install or production smoke"
+      ],
+      "goodExamples": [
+        "publish npm package",
+        "prepare 0.3.1 release",
+        "verify latest npx install works"
+      ],
+      "badExamples": [
+        "core feature is still incomplete",
+        "dependency upgrade compatibility only",
+        "publishing needs missing OTP approval"
+      ],
+      "exampleChecks": [
+        "Run npm run check",
+        "Run npm pack --dry-run or build dry-run",
+        "Verify from a fresh install or public URL"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "upgrade dependency",
+          "preferLoopId": "dependency-upgrade",
+          "reason": "Dependency compatibility should be proven before release readiness."
+        },
+        {
+          "query": "fix failing test",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "A red check needs repair before release verification."
+        }
+      ]
     },
     {
       "id": "fresh-setup",
       "title": "Fresh setup",
       "category": "engineering",
       "summary": "Validate a clean checkout or clean project setup and repair hidden assumptions.",
-      "aliases": ["setup", "install", "onboarding", "clean checkout", "bootstrap", "getting started"],
+      "aliases": [
+        "setup",
+        "install",
+        "onboarding",
+        "clean checkout",
+        "bootstrap",
+        "getting started"
+      ],
       "bestFor": [
         "A new user or agent must install and run the project.",
         "Setup docs may hide missing prerequisites.",
@@ -231,15 +479,61 @@
       ],
       "body": "Start from a clean directory, follow the documented setup, record the first failure, fix the smallest missing assumption in docs or code, then retry cleanly.",
       "progressSignals": {
-        "keywords": ["setup", "install", "bootstrap", "clean", "first run", "onboarding", "getting started"]
-      }
+        "keywords": [
+          "setup",
+          "install",
+          "bootstrap",
+          "clean",
+          "first run",
+          "onboarding",
+          "getting started"
+        ]
+      },
+      "requiredSignals": [
+        "clean environment",
+        "documented setup path",
+        "first verification command"
+      ],
+      "goodExamples": [
+        "fix stale installed skill copies",
+        "validate clean checkout setup",
+        "prove npx install works in a temp project"
+      ],
+      "badExamples": [
+        "single failing unit test",
+        "published release checklist",
+        "feature bug with known repro"
+      ],
+      "exampleChecks": [
+        "Run setup from a clean directory",
+        "Run the documented first verification command",
+        "Retry after fixing the smallest missing assumption"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "publish npm package",
+          "preferLoopId": "release-readiness",
+          "reason": "Publishing includes fresh install proof plus release approval gates."
+        },
+        {
+          "query": "stale docs only",
+          "preferLoopId": "docs-sweep",
+          "reason": "Docs-only drift does not require a clean setup loop."
+        }
+      ]
     },
     {
       "id": "test-coverage-gap",
       "title": "Test coverage gap",
       "category": "evaluation",
       "summary": "Add focused tests around risky behavior without broad test churn.",
-      "aliases": ["coverage", "tests", "regression test", "missing test", "test gap"],
+      "aliases": [
+        "coverage",
+        "tests",
+        "regression test",
+        "missing test",
+        "test gap"
+      ],
       "bestFor": [
         "A behavior is important but poorly covered.",
         "A recent fix needs regression coverage.",
@@ -269,15 +563,62 @@
       ],
       "body": "Identify the smallest behavior contract, add a focused test that would fail without the intended behavior, run the narrow test, then broaden only if the change touches shared behavior.",
       "progressSignals": {
-        "keywords": ["coverage", "test", "regression", "missing test", "untested", "spec"]
-      }
+        "keywords": [
+          "coverage",
+          "test",
+          "regression",
+          "missing test",
+          "untested",
+          "spec"
+        ]
+      },
+      "requiredSignals": [
+        "under-tested behavior",
+        "target test layer",
+        "failure the test should catch"
+      ],
+      "goodExamples": [
+        "add regression coverage for checkout edge case",
+        "cover missing auth validation test",
+        "add focused test before refactor"
+      ],
+      "badExamples": [
+        "unknown desired behavior",
+        "unstable whole suite",
+        "fix failing CI without a coverage gap"
+      ],
+      "exampleChecks": [
+        "Run the new focused test",
+        "Run the narrow related suite",
+        "Confirm the test would fail without the behavior"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing ci",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "Repair the failing check first unless the missing test is the blocker."
+        },
+        {
+          "query": "evaluate full product flow",
+          "preferLoopId": "product-evaluation",
+          "reason": "Scenario evaluation is broader than adding focused regression tests."
+        }
+      ]
     },
     {
       "id": "ux-polish",
       "title": "UX polish",
       "category": "product",
       "summary": "Improve a specific user flow for clarity, responsiveness, and accessibility.",
-      "aliases": ["ux", "ui", "polish", "copy", "mobile", "accessibility", "flow"],
+      "aliases": [
+        "ux",
+        "ui",
+        "polish",
+        "copy",
+        "mobile",
+        "accessibility",
+        "flow"
+      ],
       "bestFor": [
         "The screen exists but users may not understand what to do.",
         "A specific page or flow needs clearer hierarchy.",
@@ -307,15 +648,64 @@
       ],
       "body": "Identify the primary user action, remove or rewrite confusing UI, verify key states and responsive behavior, then stop when the flow is understandable without extra explanation.",
       "progressSignals": {
-        "keywords": ["ux", "ui", "copy", "mobile", "responsive", "accessibility", "confusing", "page"]
-      }
+        "keywords": [
+          "ux",
+          "ui",
+          "copy",
+          "mobile",
+          "responsive",
+          "accessibility",
+          "confusing",
+          "page"
+        ]
+      },
+      "requiredSignals": [
+        "specific screen or flow",
+        "primary user action",
+        "desktop/mobile or accessibility check"
+      ],
+      "goodExamples": [
+        "make the generated prompt easier to find",
+        "improve mobile clarity for a form flow",
+        "reduce confusing copy around a CTA"
+      ],
+      "badExamples": [
+        "pure decoration",
+        "unclear product goal",
+        "add analytics dashboard"
+      ],
+      "exampleChecks": [
+        "Manually verify desktop and mobile states",
+        "Check keyboard focus and visible next action",
+        "Run the relevant UI smoke test"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "quality scenarios",
+          "preferLoopId": "product-evaluation",
+          "reason": "Scenario pass/fail work is broader than UI polish."
+        },
+        {
+          "query": "performance slow page",
+          "preferLoopId": "performance-measurement",
+          "reason": "Speed work needs baseline and remeasurement."
+        }
+      ]
     },
     {
       "id": "performance-measurement",
       "title": "Performance measurement",
       "category": "engineering",
       "summary": "Improve speed, memory, bundle size, or latency using before-and-after evidence.",
-      "aliases": ["performance", "latency", "speed", "slow", "bundle", "memory", "benchmark"],
+      "aliases": [
+        "performance",
+        "latency",
+        "speed",
+        "slow",
+        "bundle",
+        "memory",
+        "benchmark"
+      ],
       "bestFor": [
         "There is a measurable target or known slow path.",
         "A baseline can be captured before changes.",
@@ -345,15 +735,63 @@
       ],
       "body": "Capture a baseline, make one focused optimization, remeasure under the same conditions, keep only proven wins, then target the next bottleneck if another pass is justified.",
       "progressSignals": {
-        "keywords": ["performance", "slow", "latency", "speed", "bundle", "memory", "benchmark", "optimize"]
-      }
+        "keywords": [
+          "performance",
+          "slow",
+          "latency",
+          "speed",
+          "bundle",
+          "memory",
+          "benchmark",
+          "optimize"
+        ]
+      },
+      "requiredSignals": [
+        "measurable bottleneck",
+        "baseline method",
+        "correctness check"
+      ],
+      "goodExamples": [
+        "reduce bundle size with before and after proof",
+        "measure slow dashboard route",
+        "improve API latency without changing behavior"
+      ],
+      "badExamples": [
+        "no reliable metric",
+        "subjective UI polish",
+        "architecture rewrite with no benchmark"
+      ],
+      "exampleChecks": [
+        "Record a baseline",
+        "Rerun the same measurement",
+        "Run the relevant correctness test"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "clean up architecture",
+          "preferLoopId": "refactor-containment",
+          "reason": "Structural cleanup needs behavior-preserving checks more than performance metrics."
+        },
+        {
+          "query": "mobile layout confusing",
+          "preferLoopId": "ux-polish",
+          "reason": "Clarity and responsiveness are UX polish unless speed is measured."
+        }
+      ]
     },
     {
       "id": "dependency-upgrade",
       "title": "Dependency upgrade",
       "category": "engineering",
       "summary": "Upgrade one dependency or toolchain surface with compatibility proof.",
-      "aliases": ["upgrade", "dependency", "package", "version", "migration", "breaking change"],
+      "aliases": [
+        "upgrade",
+        "dependency",
+        "package",
+        "version",
+        "migration",
+        "breaking change"
+      ],
       "bestFor": [
         "One dependency or small dependency group needs upgrading.",
         "Release notes or migration notes are known.",
@@ -384,15 +822,63 @@
       ],
       "body": "Upgrade the smallest dependency surface, inspect migration notes when needed, repair compatibility issues, run focused checks, and stop before broad lockfile churn.",
       "progressSignals": {
-        "keywords": ["upgrade", "dependency", "package", "npm", "version", "migration", "lockfile"]
-      }
+        "keywords": [
+          "upgrade",
+          "dependency",
+          "package",
+          "npm",
+          "version",
+          "migration",
+          "lockfile"
+        ]
+      },
+      "requiredSignals": [
+        "specific dependency",
+        "version target",
+        "compatibility check"
+      ],
+      "goodExamples": [
+        "upgrade Next.js minor version",
+        "update one npm package with tests",
+        "apply migration notes for a toolchain update"
+      ],
+      "badExamples": [
+        "publish current package",
+        "broad lockfile churn",
+        "security-sensitive package without rollback"
+      ],
+      "exampleChecks": [
+        "Run install",
+        "Run type-check and tests",
+        "Run the narrow feature smoke using the dependency"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "publish npm package",
+          "preferLoopId": "release-readiness",
+          "reason": "Publishing current code is release readiness, not dependency upgrade."
+        },
+        {
+          "query": "security vulnerability",
+          "preferLoopId": "security-hardening",
+          "reason": "Security-sensitive upgrades need risk and approval handling."
+        }
+      ]
     },
     {
       "id": "security-hardening",
       "title": "Security hardening",
       "category": "security",
       "summary": "Reduce a concrete security risk with scoped evidence and approval gates.",
-      "aliases": ["security", "vulnerability", "secret", "auth", "authorization", "xss", "csrf"],
+      "aliases": [
+        "security",
+        "vulnerability",
+        "secret",
+        "auth",
+        "authorization",
+        "xss",
+        "csrf"
+      ],
       "bestFor": [
         "A specific security concern or finding exists.",
         "The affected boundary can be scoped.",
@@ -424,15 +910,63 @@
       ],
       "body": "Scope the trust boundary, reproduce or reason about the risk, patch the smallest risky path, add validation or regression coverage when practical, and document residual risk.",
       "progressSignals": {
-        "keywords": ["security", "vulnerability", "secret", "auth", "authorization", "xss", "csrf", "permission"]
-      }
+        "keywords": [
+          "security",
+          "vulnerability",
+          "secret",
+          "auth",
+          "authorization",
+          "xss",
+          "csrf",
+          "permission"
+        ]
+      },
+      "requiredSignals": [
+        "specific risk or finding",
+        "trust boundary",
+        "security or regression proof"
+      ],
+      "goodExamples": [
+        "fix authorization bypass",
+        "sanitize unsafe user input",
+        "remove exposed secret from config path"
+      ],
+      "badExamples": [
+        "broad audit with no target",
+        "secret rotation without approval",
+        "generic code cleanup"
+      ],
+      "exampleChecks": [
+        "Run relevant auth or validation tests",
+        "Review the affected trust boundary",
+        "Document residual risk"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "review PR comments",
+          "preferLoopId": "review-repair",
+          "reason": "General review comments use review repair unless the finding is security-specific."
+        },
+        {
+          "query": "upgrade vulnerable dependency",
+          "preferLoopId": "dependency-upgrade",
+          "reason": "A dependency-only compatibility patch may fit dependency upgrade with security gates."
+        }
+      ]
     },
     {
       "id": "refactor-containment",
       "title": "Refactor containment",
       "category": "engineering",
       "summary": "Refactor a narrow area while proving behavior stays the same.",
-      "aliases": ["refactor", "cleanup", "simplify", "architecture", "duplication", "maintainability"],
+      "aliases": [
+        "refactor",
+        "cleanup",
+        "simplify",
+        "architecture",
+        "duplication",
+        "maintainability"
+      ],
       "bestFor": [
         "The behavior should stay the same.",
         "The scope can be limited to one module or boundary.",
@@ -463,15 +997,61 @@
       ],
       "body": "Define the behavior-preserving boundary, make one structural improvement, rerun focused checks, and stop before the refactor expands into feature work.",
       "progressSignals": {
-        "keywords": ["refactor", "cleanup", "simplify", "duplication", "architecture", "maintainability"]
-      }
+        "keywords": [
+          "refactor",
+          "cleanup",
+          "simplify",
+          "duplication",
+          "architecture",
+          "maintainability"
+        ]
+      },
+      "requiredSignals": [
+        "narrow module boundary",
+        "behavior must stay the same",
+        "behavior-preserving check"
+      ],
+      "goodExamples": [
+        "simplify duplicated parser logic",
+        "extract helper inside one module",
+        "clean up one boundary without feature changes"
+      ],
+      "badExamples": [
+        "feature work mixed with cleanup",
+        "public API rename without approval",
+        "no tests for behavior"
+      ],
+      "exampleChecks": [
+        "Run focused tests for the boundary",
+        "Run type-check or build for touched files",
+        "Confirm public behavior is unchanged"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "improve agent skill instructions",
+          "preferLoopId": "skill-instruction-hardening",
+          "reason": "Skill instruction changes need routing and scenario checks."
+        },
+        {
+          "query": "performance bottleneck",
+          "preferLoopId": "performance-measurement",
+          "reason": "Performance work needs baseline measurement and proof."
+        }
+      ]
     },
     {
       "id": "product-evaluation",
       "title": "Product evaluation",
       "category": "evaluation",
       "summary": "Run realistic scenarios, repair misses, and prove the flow meets a quality bar.",
-      "aliases": ["evaluation", "eval", "scenario", "quality", "acceptance", "manual qa"],
+      "aliases": [
+        "evaluation",
+        "eval",
+        "scenario",
+        "quality",
+        "acceptance",
+        "manual qa"
+      ],
       "bestFor": [
         "A feature works but quality is uncertain.",
         "Realistic scenarios can be defined.",
@@ -502,8 +1082,138 @@
       ],
       "body": "Define realistic scenarios and criteria, run them consistently, fix underlying causes of failures, rerun affected scenarios, and periodically rerun the full set.",
       "progressSignals": {
-        "keywords": ["evaluation", "eval", "scenario", "quality", "qa", "acceptance", "user flow"]
-      }
+        "keywords": [
+          "evaluation",
+          "eval",
+          "scenario",
+          "quality",
+          "qa",
+          "acceptance",
+          "user flow"
+        ]
+      },
+      "requiredSignals": [
+        "user flow to evaluate",
+        "realistic scenarios",
+        "pass/fail criteria"
+      ],
+      "goodExamples": [
+        "evaluate Loop It recommendation quality",
+        "run realistic onboarding scenarios",
+        "prove checkout flow meets acceptance criteria"
+      ],
+      "badExamples": [
+        "single broken command",
+        "pure copy polish",
+        "undefined product goal"
+      ],
+      "exampleChecks": [
+        "Run the defined scenarios",
+        "Record pass/fail evidence",
+        "Rerun affected and full scenario sets after fixes"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "make CTA clearer",
+          "preferLoopId": "ux-polish",
+          "reason": "One-screen clarity work is UX polish unless scenario coverage is the goal."
+        },
+        {
+          "query": "failing CI",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "A red check should be repaired before broader product evaluation."
+        }
+      ]
+    },
+    {
+      "id": "skill-instruction-hardening",
+      "title": "Skill instruction hardening",
+      "category": "operations",
+      "summary": "Improve an Agent Skill, prompt, or loop library so routing, examples, and verifier behavior are clearer.",
+      "aliases": [
+        "skill",
+        "agent skill",
+        "SKILL.md",
+        "instructions",
+        "prompt",
+        "routing",
+        "library",
+        "selector"
+      ],
+      "bestFor": [
+        "A skill or prompt exists but agents misroute or miss important constraints.",
+        "The loop library needs examples, scenario coverage, or clearer selection rules.",
+        "The change can be verified with selector tests, smoke checks, or prompt-quality scenarios."
+      ],
+      "avoidWhen": [
+        "The request is only page copy or visual polish.",
+        "The skill behavior cannot be checked with examples or usage scenarios."
+      ],
+      "defaultObjective": "Improve the selected skill instructions and library routing without adding unnecessary scope.",
+      "defaultCheck": "Run selector scenario checks, package smoke checks, and a focused manual prompt-quality review.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The target scenarios route to the intended loop or instruction path.",
+        "The skill metadata, examples, and tests agree.",
+        "Further improvement needs real user feedback or host-specific behavior not available locally."
+      ],
+      "approvalGates": [
+        "changing public skill invocation contracts",
+        "publishing a package release",
+        "removing existing loops",
+        "host-specific behavior claims without verification"
+      ],
+      "questions": [
+        "Which skill behavior or route is currently wrong?",
+        "What example prompt should succeed after the change?",
+        "What test or manual scenario proves the skill improved?"
+      ],
+      "body": "Identify the misroute or unclear instruction, add concrete examples and routing signals, update the selector or skill text, run scenario checks, and keep only changes that improve observable behavior.",
+      "progressSignals": {
+        "keywords": [
+          "skill",
+          "SKILL.md",
+          "prompt",
+          "instructions",
+          "routing",
+          "selector",
+          "library",
+          "examples",
+          "agent behavior"
+        ]
+      },
+      "requiredSignals": [
+        "target skill or prompt",
+        "example scenario",
+        "selector or prompt-quality check"
+      ],
+      "goodExamples": [
+        "improve Loop It skill routing and examples",
+        "make SKILL.md instructions clearer",
+        "add library examples so recommendations are testable"
+      ],
+      "badExamples": [
+        "pure visual page polish",
+        "publish current package",
+        "broad marketplace strategy"
+      ],
+      "exampleChecks": [
+        "Run selector scenario checks",
+        "Run npm run check",
+        "Manually inspect generated prompt quality for target examples"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "refactor code structure",
+          "preferLoopId": "refactor-containment",
+          "reason": "Code-only cleanup should use refactor containment."
+        },
+        {
+          "query": "product page clarity",
+          "preferLoopId": "ux-polish",
+          "reason": "One-screen clarity belongs to UX polish unless skill routing is changing."
+        }
+      ]
     }
   ]
 }

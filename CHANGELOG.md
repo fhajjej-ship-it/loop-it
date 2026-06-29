@@ -6,11 +6,14 @@
 
 - Added `npm run sync:project` to refresh local Codex, Claude Code, and Cursor project skill installs from the canonical `skills/loop-it/` source.
 - Added smoke coverage that fails when generated host installs drift from the canonical skill source or plugin manifest versions drift from `package.json`.
+- Added evaluable loop metadata: required signals, good examples, counterexamples, example checks, and common misroutes.
+- Added the `skill-instruction-hardening` loop for improving Agent Skills, prompt routing, and loop-library recommendation behavior.
 
 ### Changed
 
 - Documented the source-of-truth update flow for refreshing existing host installs after skill changes.
 - Ignored generated local host installs and `.loop-it` state so duplicate skill copies do not become source files.
+- Improved selector output with recommendation confidence and alternative rationale.
 
 ## 0.3.0
 
