@@ -82,6 +82,11 @@ Current library categories include:
 
 - Ticket to verified fix: reproduce, diagnose, patch, add regression coverage, verify.
 - Failing CI repair: inspect failing output, reproduce, patch, rerun the failed check.
+- Flaky test stabilization: reproduce intermittent failures, isolate nondeterminism, prove repeated passes.
+- Regression bisect: compare known good and bad behavior, isolate the culprit change, patch current code.
+- Deployment preview repair: inspect hosted build/deploy logs, reproduce locally where possible, verify preview status.
+- Runtime error triage: map stack traces or logs to the failing path, patch root cause, prove the error is gone.
+- API contract drift: align caller, provider, schema, and tests when request or response shapes disagree.
 - Docs sweep: compare docs to implementation, update stale docs, verify examples or links.
 - Product evaluation: define scenarios and criteria, test, fix misses, rerun affected and full checks.
 - Performance loop: measure baseline, make one focused change, remeasure, keep only proven wins.

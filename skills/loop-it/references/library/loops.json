@@ -195,6 +195,16 @@
           "query": "publish npm package",
           "preferLoopId": "release-readiness",
           "reason": "Publishing needs release verification and approval gates."
+        },
+        {
+          "query": "flaky test",
+          "preferLoopId": "flaky-test-stabilization",
+          "reason": "Intermittent failures need repeated reproduction and nondeterminism isolation."
+        },
+        {
+          "query": "preview deployment failed",
+          "preferLoopId": "deployment-preview-repair",
+          "reason": "Preview or deploy failures need deployment-log and environment-specific repair."
         }
       ],
       "reliability": {
@@ -219,6 +229,575 @@
         "firstStep": "Paste the failing command, the most relevant error lines, and any recent related changes.",
         "proofTip": "Rerun the exact failing command first; broaden checks only after the original failure is gone.",
         "notFor": "Do not use it for a user-facing bug report unless the CI output is the main evidence."
+      }
+    },
+    {
+      "id": "flaky-test-stabilization",
+      "title": "Flaky test stabilization",
+      "category": "engineering",
+      "summary": "Stabilize an intermittent test or check by isolating nondeterminism and proving repeated passes.",
+      "aliases": [
+        "flaky",
+        "flaky test",
+        "intermittent",
+        "non-deterministic",
+        "race condition",
+        "random failure",
+        "timing issue"
+      ],
+      "bestFor": [
+        "A test, CI job, or check fails intermittently.",
+        "The same command sometimes passes without code changes.",
+        "The likely cause is timing, async state, test isolation, order dependence, or randomness."
+      ],
+      "avoidWhen": [
+        "The failure is deterministic and has clear output.",
+        "The only evidence is a broad quality complaint with no failing check.",
+        "The failure needs unavailable external services to reproduce."
+      ],
+      "defaultObjective": "Stabilize the intermittent failure without weakening the test's behavioral contract.",
+      "defaultCheck": "Run the flaky test or check repeatedly under the same command until it passes consistently.",
+      "maxIterations": 4,
+      "stopConditions": [
+        "The target check passes repeatedly without intermittent failure.",
+        "The same nondeterministic failure cannot be reproduced after serious attempts.",
+        "The suspected cause requires unavailable services, time, or approval."
+      ],
+      "approvalGates": [
+        "weakening assertions",
+        "skipping or deleting tests",
+        "changing global test timeouts",
+        "external service changes"
+      ],
+      "questions": [
+        "Which test or command is flaky?",
+        "How often does it fail, and under what command?",
+        "What recent change touched timing, async state, randomness, or shared fixtures?"
+      ],
+      "body": "Run the target check enough times to observe the failure pattern, identify nondeterministic state such as timing, random data, shared fixtures, order dependence, or network reliance, make the smallest stabilization that preserves the behavior being tested, then rerun the same check repeatedly before broadening verification.",
+      "progressSignals": {
+        "keywords": [
+          "flaky",
+          "intermittent",
+          "random failure",
+          "race",
+          "nondeterministic",
+          "non-deterministic",
+          "timing",
+          "order dependent",
+          "passes locally"
+        ]
+      },
+      "requiredSignals": [
+        "intermittent failure",
+        "repeatable command",
+        "proof from repeated runs"
+      ],
+      "goodExamples": [
+        "stabilize flaky checkout test",
+        "fix intermittent CI failure that passes on rerun",
+        "repair race condition in async test"
+      ],
+      "badExamples": [
+        "single deterministic failing test",
+        "delete unstable tests",
+        "broad CI failure with no repeat evidence"
+      ],
+      "exampleChecks": [
+        "Run the target test multiple times before and after the fix",
+        "Rerun the CI-equivalent command after stabilization",
+        "Confirm assertions still test the intended behavior"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "single failing test",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "Deterministic failures should use failing CI repair."
+        },
+        {
+          "query": "add missing regression test",
+          "preferLoopId": "test-coverage-gap",
+          "reason": "Missing coverage is different from an unstable existing test."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful when the same command can be run repeatedly and the failure pattern can be observed.",
+        "bestWhen": [
+          "The target command and flaky test are known.",
+          "The test can be run repeatedly in the local environment.",
+          "The fix can preserve assertions instead of hiding the failure."
+        ],
+        "failsWhen": [
+          "The failure cannot be reproduced or observed.",
+          "The only fix is to skip, delete, or weaken the test.",
+          "The flake depends on unavailable external infrastructure."
+        ],
+        "requiredCheck": "Run the target test or check repeatedly and record consistent passes after the fix."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when a test sometimes fails and sometimes passes, and you need to make it trustworthy.",
+        "useWhen": "Pick this when rerunning the same test changes the result or the failure looks timing/order/randomness-related.",
+        "starterRequest": "Stabilize the flaky checkout test and prove it passes repeatedly without weakening the assertion.",
+        "firstStep": "Run the exact command multiple times and record the pass/fail pattern before editing.",
+        "proofTip": "A single green run is not enough; repeat the target check after the fix.",
+        "notFor": "Do not use it for a deterministic red check with one clear failure."
+      }
+    },
+    {
+      "id": "regression-bisect",
+      "title": "Regression bisect",
+      "category": "engineering",
+      "summary": "Find the change that introduced a regression, patch the cause, and verify against known good and bad behavior.",
+      "aliases": [
+        "bisect",
+        "regression bisect",
+        "used to work",
+        "introduced regression",
+        "known good",
+        "known bad",
+        "culprit commit"
+      ],
+      "bestFor": [
+        "A behavior used to work and now fails.",
+        "There is a known good point, release, commit, or date.",
+        "A reproduction can distinguish good from bad behavior."
+      ],
+      "avoidWhen": [
+        "There is no known-good reference or reproduction.",
+        "The bug is new behavior without a past working state.",
+        "Bisecting would require destructive git operations or large environment changes."
+      ],
+      "defaultObjective": "Identify and repair the change that introduced the regression.",
+      "defaultCheck": "Run the same reproduction against known-good, known-bad, and fixed states.",
+      "maxIterations": 4,
+      "stopConditions": [
+        "The culprit change is identified and the current tree passes the reproduction.",
+        "No safe known-good or known-bad point can be checked.",
+        "Bisecting requires destructive git operations or unavailable dependencies."
+      ],
+      "approvalGates": [
+        "destructive git operations",
+        "history rewrites",
+        "checking out dirty worktrees",
+        "production data access"
+      ],
+      "questions": [
+        "When did the behavior last work?",
+        "What reproduction distinguishes good from bad?",
+        "Which commit, release, or branch is known good?"
+      ],
+      "body": "Define the reproduction, identify known-good and known-bad states, inspect or bisect the change range without disturbing unrelated work, isolate the culprit change, patch the smallest current-code cause, then verify the reproduction against the fixed state and relevant regression checks.",
+      "progressSignals": {
+        "keywords": [
+          "bisect",
+          "regression",
+          "used to work",
+          "known good",
+          "known bad",
+          "introduced",
+          "culprit",
+          "started after"
+        ]
+      },
+      "requiredSignals": [
+        "known-good reference",
+        "known-bad reference",
+        "reproduction that distinguishes behavior"
+      ],
+      "goodExamples": [
+        "find which commit broke checkout redirect",
+        "bisect regression after last release",
+        "this worked yesterday and now fails"
+      ],
+      "badExamples": [
+        "new feature bug with no past working state",
+        "broad refactor cleanup",
+        "failing CI with no known-good point"
+      ],
+      "exampleChecks": [
+        "Run the reproduction on known-good and known-bad states",
+        "Inspect or bisect the candidate change range",
+        "Run the reproduction and narrow regression check after the fix"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "customer bug with known repro",
+          "preferLoopId": "ticket-to-verified-fix",
+          "reason": "A normal bug with no known-good comparison should use ticket-to-verified-fix."
+        },
+        {
+          "query": "refactor without behavior change",
+          "preferLoopId": "refactor-containment",
+          "reason": "Behavior-preserving cleanup is not a regression investigation."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful when a known-good reference and focused reproduction make the change range inspectable.",
+        "bestWhen": [
+          "The team can name a last-known-good state.",
+          "The same reproduction can be run across states.",
+          "The worktree can be protected from unrelated dirty changes."
+        ],
+        "failsWhen": [
+          "There is no reliable reproduction.",
+          "The known-good state cannot run in the current environment.",
+          "The investigation would require destructive git operations."
+        ],
+        "requiredCheck": "Run the same reproduction against known-good, known-bad, and fixed states or explain the blocker."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when something used to work and you need to find the change that broke it.",
+        "useWhen": "Pick this when you can name a last-good state and run a reproduction that separates good from bad.",
+        "starterRequest": "Find which recent change broke checkout redirect and repair the current code.",
+        "firstStep": "Write down the known-good state, known-bad state, and exact reproduction before changing code.",
+        "proofTip": "The strongest proof is the same repro failing before the culprit fix and passing after.",
+        "notFor": "Do not use it for a brand-new bug with no known working baseline."
+      }
+    },
+    {
+      "id": "deployment-preview-repair",
+      "title": "Deployment preview repair",
+      "category": "operations",
+      "summary": "Repair a failed preview, deployment, or hosted build using deploy logs and local reproduction where possible.",
+      "aliases": [
+        "deployment",
+        "deploy",
+        "preview",
+        "vercel",
+        "render",
+        "netlify",
+        "hosted build",
+        "production build"
+      ],
+      "bestFor": [
+        "A preview, deploy, or hosted build failed.",
+        "Build logs, platform output, or environment mismatch evidence is available.",
+        "The goal is to make the deployed artifact build or boot safely."
+      ],
+      "avoidWhen": [
+        "The failure is only a local test with no deployment surface.",
+        "Fixing requires production secrets, billing, or DNS changes without approval.",
+        "The feature itself is incomplete."
+      ],
+      "defaultObjective": "Repair the failed deployment or preview with the smallest safe config or code change.",
+      "defaultCheck": "Run the closest local build/deploy check and verify the preview or deployment status when available.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The preview or deployment check passes.",
+        "The failure requires platform credentials, billing, DNS, secrets, or production approval.",
+        "The same deploy failure repeats without new evidence."
+      ],
+      "approvalGates": [
+        "production deploys",
+        "DNS changes",
+        "secret or environment changes",
+        "billing or plan changes",
+        "external service changes"
+      ],
+      "questions": [
+        "Which platform or preview failed?",
+        "What is the key deploy log or build error?",
+        "Can the closest build command be run locally?"
+      ],
+      "body": "Inspect deploy logs and platform settings, reproduce with the closest local build or start command when safe, fix the smallest environment, build, runtime, or config mismatch, rerun the local check, then verify the preview or deployment status if access is available.",
+      "progressSignals": {
+        "keywords": [
+          "deploy",
+          "deployment",
+          "preview",
+          "vercel",
+          "render",
+          "netlify",
+          "build logs",
+          "hosted build",
+          "production build"
+        ]
+      },
+      "requiredSignals": [
+        "deployment or preview failure",
+        "platform log or build output",
+        "local build or hosted status check"
+      ],
+      "goodExamples": [
+        "fix failed Vercel preview build",
+        "repair Render deploy boot error",
+        "make production build pass after env mismatch"
+      ],
+      "badExamples": [
+        "local unit test failed",
+        "feature is not implemented",
+        "needs DNS or billing change without approval"
+      ],
+      "exampleChecks": [
+        "Run the closest local build command",
+        "Inspect the deploy log after the fix",
+        "Verify preview status or hosted smoke when access exists"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "npm publish package",
+          "preferLoopId": "release-readiness",
+          "reason": "Package publishing is release readiness, not hosted preview repair."
+        },
+        {
+          "query": "local build failed",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "A local deterministic build failure without deployment context fits failing CI repair."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful when deploy logs are available and the closest local build check can be run.",
+        "bestWhen": [
+          "The platform failure output is available.",
+          "The repo has a local build or boot command that approximates deployment.",
+          "The fix does not require secrets, DNS, billing, or production writes."
+        ],
+        "failsWhen": [
+          "The platform blocks logs or requires unavailable credentials.",
+          "The failure depends on production-only state.",
+          "The required fix is a platform setting outside code without approval."
+        ],
+        "requiredCheck": "Run the closest local build/deploy check and verify hosted preview status when available."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when a preview or deployment is red and the fix may be code, config, or environment drift.",
+        "useWhen": "Pick this when Vercel, Render, Netlify, or another host fails to build or boot the app.",
+        "starterRequest": "Fix the failed Vercel preview build using the deploy log and verify the closest local build.",
+        "firstStep": "Collect the platform, failing URL or run, key log lines, and local build command.",
+        "proofTip": "Local build passing is useful, but hosted status or preview smoke is the stronger proof.",
+        "notFor": "Do not use it for deploys that require secret, DNS, billing, or production changes before approval."
+      }
+    },
+    {
+      "id": "runtime-error-triage",
+      "title": "Runtime error triage",
+      "category": "engineering",
+      "summary": "Diagnose a runtime crash or console/log error, patch the failing path, and prove the error no longer appears.",
+      "aliases": [
+        "runtime error",
+        "crash",
+        "exception",
+        "stack trace",
+        "console error",
+        "sentry",
+        "log error",
+        "500"
+      ],
+      "bestFor": [
+        "A user action or runtime path throws an error.",
+        "Stack trace, logs, console output, or error monitoring evidence exists.",
+        "The failing path can be reproduced or simulated safely."
+      ],
+      "avoidWhen": [
+        "The only signal is a compile-time or lint error.",
+        "The error depends on production-only data that cannot be safely inspected.",
+        "The requested work is broad observability or logging setup."
+      ],
+      "defaultObjective": "Fix the runtime error without masking the underlying failure.",
+      "defaultCheck": "Reproduce the failing path, verify the error disappears, and run the nearest regression check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "The runtime path no longer throws and the regression check passes.",
+        "The error cannot be reproduced or safely simulated.",
+        "The next step requires production data, credentials, or external access approval."
+      ],
+      "approvalGates": [
+        "production data access",
+        "credential changes",
+        "external service writes",
+        "deploys",
+        "broad logging changes"
+      ],
+      "questions": [
+        "What action or route triggers the error?",
+        "What are the key stack trace, log, or console lines?",
+        "What local command or manual path can reproduce it?"
+      ],
+      "body": "Capture the error evidence, map the stack or log to the smallest failing code path, reproduce or safely simulate the runtime path, patch the root cause without broad catch-all masking, then verify the error is gone and the nearest behavior check still passes.",
+      "progressSignals": {
+        "keywords": [
+          "runtime error",
+          "crash",
+          "exception",
+          "stack trace",
+          "console error",
+          "sentry",
+          "logs",
+          "500",
+          "throws"
+        ]
+      },
+      "requiredSignals": [
+        "runtime error evidence",
+        "triggering path or action",
+        "reproduction or safe simulation"
+      ],
+      "goodExamples": [
+        "fix console error when opening checkout",
+        "repair 500 on customer route",
+        "triage Sentry stack trace for dashboard crash"
+      ],
+      "badExamples": [
+        "TypeScript compile error",
+        "lint failure",
+        "add broad catch block to hide error"
+      ],
+      "exampleChecks": [
+        "Reproduce the triggering path before and after the fix",
+        "Run the nearest regression or smoke check",
+        "Confirm the same error no longer appears in logs or console"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "typecheck failed",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "Compile-time failures should use failing CI repair."
+        },
+        {
+          "query": "bug report with no logs",
+          "preferLoopId": "ticket-to-verified-fix",
+          "reason": "A normal behavior bug without runtime evidence fits ticket-to-verified-fix."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable as a starter when a stack trace, log, route, or user action points to a concrete runtime path.",
+        "bestWhen": [
+          "The triggering route, action, or job is known.",
+          "Error evidence maps to code.",
+          "The path can be reproduced or safely simulated."
+        ],
+        "failsWhen": [
+          "The error only appears in production with inaccessible data.",
+          "The stack trace is missing and no trigger is known.",
+          "The proposed fix masks the error without proving behavior."
+        ],
+        "requiredCheck": "Reproduce the failing path, verify the error disappears, and run the nearest regression check."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when the app crashes or logs a runtime error during a real action.",
+        "useWhen": "Pick this when you have a stack trace, console error, server log, Sentry issue, or 500 response.",
+        "starterRequest": "Fix the dashboard runtime error from this stack trace and prove the page no longer crashes.",
+        "firstStep": "Paste the triggering action, route, stack trace or log lines, and the closest local reproduction path.",
+        "proofTip": "Do not stop at adding a catch block; prove the original action works without the same error.",
+        "notFor": "Do not use it for build, lint, or type errors that happen before runtime."
+      }
+    },
+    {
+      "id": "api-contract-drift",
+      "title": "API contract drift",
+      "category": "engineering",
+      "summary": "Realign frontend, backend, schema, or client expectations when an API contract has drifted.",
+      "aliases": [
+        "api contract",
+        "contract drift",
+        "schema mismatch",
+        "frontend backend mismatch",
+        "request response",
+        "endpoint mismatch",
+        "type drift"
+      ],
+      "bestFor": [
+        "A caller and provider disagree about request shape, response shape, status codes, or types.",
+        "The break crosses a frontend/backend, client/server, SDK, or schema boundary.",
+        "Contract proof can be added through tests, type checks, or route smoke checks."
+      ],
+      "avoidWhen": [
+        "Only docs are stale while code still agrees.",
+        "The product contract is undecided.",
+        "The mismatch requires a breaking API change without approval."
+      ],
+      "defaultObjective": "Align the API contract across caller, provider, and tests without unrelated rewrites.",
+      "defaultCheck": "Run the route/client contract test, type check, or focused smoke covering the request and response.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Caller and provider agree and the contract check passes.",
+        "The desired API behavior needs product or versioning approval.",
+        "The next step requires production data or external service writes."
+      ],
+      "approvalGates": [
+        "breaking API changes",
+        "schema migrations",
+        "production data writes",
+        "external service contract changes",
+        "public API documentation promises"
+      ],
+      "questions": [
+        "Which caller and endpoint disagree?",
+        "What request, response, status, or type shape is expected?",
+        "What test or smoke proves both sides agree?"
+      ],
+      "body": "Inspect the caller, provider, shared types or schema, and failing evidence; decide the intended contract; update the smallest side or shared contract needed; add or run a focused contract check; then verify the user-facing path that depends on the contract.",
+      "progressSignals": {
+        "keywords": [
+          "api contract",
+          "contract drift",
+          "schema mismatch",
+          "frontend backend",
+          "request",
+          "response",
+          "endpoint",
+          "type drift",
+          "status code"
+        ]
+      },
+      "requiredSignals": [
+        "caller/provider mismatch",
+        "expected request or response shape",
+        "contract or smoke check"
+      ],
+      "goodExamples": [
+        "fix frontend backend response mismatch",
+        "align API route schema with client types",
+        "repair endpoint status code contract drift"
+      ],
+      "badExamples": [
+        "stale API docs only",
+        "product contract not decided",
+        "database migration with no API mismatch"
+      ],
+      "exampleChecks": [
+        "Run the focused API contract test",
+        "Run type-check covering shared types",
+        "Run the user flow or route smoke that crosses the boundary"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "stale API documentation",
+          "preferLoopId": "docs-sweep",
+          "reason": "Docs-only drift should use docs sweep."
+        },
+        {
+          "query": "schema migration safety",
+          "preferLoopId": "security-hardening",
+          "reason": "Data or migration risk needs a different approval-heavy loop until migration safety exists."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful when both sides of the boundary are inspectable and the desired contract can be tested.",
+        "bestWhen": [
+          "The mismatched caller and provider are known.",
+          "Expected request and response shapes can be stated.",
+          "A focused type, route, or smoke check can exercise the boundary."
+        ],
+        "failsWhen": [
+          "The intended contract is still a product decision.",
+          "The fix requires a breaking public API change without approval.",
+          "Only documentation is stale while code still agrees."
+        ],
+        "requiredCheck": "Run the route/client contract test, type check, or focused smoke covering request and response."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when two parts of the system disagree about what an API sends or returns.",
+        "useWhen": "Pick this when a frontend, backend, client, route, schema, or shared type no longer matches the other side.",
+        "starterRequest": "Align the checkout API response with the frontend client and add a contract check.",
+        "firstStep": "Name the caller, provider, current shape, expected shape, and failing evidence.",
+        "proofTip": "Prove both sides agree with a focused contract test, type check, or route smoke.",
+        "notFor": "Do not use it for stale API docs only or undecided product behavior."
       }
     },
     {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.5
+
+### Added
+
+- Added five loop-library patterns for flaky test stabilization, regression bisect, deployment preview repair, runtime error triage, and API contract drift.
+- Added selector eval scenarios for the new loop patterns so every bundled loop has routing coverage.
+
 ## 0.3.4
 
 ### Changed

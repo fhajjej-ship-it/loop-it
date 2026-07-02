@@ -174,12 +174,17 @@ npx @fhajjej/loop-it@latest start --from failing-ci-repair --goal "Fix failing C
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
 
-The bundled catalog currently includes 15 local-first loops:
+The bundled catalog currently includes 20 local-first loops:
 
 | Loop | Category | Best for |
 | --- | --- | --- |
 | `ticket-to-verified-fix` | engineering | Turn a bug report or small defect into the smallest patch with proof. |
 | `failing-ci-repair` | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
+| `flaky-test-stabilization` | engineering | Stabilize an intermittent test or check by isolating nondeterminism and proving repeated passes. |
+| `regression-bisect` | engineering | Find the change that introduced a regression, patch the cause, and verify against known good and bad behavior. |
+| `deployment-preview-repair` | operations | Repair a failed preview, deployment, or hosted build using deploy logs and local reproduction where possible. |
+| `runtime-error-triage` | engineering | Diagnose a runtime crash or console/log error, patch the failing path, and prove the error no longer appears. |
+| `api-contract-drift` | engineering | Realign frontend, backend, schema, or client expectations when an API contract has drifted. |
 | `docs-sweep` | content | Find and fix stale setup, API, command, or workflow documentation. |
 | `review-repair` | operations | Address blocking review findings until the diff is ready to ship. |
 | `release-readiness` | operations | Prepare a package, app, or feature for a public release with evidence. |

@@ -12,6 +12,31 @@
       "reason": "A named failing CI check should use the failing-CI repair loop."
     },
     {
+      "goal": "stabilize flaky checkout test that passes on rerun",
+      "expectedLoopId": "flaky-test-stabilization",
+      "reason": "Intermittent pass/fail behavior should use the flaky test stabilization loop."
+    },
+    {
+      "goal": "bisect regression that worked in the last release and now fails",
+      "expectedLoopId": "regression-bisect",
+      "reason": "A known-good to known-bad investigation should use regression bisect."
+    },
+    {
+      "goal": "fix failed Vercel preview deployment build from deploy logs",
+      "expectedLoopId": "deployment-preview-repair",
+      "reason": "Hosted preview failures with deploy logs should use deployment preview repair."
+    },
+    {
+      "goal": "triage runtime stack trace for dashboard crash",
+      "expectedLoopId": "runtime-error-triage",
+      "reason": "A runtime crash with stack trace evidence should use runtime error triage."
+    },
+    {
+      "goal": "align frontend backend API response schema mismatch",
+      "expectedLoopId": "api-contract-drift",
+      "reason": "Caller/provider request or response mismatch should use API contract drift."
+    },
+    {
       "goal": "update stale README installation docs",
       "expectedLoopId": "docs-sweep",
       "reason": "Stale documentation with commands to verify should use the docs sweep loop."

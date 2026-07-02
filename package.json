@@ -1,6 +1,6 @@
 {
   "name": "@fhajjej/loop-it",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Portable loop router, library, launcher, and Agent Skill for finding, recommending, and running verifier-gated coding loops for Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
   "type": "module",
   "author": {
