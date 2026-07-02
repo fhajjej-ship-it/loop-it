@@ -473,20 +473,92 @@ function smokeLoopRun() {
   mkdirSync(failingProjectDir, { recursive: true });
   writeFileSync(
     resolve(failingProjectDir, "package.json"),
-    JSON.stringify({ scripts: { test: "node -e \"process.exit(0)\"" } }, null, 2)
+    JSON.stringify(
+      {
+        name: "loop-run-failing-test-fixture",
+        scripts: {
+          test: "node test.mjs",
+        },
+      },
+      null,
+      2
+    )
+  );
+  writeFileSync(
+    resolve(failingProjectDir, "test.mjs"),
+    [
+      "import assert from 'node:assert/strict';",
+      "",
+      "assert.equal(1 + 1, 3);",
+      "",
+    ].join("\n")
   );
   const failing = run(nodeBin, [
     cliPath,
     "run",
     "--goal",
-    "fix failing checkout test",
+    "fix failing npm test with the smallest safe change",
     "--check",
-    "npm test -- checkout",
+    "npm test",
     "--agent",
     "codex",
   ], { cwd: failingProjectDir });
-  if (!failing.stdout.includes("Recommended loop: Failing CI repair (failing-ci-repair)")) {
-    fail("Expected specific failing test run to route to failing-ci-repair");
+
+  for (const text of [
+    "Recommended loop: Failing CI repair (failing-ci-repair)",
+    "Verifier: npm test",
+    "Preparing run-mode launch prompt",
+    "Created .loop-it/LOOP.md",
+    "Created .loop-it/progress.json",
+    "Created .loop-it/LAUNCH.md",
+  ]) {
+    if (!failing.stdout.includes(text)) {
+      fail(`Expected failing test run output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const failingLoopFile = resolve(failingProjectDir, ".loop-it", "LOOP.md");
+  const failingProgressFile = resolve(failingProjectDir, ".loop-it", "progress.json");
+  const failingLaunchFile = resolve(failingProjectDir, ".loop-it", "LAUNCH.md");
+  assertFile(failingLoopFile);
+  assertFile(failingProgressFile);
+  assertFile(failingLaunchFile);
+
+  const failingProgress = JSON.parse(readFileSync(failingProgressFile, "utf8"));
+  if (
+    failingProgress.activeLoopId !== "failing-ci-repair" ||
+    failingProgress.status !== "ready" ||
+    failingProgress.verifier !== "npm test" ||
+    failingProgress.lastResult !== "not-run" ||
+    failingProgress.recommendedNextAction !==
+      "Paste a host launch prompt from .loop-it/LAUNCH.md into the target agent to run the repair; .loop-it-only changes do not count as progress."
+  ) {
+    fail("Expected failing test run progress to prepare execution without claiming completion");
+  }
+
+  const failingLoopContent = readFileSync(failingLoopFile, "utf8");
+  for (const text of [
+    "# Failing CI repair",
+    "Command or criterion: npm test",
+    "This file is the contract; it does not repair code until an agent runs the launch prompt.",
+  ]) {
+    if (!failingLoopContent.includes(text)) {
+      fail(`Expected failing test loop contract to contain ${JSON.stringify(text)}`);
+    }
+  }
+
+  const failingLaunchContent = readFileSync(failingLaunchFile, "utf8");
+  for (const text of [
+    "Use $loop-it in Run The Loop mode.",
+    "Read .loop-it/LOOP.md as state, then execute the repair.",
+    "First action: run the verifier",
+    "If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.",
+    "Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.",
+    "After each iteration, run the verifier, record evidence in .loop-it/progress.json",
+  ]) {
+    if (!failingLaunchContent.includes(text)) {
+      fail(`Expected failing test launch prompt to contain ${JSON.stringify(text)}`);
+    }
   }
 
   const plan = JSON.parse(
