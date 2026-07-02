@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, "..");
 const libraryPath = resolve(skillRoot, "references", "library", "loops.json");
+const evalsPath = resolve(skillRoot, "references", "library", "evals.json");
 const stopWords = new Set([
   "and",
   "are",
@@ -33,6 +34,14 @@ export function loadLibrary() {
     throw new Error("Loop library is missing a loops array.");
   }
   return library;
+}
+
+export function loadEvals() {
+  const evals = JSON.parse(readFileSync(evalsPath, "utf8"));
+  if (!Array.isArray(evals.scenarios)) {
+    throw new Error("Loop library evals are missing a scenarios array.");
+  }
+  return evals;
 }
 
 export function findLoopById(id, library = loadLibrary()) {
@@ -126,6 +135,44 @@ export function recommendLoop(options = {}) {
   });
 }
 
+export function evaluateLibrary(options = {}) {
+  const library = options.library ?? loadLibrary();
+  const evals = options.evals ?? loadEvals();
+  const loopIds = new Set(library.loops.map((loop) => loop.id));
+  const coveredLoopIds = new Set();
+  const results = evals.scenarios.map((scenario, index) => {
+    const recommendation = recommendLoop({ goal: scenario.goal, library });
+    const actualLoopId = recommendation.selected?.loop?.id ?? null;
+    const passed = actualLoopId === scenario.expectedLoopId;
+    if (scenario.expectedLoopId) {
+      coveredLoopIds.add(scenario.expectedLoopId);
+    }
+    return {
+      index: index + 1,
+      goal: scenario.goal,
+      expectedLoopId: scenario.expectedLoopId,
+      actualLoopId,
+      confidence: recommendation.selected?.confidence ?? "low",
+      score: recommendation.selected?.score ?? 0,
+      passed,
+      reason: scenario.reason,
+      matchedSignals: recommendation.decision?.matchedSignals ?? [],
+    };
+  });
+  const failures = results.filter((result) => !result.passed);
+  const missingLoopIds = [...loopIds].filter((loopId) => !coveredLoopIds.has(loopId));
+
+  return {
+    version: evals.version,
+    ok: failures.length === 0 && missingLoopIds.length === 0,
+    total: results.length,
+    passed: results.length - failures.length,
+    failed: failures.length,
+    missingLoopIds,
+    results,
+  };
+}
+
 export function loopDefaults(loop) {
   return {
     name: loop.title,
@@ -141,7 +188,11 @@ export function loopWorkflow(loop) {
   const goal = shellQuote(loop.defaultObjective);
   const check = shellQuote(loop.defaultCheck);
   return {
-    choose: first(loop.bestFor) ?? loop.summary,
+    choose: loop.userGuide?.useWhen ?? first(loop.bestFor) ?? loop.summary,
+    startWith: loop.userGuide?.starterRequest ?? loop.defaultObjective,
+    firstStep: loop.userGuide?.firstStep ?? "State the goal, check, scope, and current blocker.",
+    proofTip: loop.userGuide?.proofTip ?? loop.defaultCheck,
+    notFor: loop.userGuide?.notFor ?? first(loop.avoidWhen) ?? "Do not use when the goal or proof is unclear.",
     write: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
     start: `loop-it start --from ${loop.id} --goal ${goal} --check ${check}`,
     create: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
@@ -185,6 +236,12 @@ function scoreLoop(loop, tokens, rawQuery, library) {
     ...(loop.requiredSignals ?? []),
     ...(loop.goodExamples ?? []),
     ...(loop.exampleChecks ?? []),
+    loop.userGuide?.plainLanguage,
+    loop.userGuide?.useWhen,
+    loop.userGuide?.starterRequest,
+    loop.userGuide?.firstStep,
+    loop.userGuide?.proofTip,
+    loop.userGuide?.notFor,
     ...((loop.progressSignals && loop.progressSignals.keywords) ?? []),
   ]
     .join(" ")
@@ -402,6 +459,9 @@ function printList(args) {
   for (const loop of loops) {
     console.log(`${loop.id}  ${loop.title}  [${loop.category}]`);
     console.log(`  ${loop.summary}`);
+    if (loop.userGuide?.useWhen) {
+      console.log(`  Use when: ${loop.userGuide.useWhen}`);
+    }
   }
 }
 
@@ -438,6 +498,16 @@ function printShow(args) {
   console.log(`${loop.title} (${loop.id})`);
   console.log(loop.summary);
   console.log("");
+  if (loop.userGuide) {
+    console.log("Plain English:");
+    console.log(loop.userGuide.plainLanguage);
+    console.log(`Use when: ${loop.userGuide.useWhen}`);
+    console.log(`Start with: ${loop.userGuide.starterRequest}`);
+    console.log(`First step: ${loop.userGuide.firstStep}`);
+    console.log(`Proof tip: ${loop.userGuide.proofTip}`);
+    console.log(`Not for: ${loop.userGuide.notFor}`);
+    console.log("");
+  }
   console.log(`Default objective: ${loop.defaultObjective}`);
   console.log(`Default check: ${loop.defaultCheck}`);
   console.log(`Max iterations: ${loop.maxIterations}`);
@@ -504,11 +574,39 @@ function printNext(args) {
   printRecommendation(recommendation, `progress from ${progress.source}`);
 }
 
+function printEval(args) {
+  const report = evaluateLibrary();
+  if (args.json) {
+    printJson(report);
+  } else {
+    console.log(`Loop library evals: ${report.passed}/${report.total} passed`);
+    if (report.missingLoopIds.length) {
+      console.log(`Missing scenario coverage: ${report.missingLoopIds.join(", ")}`);
+    }
+    for (const result of report.results) {
+      const mark = result.passed ? "PASS" : "FAIL";
+      console.log(`${mark} ${result.index}. ${result.goal}`);
+      console.log(`  expected: ${result.expectedLoopId}`);
+      console.log(`  actual: ${result.actualLoopId ?? "none"} (${result.confidence}, score ${result.score})`);
+      if (!result.passed && result.matchedSignals.length) {
+        console.log(`  signals: ${result.matchedSignals.join(", ")}`);
+      }
+    }
+  }
+
+  if (!report.ok) {
+    process.exit(1);
+  }
+}
+
 function printRanked(title, results) {
   console.log(title);
   for (const item of results) {
     console.log(`- ${item.loop.id}: ${item.loop.title} (${item.score})`);
     console.log(`  ${item.loop.summary}`);
+    if (item.loop.userGuide?.plainLanguage) {
+      console.log(`  Plain English: ${item.loop.userGuide.plainLanguage}`);
+    }
     console.log(`  Proof: ${item.loop.defaultCheck}`);
     console.log(`  Confidence: ${item.confidence}`);
     console.log(`  Write: ${loopWorkflow(item.loop).write}`);
@@ -537,12 +635,19 @@ function printRecommendation(recommendation, sourceLabel) {
   console.log("");
   const workflow = recommendation.workflow ?? loopWorkflow(loop);
   console.log("How to use it:");
-  console.log(`1. Choose: ${workflow.choose}`);
-  console.log(`2. Write: ${workflow.write}`);
-  console.log(`3. Launch: ${workflow.start}`);
-  console.log(`4. Prove: ${workflow.proof}`);
-  console.log(`5. Track: ${workflow.track}`);
-  console.log(`6. Next: ${workflow.next}`);
+  if (loop.userGuide?.plainLanguage) {
+    console.log(`Plain English: ${loop.userGuide.plainLanguage}`);
+  }
+  console.log(`1. Use when: ${workflow.choose}`);
+  console.log(`2. Start with: ${workflow.startWith}`);
+  console.log(`3. First step: ${workflow.firstStep}`);
+  console.log(`4. Write: ${workflow.write}`);
+  console.log(`5. Launch: ${workflow.start}`);
+  console.log(`6. Prove: ${workflow.proof}`);
+  console.log(`7. Proof tip: ${workflow.proofTip}`);
+  console.log(`8. Track: ${workflow.track}`);
+  console.log(`9. Next: ${workflow.next}`);
+  console.log(`Not for: ${workflow.notFor}`);
   console.log("");
   console.log("Questions if this is still unclear:");
   for (const question of loop.questions.slice(0, 3)) {
@@ -572,6 +677,7 @@ function printUsage() {
   select-loop.mjs search "failing ci" [--json]
   select-loop.mjs recommend --goal "fix failing checkout test" [--json]
   select-loop.mjs next --cwd <project> [--json]
+  select-loop.mjs eval [--json]
   select-loop.mjs show <loop-id> [--json]`);
 }
 
@@ -597,6 +703,8 @@ function main() {
     printRecommend(args);
   } else if (command === "next") {
     printNext(args);
+  } else if (command === "eval") {
+    printEval(args);
   } else {
     throw new Error(`Unknown command: ${command}`);
   }

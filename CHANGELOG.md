@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.3
+
+### Added
+
+- Added `loop-it run` to inspect repository signals, recommend the right bundled loop, infer a verifier, and prepare a run-mode launch prompt.
+- Added the `codebase-intake-to-running-loop` recipe for broad requests like "inspect this repo" or "what should Loop It tackle next".
+- Added selector eval scenarios and smoke coverage for broad repo-intake routing.
+
+### Changed
+
+- Repositioned the Codex plugin defaults around finding, recommending, and running loops instead of only writing loop contracts.
+- Updated Loop It skill instructions so broad fix/improve/debug requests default to repo inspection, loop selection, verifier execution, and evidence recording.
+
+## 0.3.2
+
+### Added
+
+- Added reliability metadata to every bundled loop recipe, including status, best-fit conditions, failure modes, and required proof checks.
+- Added plain-language `userGuide` metadata to every bundled loop recipe so users can understand when to use a loop, how to start, and when to avoid it.
+- Added shipped library evaluation scenarios covering all 14 loop recipes.
+- Added smoke coverage that fails when loop reliability metadata is missing or scenario routing regresses.
+- Added smoke coverage that fails when loop recipes omit beginner-facing guide fields.
+- Added run-mode launch prompt guardrails so agents do not treat `.loop-it` file creation as the repair.
+
+### Changed
+
+- Clarified that bundled loops are starter recipes with verifier gates, not guaranteed outcomes unless future eval evidence proves them.
+- Improved library selector output with plain-English guidance, starter requests, first steps, proof tips, and not-for guidance.
+- Clarified generated Codex, Claude Code, and Cursor launch prompts to run the verifier first, avoid creating another loop, and keep going when only `.loop-it` files changed.
+
 ## 0.3.1
 
 ### Added

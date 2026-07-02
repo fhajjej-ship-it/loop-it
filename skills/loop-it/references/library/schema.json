@@ -31,7 +31,9 @@
           "goodExamples",
           "badExamples",
           "exampleChecks",
-          "commonMisroutes"
+          "commonMisroutes",
+          "reliability",
+          "userGuide"
         ],
         "properties": {
           "id": { "type": "string" },
@@ -69,6 +71,40 @@
                 "preferLoopId": { "type": "string" },
                 "reason": { "type": "string" }
               }
+            }
+          },
+          "reliability": {
+            "type": "object",
+            "required": ["status", "summary", "bestWhen", "failsWhen", "requiredCheck"],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["experimental", "tested", "proven"]
+              },
+              "summary": { "type": "string" },
+              "bestWhen": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" }
+              },
+              "failsWhen": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" }
+              },
+              "requiredCheck": { "type": "string" }
+            }
+          },
+          "userGuide": {
+            "type": "object",
+            "required": ["plainLanguage", "useWhen", "starterRequest", "firstStep", "proofTip", "notFor"],
+            "properties": {
+              "plainLanguage": { "type": "string" },
+              "useWhen": { "type": "string" },
+              "starterRequest": { "type": "string" },
+              "firstStep": { "type": "string" },
+              "proofTip": { "type": "string" },
+              "notFor": { "type": "string" }
             }
           }
         }

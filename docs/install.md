@@ -61,11 +61,12 @@ npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /real/path
 Check that `SKILL.md` exists in the selected host path, then compile a verifier-gated loop:
 
 ```bash
+npx @fhajjej/loop-it@latest run --goal "Inspect this repo and run the right loop" --agent codex
 npx @fhajjej/loop-it@latest write --goal "Fix failing CI" --check "npm run check"
 npx @fhajjej/loop-it@latest start --goal "Fix failing CI" --check "npm run check" --agent all
 ```
 
-Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor.
+Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. Creating `.loop-it` files only prepares the loop; the pasted prompt is what asks the agent to repair and verify. If the agent only changes `.loop-it`, keep going because the issue has not been fixed.
 
 You can also ask your agent to use Loop it directly:
 
@@ -77,5 +78,6 @@ You can also verify the local library selector:
 
 ```bash
 npx @fhajjej/loop-it@latest library list
+npx @fhajjej/loop-it@latest library eval
 npx @fhajjej/loop-it@latest recommend --goal "fix failing CI"
 ```

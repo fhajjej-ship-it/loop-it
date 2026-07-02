@@ -23,6 +23,8 @@ if (command === "install") {
   runWriteLoop(argv);
 } else if (command === "start") {
   runStartLoop(argv);
+} else if (command === "run") {
+  runRunLoop(argv);
 } else if (command === "library") {
   runSelectLoop(argv);
 } else if (command === "recommend") {
@@ -104,6 +106,15 @@ function runStartLoop(args) {
   process.exit(result.status ?? 1);
 }
 
+function runRunLoop(args) {
+  const script = resolve(skillSource, "scripts", "run-loop.mjs");
+  const result = spawnSync(process.execPath, [script, ...args], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+  });
+  process.exit(result.status ?? 1);
+}
+
 function runSelectLoop(args) {
   const script = resolve(skillSource, "scripts", "select-loop.mjs");
   const result = spawnSync(process.execPath, [script, ...args], {
@@ -149,17 +160,20 @@ function printUsage() {
   loop-it install --agent all --scope project
   loop-it install --agent codex --scope global
   loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
+  loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout"
   loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
   loop-it new --from failing-ci-repair
   loop-it library list
   loop-it library search "failing ci"
+  loop-it library eval
   loop-it recommend --goal "fix failing checkout test"
   loop-it next --cwd .
 
 Commands:
   install   Copy the loop-it skill into Codex, Claude Code, and/or Cursor skill folders.
   write     Write a verifier-gated .loop-it/LOOP.md contract.
+  run       Inspect repo signals, recommend a loop, and prepare a run-mode launch prompt.
   start     Compile a goal, verifier, stop rules, and host launch prompt.
   new       Create a .loop-it/LOOP.md loop contract in the current directory.
   library   List, search, or show bundled loops.

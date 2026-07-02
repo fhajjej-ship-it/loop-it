@@ -5,21 +5,37 @@ description: Write, choose, compile, launch, find, recommend, design, adapt, exp
 
 # Loop It
 
-Turn an open-ended coding objective into a bounded, verifier-gated loop. Loop It helps write loops, choose from a loop library, and launch host-specific loop prompts: define the goal, choose the hard check, reuse a proven pattern when one fits, track evidence, and stop when the verifier passes or the budget is spent.
+Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, and stop when the verifier passes, a blocker is real, or approval is required.
 
 ## Decision
 
-First decide which mode the user needs:
+First decide which mode the user needs. Bias toward **Run now** when the user asks to fix, improve, debug, harden, ship, clean up, or otherwise change a codebase.
 
 - **Write a loop**: author a custom loop contract with a concrete goal, verifier, cap, stop rules, approval gates, and evidence fields.
 - **Find from library**: select a bundled loop for the user's goal.
 - **Next from progress**: inspect `.loop-it/progress.json` or `.loop-it/LOOP.md` and recommend what to loop next.
-- **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt.
-- **Design only**: produce a reusable loop prompt or project-local loop file.
-- **Run now**: execute one bounded iteration at a time, verify it, and decide whether another iteration is justified.
+- **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt. This prepares the loop; it does not repair code until an agent runs the launch prompt.
+- **Design only**: produce a reusable loop prompt or project-local loop file without claiming the issue was fixed.
+- **Run now**: inspect the target codebase, select the right loop, execute one bounded iteration at a time, edit when needed, verify it, record evidence, and decide whether another iteration is justified.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
 
+If a prompt says "Run The Loop mode", "run the prompt", "fix the issue", or "repair", treat it as **Run now**. Do not create another loop contract as the main output.
+If the user says "loop it", "fix this", "improve this repo", "what should we tackle next", or gives a broad codebase goal, use the `codebase-intake-to-running-loop` path first: inspect the repo, recommend one concrete loop, name the verifier, then run that loop.
+
 If the task is vague, do not ask a broad discovery questionnaire. First recommend the best likely library loop and state the assumption. Ask up to three targeted questions only when the goal, success check, repository scope, or approval boundary is genuinely blocking.
+
+## Default Run Flow
+
+When the user expects work to happen, do this instead of only writing `.loop-it` files:
+
+1. Inspect active `.loop-it/progress.json`, package scripts, CI config, README setup commands, test config, and the user request.
+2. Select one loop from the bundled library. Use `codebase-intake-to-running-loop` only when the concrete loop is not obvious yet.
+3. Name the verifier. Prefer the user's check; otherwise infer `npm run check`, `npm test`, lint, typecheck, build, or the narrowest project-specific check.
+4. Run the verifier or closest safe equivalent before editing when practical.
+5. Make the smallest credible project change when the verifier or inspected evidence points to one.
+6. Rerun the verifier.
+7. Update `.loop-it/progress.json` and `.loop-it/LOOP.md` when they exist.
+8. Stop with proof, a real blocker, or one targeted question. Do not stop merely because loop state was created.
 
 ## Contract
 
@@ -46,6 +62,7 @@ node <skill-dir>/scripts/select-loop.mjs list
 node <skill-dir>/scripts/select-loop.mjs search "failing ci"
 node <skill-dir>/scripts/select-loop.mjs recommend --goal "fix failing checkout test"
 node <skill-dir>/scripts/select-loop.mjs next --cwd <project>
+node <skill-dir>/scripts/select-loop.mjs eval
 ```
 
 Resolve `<skill-dir>` to this skill's folder. In Claude Code, `${CLAUDE_SKILL_DIR}` may be available. In other agents, locate the directory that contains this `SKILL.md`.
@@ -71,9 +88,9 @@ Current library categories include:
 - Review repair loop: review diff, fix blocking findings, rerun checks, repeat until only accepted risk remains.
 - Fresh setup loop: start from a clean environment, follow documented setup, fix hidden assumptions, retry cleanly.
 - Release readiness: verify package, deploy, or public install paths before publishing.
-- UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, and skill instruction hardening loops.
+- UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, skill instruction hardening, and codebase intake loops.
 
-The library entries include example prompts, counterexamples, required signals, example checks, and common misroutes. Prefer those fields when explaining why one loop fits better than another.
+The library entries include example prompts, counterexamples, required signals, example checks, common misroutes, reliability metadata, and plain-language `userGuide` fields. Prefer the `userGuide` fields when explaining a loop to a new user, then use the reliability and routing fields to justify why one loop fits better than another. Do not describe a loop as proven unless its reliability metadata says so; most bundled loops are starter recipes with verifier gates, not guaranteed outcomes.
 
 ## Launch A Loop
 
@@ -89,6 +106,8 @@ The launcher writes:
 - `.loop-it/LOOP.md`: durable goal, verifier, protocol, caps, and stop rules.
 - `.loop-it/progress.json`: machine-readable status and evidence fields.
 - `.loop-it/LAUNCH.md`: Codex, Claude Code, and/or Cursor launch prompts.
+
+This is a preparation step. The `.loop-it` files are the contract and launch map; they do not fix the issue by themselves. To run the repair, paste the relevant prompt from `.loop-it/LAUNCH.md` into the target agent or explicitly ask the current agent to run the loop now.
 
 For a useful launch, require a verifier gate. Do not start a loop from only "improve this" or "keep going" unless you can name how bad output will be rejected.
 
@@ -123,9 +142,20 @@ Loop It compiles host launch prompts and portable loop state. Native host automa
 - **Claude Code**: For finish-line work, use `/goal` with the verifier and cap. Use Claude Code `/loop` for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
 - **Cursor**: Cursor does not provide the same native finish-line `/goal` primitive here. Use `.loop-it/LOOP.md`, `.loop-it/progress.json`, `.loop-it/LAUNCH.md`, and a bounded `/loop-it` Agent-chat prompt.
 
-Never describe portable `.loop-it` state as a native host goal. Say which mechanism was used: native `/goal`, portable loop files, or both.
+Never describe portable `.loop-it` state as a native host goal. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: native `/goal`, portable loop files, or both.
 
 ## Run The Loop
+
+Use this mode when the user expects the issue to be fixed, not merely prepared. A run must inspect the target repo, make the smallest credible change when needed, execute the verifier, and report evidence.
+
+Run-mode guardrail: `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` are state files, not the repair. Changes only under `.loop-it` do not count as a successful iteration. If the first pass only created or edited loop files, keep going: run the verifier, inspect the failing surface, and make a real project change when the verifier fails.
+
+Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract:
+
+```bash
+node <skill-dir>/scripts/run-loop.mjs --goal "Inspect this repo and run the right loop" --agent codex
+node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
+```
 
 For each iteration:
 

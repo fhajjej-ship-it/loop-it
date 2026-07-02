@@ -125,7 +125,7 @@ ${librarySection}
 - Next decision: continue, stop, ask approval, or switch loop.
 
 ## Host Launch
-See \`.loop-it/LAUNCH.md\` for the Codex, Claude Code, and Cursor launch prompts.
+See \`.loop-it/LAUNCH.md\` for the Codex, Claude Code, and Cursor launch prompts. This file is the contract; it does not repair code until an agent runs the launch prompt.
 
 ## Iteration Log
 
@@ -156,6 +156,8 @@ Iteration cap: ${loop.maxIterations}
 
 Stop: ${loop.stop}
 
+Use this file to run the loop in an agent. The generated \`.loop-it\` files prepare the contract; the pasted launch prompt starts execution mode. A run is not successful when it only creates or edits \`.loop-it\` files.
+
 ${sections}
 `;
 }
@@ -169,7 +171,11 @@ Paste this into Codex:
 \`\`\`text
 /goal ${plain(loop.goal)} until the verifier passes or ${loop.maxIterations} iterations are reached.
 
-Use $loop-it and the contract in .loop-it/LOOP.md.
+Use $loop-it in Run The Loop mode. You are not being asked to create another loop.
+Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
+First action: run the verifier, or the closest available equivalent, and capture the actual failure.
+If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
+Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
 Scope: ${plain(loop.scope)}
 Verifier: ${plain(loop.check)}
 Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.
@@ -189,7 +195,11 @@ Paste this into Claude Code:
 \`\`\`text
 /goal ${plain(loop.goal)}. Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
 
-Use /loop-it and the contract in .loop-it/LOOP.md.
+Use /loop-it in Run The Loop mode. You are not being asked to create another loop.
+Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
+First action: run the verifier, or the closest available equivalent, and capture the actual failure.
+If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
+Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
 Scope: ${plain(loop.scope)}
 Verifier: ${plain(loop.check)}
 Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.
@@ -208,7 +218,11 @@ Paste this into Cursor Agent chat:
 \`\`\`text
 /loop-it
 
-Run this as a bounded loop from .loop-it/LOOP.md.
+Run The Loop mode. You are not being asked to create another loop.
+Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
+First action: run the verifier, or the closest available equivalent, and capture the actual failure.
+If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
+Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
 Goal: ${plain(loop.goal)}
 Scope: ${plain(loop.scope)}
 Verifier: ${plain(loop.check)}
@@ -238,7 +252,7 @@ function progressState(loop) {
     blockers: [],
     remainingRisks: [],
     evidenceToRecord: ["iteration number", "verifier output", "changed files", "blockers", "remaining risks"],
-    recommendedNextAction: "Paste the relevant host launch prompt from .loop-it/LAUNCH.md.",
+    recommendedNextAction: "Paste a host launch prompt from .loop-it/LAUNCH.md into the target agent to run the repair; .loop-it-only changes do not count as progress.",
     updatedAt: loop.now,
   };
 }

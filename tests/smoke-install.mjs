@@ -16,6 +16,7 @@ import { spawnSync } from "node:child_process";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const skillSource = resolve(repoRoot, "skills", "loop-it");
+const libraryEvalsPath = resolve(skillSource, "references", "library", "evals.json");
 const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-smoke-"));
@@ -27,6 +28,7 @@ try {
   smokeLoopFileCreation();
   smokeLoopWriting();
   smokeLoopStart();
+  smokeLoopRun();
   smokePackedCli();
   console.log("Smoke install checks passed");
 } finally {
@@ -58,9 +60,11 @@ function smokeProjectInstall() {
     ".cursor/skills/loop-it/SKILL.md",
     ".agents/skills/loop-it/references/loop-template.md",
     ".agents/skills/loop-it/references/library/loops.json",
+    ".agents/skills/loop-it/references/library/evals.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
     ".agents/skills/loop-it/scripts/create-loop.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
+    ".agents/skills/loop-it/scripts/run-loop.mjs",
   ]) {
     assertFile(resolve(projectDir, target));
   }
@@ -85,8 +89,8 @@ function smokeProjectInstall() {
 
 function smokeLibrarySelection() {
   const list = JSON.parse(run(nodeBin, [cliPath, "library", "list", "--json"]).stdout);
-  if (!Array.isArray(list.loops) || list.loops.length < 14) {
-    fail("Expected bundled loop library to include at least 14 loops");
+  if (!Array.isArray(list.loops) || list.loops.length < 15) {
+    fail("Expected bundled loop library to include at least 15 loops");
   }
 
   for (const loop of list.loops) {
@@ -95,6 +99,8 @@ function smokeLibrarySelection() {
         fail(`Expected ${loop.id} to include non-empty ${field}`);
       }
     }
+    assertReliabilityMetadata(loop);
+    assertUserGuideMetadata(loop);
   }
 
   const search = JSON.parse(run(nodeBin, [cliPath, "library", "search", "failing ci", "--json"]).stdout);
@@ -114,6 +120,17 @@ function smokeLibrarySelection() {
   if (!recommendation.decision?.confidence || !Array.isArray(recommendation.decision?.whyNotAlternatives)) {
     fail("Expected recommendations to include decision confidence and alternative rationale");
   }
+  const showOutput = run(nodeBin, [cliPath, "library", "show", "failing-ci-repair"]).stdout;
+  for (const text of ["Plain English:", "Use when:", "Start with:", "First step:", "Proof tip:", "Not for:"]) {
+    if (!showOutput.includes(text)) {
+      fail(`Expected library show output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const evalReport = JSON.parse(run(nodeBin, [cliPath, "library", "eval", "--json"]).stdout);
+  if (!evalReport.ok || evalReport.failed !== 0 || evalReport.missingLoopIds.length !== 0) {
+    fail("Expected bundled library eval scenarios to pass and cover every loop");
+  }
 
   for (const [goal, expectedLoopId] of [
     ["publish npm package", "release-readiness"],
@@ -121,8 +138,21 @@ function smokeLibrarySelection() {
     ["improve Loop It skill routing and examples", "skill-instruction-hardening"],
     ["evaluate Loop It recommendation quality", "product-evaluation"],
     ["sanitize unsafe user input", "security-hardening"],
+    ["inspect this repo and run the right loop", "codebase-intake-to-running-loop"],
   ]) {
     assertRecommendedLoop(goal, expectedLoopId);
+  }
+
+  const evals = JSON.parse(readFileSync(libraryEvalsPath, "utf8"));
+  const evalLoopIds = new Set();
+  for (const scenario of evals.scenarios ?? []) {
+    assertRecommendedLoop(scenario.goal, scenario.expectedLoopId);
+    evalLoopIds.add(scenario.expectedLoopId);
+  }
+  for (const loop of list.loops) {
+    if (!evalLoopIds.has(loop.id)) {
+      fail(`Expected library eval scenarios to cover ${loop.id}`);
+    }
   }
 
   const projectDir = resolve(tempRoot, "next-from-progress");
@@ -333,6 +363,7 @@ function smokeLoopStart() {
     "/goal Fix failing checkout tests",
     "Verifier: npm test -- checkout",
     "Iteration cap: 4",
+    "the pasted launch prompt starts execution mode",
   ]) {
     if (!started.stdout.includes(text)) {
       fail(`Expected loop start output to include ${JSON.stringify(text)}`);
@@ -349,6 +380,11 @@ function smokeLoopStart() {
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
     "Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.",
+    "Use $loop-it in Run The Loop mode.",
+    "You are not being asked to create another loop.",
+    "First action: run the verifier",
+    "Changes only under .loop-it do not count as a successful iteration.",
+    "Do not run loop-it write, loop-it new, or loop-it start.",
     "Use Claude Code `/loop` only for polling or interval work.",
     "Cursor does not provide the same native finish-line `/goal` primitive here",
   ]) {
@@ -368,6 +404,104 @@ function smokeLoopStart() {
   });
   if (missingCheck.status === 0 || !missingCheck.stderr.includes("--check is required")) {
     fail("Expected loop start without --check to fail clearly");
+  }
+}
+
+function smokeLoopRun() {
+  const projectDir = resolve(tempRoot, "loop-run-intake");
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(
+    resolve(projectDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "loop-run-intake-fixture",
+        scripts: {
+          check: "node -e \"process.exit(0)\"",
+          test: "node -e \"process.exit(0)\"",
+        },
+      },
+      null,
+      2
+    )
+  );
+
+  const intake = run(nodeBin, [
+    cliPath,
+    "run",
+    "--goal",
+    "inspect this repo and run the right loop",
+    "--agent",
+    "codex",
+  ], { cwd: projectDir });
+
+  for (const text of [
+    "Recommended loop: Codebase intake to running loop (codebase-intake-to-running-loop)",
+    "Verifier: npm run check",
+    "Preparing run-mode launch prompt",
+    "Created .loop-it/LOOP.md",
+    "Created .loop-it/progress.json",
+    "Created .loop-it/LAUNCH.md",
+  ]) {
+    if (!intake.stdout.includes(text)) {
+      fail(`Expected loop run output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const progressFile = resolve(projectDir, ".loop-it", "progress.json");
+  const launchFile = resolve(projectDir, ".loop-it", "LAUNCH.md");
+  assertFile(progressFile);
+  assertFile(launchFile);
+
+  const progress = JSON.parse(readFileSync(progressFile, "utf8"));
+  if (progress.activeLoopId !== "codebase-intake-to-running-loop" || progress.verifier !== "npm run check") {
+    fail("Expected intake run progress to track the selected loop and inferred check");
+  }
+
+  const launchContent = readFileSync(launchFile, "utf8");
+  for (const text of [
+    "Use $loop-it in Run The Loop mode.",
+    "You are not being asked to create another loop.",
+    "First action: run the verifier",
+    "Changes only under .loop-it do not count as a successful iteration.",
+  ]) {
+    if (!launchContent.includes(text)) {
+      fail(`Expected run launch prompt to contain ${JSON.stringify(text)}`);
+    }
+  }
+
+  const failingProjectDir = resolve(tempRoot, "loop-run-failing-test");
+  mkdirSync(failingProjectDir, { recursive: true });
+  writeFileSync(
+    resolve(failingProjectDir, "package.json"),
+    JSON.stringify({ scripts: { test: "node -e \"process.exit(0)\"" } }, null, 2)
+  );
+  const failing = run(nodeBin, [
+    cliPath,
+    "run",
+    "--goal",
+    "fix failing checkout test",
+    "--check",
+    "npm test -- checkout",
+    "--agent",
+    "codex",
+  ], { cwd: failingProjectDir });
+  if (!failing.stdout.includes("Recommended loop: Failing CI repair (failing-ci-repair)")) {
+    fail("Expected specific failing test run to route to failing-ci-repair");
+  }
+
+  const plan = JSON.parse(
+    run(nodeBin, [
+      cliPath,
+      "run",
+      "--goal",
+      "inspect this repo and run the right loop",
+      "--cwd",
+      projectDir,
+      "--json",
+    ]).stdout
+  );
+  if (plan.selectedLoopId !== "codebase-intake-to-running-loop" || plan.check !== "npm run check") {
+    fail("Expected run --json to report the selected intake loop and inferred check");
   }
 }
 
@@ -421,6 +555,7 @@ function smokePackedCli() {
     ".agents/skills/loop-it/references/library/loops.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
+    ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".loop-it/LOOP.md",
     ".loop-it/LAUNCH.md",
   ]) {
@@ -475,6 +610,51 @@ function assertRecommendedLoop(goal, expectedLoopId) {
   }
   if (!recommendation.decision?.confidence || recommendation.decision.confidence === "low") {
     fail(`Expected ${JSON.stringify(goal)} to have non-low recommendation confidence`);
+  }
+}
+
+function assertReliabilityMetadata(loop) {
+  const metadata = loop.reliability;
+  if (!metadata || typeof metadata !== "object") {
+    fail(`Expected ${loop.id} to include reliability metadata`);
+  }
+
+  if (!["experimental", "tested", "proven"].includes(metadata.status)) {
+    fail(`Expected ${loop.id} reliability.status to be experimental, tested, or proven`);
+  }
+
+  for (const field of ["summary", "requiredCheck"]) {
+    if (typeof metadata[field] !== "string" || metadata[field].trim().length === 0) {
+      fail(`Expected ${loop.id} reliability.${field} to be a non-empty string`);
+    }
+  }
+
+  for (const field of ["bestWhen", "failsWhen"]) {
+    if (!Array.isArray(metadata[field]) || metadata[field].length === 0) {
+      fail(`Expected ${loop.id} reliability.${field} to be a non-empty array`);
+    }
+    for (const item of metadata[field]) {
+      if (typeof item !== "string" || item.trim().length === 0) {
+        fail(`Expected ${loop.id} reliability.${field} entries to be non-empty strings`);
+      }
+    }
+  }
+
+  if (metadata.status === "proven") {
+    fail(`Expected ${loop.id} not to claim proven reliability without multi-repo eval evidence`);
+  }
+}
+
+function assertUserGuideMetadata(loop) {
+  const guide = loop.userGuide;
+  if (!guide || typeof guide !== "object") {
+    fail(`Expected ${loop.id} to include userGuide metadata`);
+  }
+
+  for (const field of ["plainLanguage", "useWhen", "starterRequest", "firstStep", "proofTip", "notFor"]) {
+    if (typeof guide[field] !== "string" || guide[field].trim().length === 0) {
+      fail(`Expected ${loop.id} userGuide.${field} to be a non-empty string`);
+    }
   }
 }
 

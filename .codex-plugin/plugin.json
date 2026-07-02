@@ -1,7 +1,7 @@
 {
   "name": "loop-it",
-  "version": "0.3.1",
-  "description": "Write, choose, and launch verifier-gated coding loops for AI agents.",
+  "version": "0.3.3",
+  "description": "Find, recommend, and run verifier-gated coding loops for AI agents.",
   "author": {
     "name": "Loop it",
     "url": "https://github.com/fhajjej-ship-it/loop-it"
@@ -19,18 +19,19 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Loop it",
-    "shortDescription": "Write, choose, and launch agent loops.",
-    "longDescription": "Loop it packages a portable loop writer, library, launcher, and Agent Skill that helps Codex turn open-ended work into a goal, verifier gate, proven loop pattern, host launch prompt, bounded passes, stop conditions, approval gates, and evidence logs.",
+    "shortDescription": "Find, recommend, and run agent loops.",
+    "longDescription": "Loop it packages a portable loop router, library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right verifier-gated loop, run bounded passes, stop on proof or blockers, and keep evidence logs.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
       "Write"
     ],
+    "websiteURL": "https://swarmixai.com/experiments/loop-it-poc",
     "defaultPrompt": [
-      "Use $loop-it to create a verified bug-fix loop.",
-      "Use $loop-it to design a docs sweep loop.",
-      "Use $loop-it to run one bounded repair pass."
+      "Use $loop-it to inspect this repo and run the right repair loop.",
+      "Use $loop-it to fix this failing check with proof.",
+      "Use $loop-it to find the next actionable loop."
     ],
     "brandColor": "#111111",
     "composerIcon": "./skills/loop-it/assets/loop-it-logo-black.svg",

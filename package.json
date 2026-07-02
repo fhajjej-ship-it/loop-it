@@ -1,7 +1,7 @@
 {
   "name": "@fhajjej/loop-it",
-  "version": "0.3.1",
-  "description": "Portable loop writer, library, launcher, and Agent Skill for writing, choosing, and launching verifier-gated coding loops for Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
+  "version": "0.3.3",
+  "description": "Portable loop router, library, launcher, and Agent Skill for finding, recommending, and running verifier-gated coding loops for Codex, Claude Code, Cursor, and SKILL.md-compatible agents.",
   "type": "module",
   "author": {
     "name": "Loop it",
@@ -39,7 +39,7 @@
   "scripts": {
     "test": "node tests/smoke-install.mjs",
     "sync:project": "node ./bin/loop-it.mjs install --agent all --scope project --force",
-    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check skills/loop-it/scripts/start-loop.mjs && node --check tests/smoke-install.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && npm run smoke && npm pack --dry-run",
+    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check skills/loop-it/scripts/start-loop.mjs && node --check skills/loop-it/scripts/run-loop.mjs && node --check tests/smoke-install.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json','skills/loop-it/references/library/evals.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && node skills/loop-it/scripts/select-loop.mjs eval && npm run smoke && npm pack --dry-run",
     "smoke": "node tests/smoke-install.mjs",
     "prepublishOnly": "npm run check"
   },

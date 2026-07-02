@@ -2,6 +2,16 @@
 
 Use these prompts after installing Loop it.
 
+## Run the right loop from repo context
+
+```bash
+npx @fhajjej/loop-it@latest run \
+  --goal "Inspect this repo and run the right loop" \
+  --agent codex
+```
+
+`run` inspects repo signals, recommends the highest-confidence loop, infers a verifier when it can, and writes a run-mode launch prompt. The agent still has to execute the prompt, edit real project files when needed, and verify the result.
+
 ## Write a verifier-gated loop
 
 ```bash
@@ -11,7 +21,7 @@ npx @fhajjej/loop-it@latest write \
   --max-iterations 5
 ```
 
-This writes `.loop-it/LOOP.md` and `.loop-it/progress.json`.
+This writes `.loop-it/LOOP.md` and `.loop-it/progress.json`. It prepares the loop contract; it does not repair code until an agent runs it.
 
 ## Start a verifier-gated loop
 
@@ -23,7 +33,7 @@ npx @fhajjej/loop-it@latest start \
   --agent all
 ```
 
-Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required.
+Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. That pasted prompt is what asks the agent to inspect, edit, verify, and report. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required. If an iteration only creates or edits `.loop-it` files, it has not repaired the issue yet.
 
 ## End-to-end library flow
 
@@ -32,7 +42,7 @@ npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
 npx @fhajjej/loop-it@latest new --from failing-ci-repair
 ```
 
-Run the generated loop with Codex, Claude Code, Cursor, or another `SKILL.md`-compatible agent. After each pass, update `.loop-it/progress.json` with the last result, blockers, remaining risks, and recommended next action.
+Run the generated loop with Codex, Claude Code, Cursor, or another `SKILL.md`-compatible agent. Do not treat the generated files as the fix. After each pass, update `.loop-it/progress.json` with the last result, blockers, remaining risks, and recommended next action.
 
 ```bash
 npx @fhajjej/loop-it@latest next --cwd .
@@ -116,7 +126,9 @@ node ./bin/loop-it.mjs start \
 ## Find a loop from the library
 
 ```bash
+node ./bin/loop-it.mjs run --goal "Inspect this repo and run the right loop" --agent codex
 node ./bin/loop-it.mjs library search "failing ci"
+node ./bin/loop-it.mjs library eval
 node ./bin/loop-it.mjs recommend --goal "fix failing checkout test"
 node ./bin/loop-it.mjs new --from failing-ci-repair
 ```
