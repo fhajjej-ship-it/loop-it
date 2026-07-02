@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+### Changed
+
+- Published the Codex plugin website metadata so the plugin details page links to the Loop It product page instead of showing an unavailable website.
+
 ## 0.3.3
 
 ### Added
