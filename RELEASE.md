@@ -1,6 +1,6 @@
 # Release checklist
 
-Use this checklist before publishing `@fhajjej/loop-it` to npm.
+Use this checklist before publishing `@fhajjej/loop-it`. GitHub is the release source of truth; npm is published by GitHub Actions from a GitHub Release.
 
 ## Preconditions
 
@@ -10,7 +10,7 @@ Use this checklist before publishing `@fhajjej/loop-it` to npm.
 npm view @fhajjej/loop-it name version
 ```
 
-- Authenticate locally with `npm login`, or add `NPM_TOKEN` to GitHub Actions secrets.
+- Add `NPM_TOKEN` to GitHub Actions secrets.
 - Confirm the working tree is clean except intentional release changes.
 
 ## Local checks
@@ -35,16 +35,15 @@ The check script verifies:
 
 ## Publish
 
-Local publish:
-
-```bash
-npm publish --access public
-```
-
 GitHub publish:
 
-1. Add `NPM_TOKEN` as a repository secret.
-2. Run the `Publish` workflow from GitHub Actions.
+1. Commit and push the release changes to `main`.
+2. Create a GitHub release whose tag matches `package.json`, for example `v0.3.4`.
+3. Let the `Publish` workflow run `npm run check` and publish to npm.
+
+Manual fallback:
+
+Use the `Publish` workflow's manual dispatch from GitHub Actions. Local `npm publish` should be a last-resort recovery path, not the normal release process.
 
 ## Post-publish verification
 
