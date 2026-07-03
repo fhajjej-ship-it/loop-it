@@ -16,7 +16,6 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
-      - run: npm run check
       - name: Resolve package version
         id: package
         run: |
@@ -42,6 +41,18 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
             echo "Version is not published yet."
           fi
+      - name: Validate npm publishing token
+        if: steps.npm.outputs.published == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN GitHub Actions secret is missing or empty." >&2
+            echo "Add a granular npm automation token with publish access to this repository's Actions secrets." >&2
+            echo "If GitHub publishing is unavailable, follow RELEASE.md's manual fallback instead." >&2
+            exit 1
+          fi
+      - run: npm run check
       - name: Publish to npm
         if: steps.npm.outputs.published == 'false'
         run: npm publish --access public
