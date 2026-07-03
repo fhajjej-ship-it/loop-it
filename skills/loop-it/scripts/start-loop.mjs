@@ -166,12 +166,15 @@ function renderAgentLaunch(agentName, loop) {
   if (agentName === "codex") {
     return `## Codex Launch
 
-Paste this into Codex:
+Paste this into Codex as a normal message:
 
 \`\`\`text
-/goal ${plain(loop.goal)} until the verifier passes or ${loop.maxIterations} iterations are reached.
+Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled. If not, run the bounded task directly from this prompt.
 
-Use $loop-it in Run The Loop mode. You are not being asked to create another loop.
+Goal: ${plain(loop.goal)}
+Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
+
+Run The Loop mode. You are not being asked to create another loop.
 Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
 First action: run the verifier, or the closest available equivalent, and capture the actual failure.
 If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
@@ -184,18 +187,21 @@ Stop when: ${plain(loop.stop)}
 Approval required for: ${plain(loop.approval)}
 \`\`\`
 
-If \`/goal\` is unavailable in the host, paste the same body as a normal Codex prompt and ask Codex to run one bounded iteration at a time.`;
+If nothing starts after pasting this, send a follow-up message: "Run the loop now from the prompt above."`;
   }
 
   if (agentName === "claude") {
     return `## Claude Code Launch
 
-Paste this into Claude Code:
+Paste this into Claude Code as a normal message:
 
 \`\`\`text
-/goal ${plain(loop.goal)}. Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
+Use /loop-it if this Claude Code workspace has the Loop It skill installed. If not, run the bounded task directly from this prompt.
 
-Use /loop-it in Run The Loop mode. You are not being asked to create another loop.
+Goal: ${plain(loop.goal)}
+Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
+
+Run The Loop mode. You are not being asked to create another loop.
 Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
 First action: run the verifier, or the closest available equivalent, and capture the actual failure.
 If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
@@ -208,15 +214,15 @@ Stop when: ${plain(loop.stop)}
 Approval required for: ${plain(loop.approval)}
 \`\`\`
 
-Use Claude Code \`/loop\` only for polling or interval work. For finish-line work with a verifier, \`/goal\` is the correct primitive.`;
+Use Claude Code \`/loop\` only for polling or interval work. For finish-line work with a verifier, run this as a bounded goal with proof.`;
   }
 
   return `## Cursor Launch
 
-Paste this into Cursor Agent chat:
+Paste this into Cursor Agent chat as a normal message:
 
 \`\`\`text
-/loop-it
+Use /loop-it if this Cursor workspace has the Loop It skill installed. If not, run the bounded task directly from this prompt.
 
 Run The Loop mode. You are not being asked to create another loop.
 Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
@@ -233,7 +239,7 @@ Stop when: ${plain(loop.stop)}
 Approval required for: ${plain(loop.approval)}
 \`\`\`
 
-Cursor does not provide the same native finish-line \`/goal\` primitive here, so Loop It supplies the durable state and verifier contract.`;
+Cursor Agent chat should treat this as the verifier-gated task contract. Loop It supplies the durable state, stop rules, and evidence requirements.`;
 }
 
 function progressState(loop) {

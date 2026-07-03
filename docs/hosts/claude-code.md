@@ -31,10 +31,10 @@ npx @fhajjej/loop-it@latest start \
 
 Claude Code launch behavior:
 
-- For finish-line work, Loop it generates a `/goal` prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
+- For finish-line work, Loop it generates a normal-message prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
 - It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
 - Those files are the contract, not the repair. Paste the launch prompt or ask Claude Code to run the loop before expecting changed files.
-- Use Claude Code `/loop` for polling or interval work. Use `/goal` when the task has a verifier and a finish line.
+- Use Claude Code `/loop` for polling or interval work. For verifier-gated finish-line work, run the generated prompt as a bounded goal with proof.
 
 Recommended Claude Code use:
 

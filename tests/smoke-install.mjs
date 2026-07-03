@@ -360,7 +360,8 @@ function smokeLoopStart() {
     "## Codex Launch",
     "## Claude Code Launch",
     "## Cursor Launch",
-    "/goal Fix failing checkout tests",
+    "Paste this into Codex as a normal message:",
+    "Goal: Fix failing checkout tests",
     "Verifier: npm test -- checkout",
     "Iteration cap: 4",
     "the pasted launch prompt starts execution mode",
@@ -380,13 +381,15 @@ function smokeLoopStart() {
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
     "Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.",
-    "Use $loop-it in Run The Loop mode.",
+    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
+    "If not, run the bounded task directly from this prompt.",
     "You are not being asked to create another loop.",
     "First action: run the verifier",
     "Changes only under .loop-it do not count as a successful iteration.",
     "Do not run loop-it write, loop-it new, or loop-it start.",
     "Use Claude Code `/loop` only for polling or interval work.",
-    "Cursor does not provide the same native finish-line `/goal` primitive here",
+    "Use /loop-it if this Cursor workspace has the Loop It skill installed.",
+    "If nothing starts after pasting this",
   ]) {
     if (!launchContent.includes(text)) {
       fail(`Expected ${launchFile} to contain ${JSON.stringify(text)}`);
@@ -459,7 +462,8 @@ function smokeLoopRun() {
 
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
-    "Use $loop-it in Run The Loop mode.",
+    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
+    "If not, run the bounded task directly from this prompt.",
     "You are not being asked to create another loop.",
     "First action: run the verifier",
     "Changes only under .loop-it do not count as a successful iteration.",
@@ -549,7 +553,8 @@ function smokeLoopRun() {
 
   const failingLaunchContent = readFileSync(failingLaunchFile, "utf8");
   for (const text of [
-    "Use $loop-it in Run The Loop mode.",
+    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
+    "If not, run the bounded task directly from this prompt.",
     "Read .loop-it/LOOP.md as state, then execute the repair.",
     "First action: run the verifier",
     "If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.",

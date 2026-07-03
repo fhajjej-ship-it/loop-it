@@ -31,10 +31,10 @@ npx @fhajjej/loop-it@latest start \
 
 Cursor launch behavior:
 
-- Cursor does not expose the same native finish-line `/goal` primitive here.
 - Loop it creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
 - Those files are the contract, not the repair. Paste the Cursor launch prompt into Agent chat before expecting changed files.
-- Paste the generated Cursor prompt into Agent chat. Use Cursor rules for always-on project conventions, not as a replacement for the procedural loop state.
+- The generated prompt can use `/loop-it` when the skill is installed, but it also works as plain Agent-chat instructions.
+- Use Cursor rules for always-on project conventions, not as a replacement for the procedural loop state.
 
 Recommended Cursor use:
 

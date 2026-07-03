@@ -149,7 +149,7 @@ npx @fhajjej/loop-it@latest start \
   --agent codex
 ```
 
-Paste the generated Codex launch prompt. That is the step that asks Codex to inspect, edit, verify, and report. It uses `/goal` when available and falls back to the portable `.loop-it` contract when native goals are unavailable.
+Paste the generated Codex launch prompt as a normal message. That is the step that asks Codex to inspect, edit, verify, and report. If `$loop-it` or slash commands are unavailable, the generated prompt still tells the agent to run the bounded task directly.
 
 More examples: [docs/examples.md](docs/examples.md).
 

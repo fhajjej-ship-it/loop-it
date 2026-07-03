@@ -140,14 +140,13 @@ Library-backed loop files also create `.loop-it/progress.json` unless `--no-prog
 
 ## Host Goal Behavior
 
-Loop It compiles host launch prompts and portable loop state. Native host automation is used when the host provides it.
+Loop It compiles host launch prompts and portable loop state. The generated prompts are safe to paste as normal chat messages, with optional skill commands only when the host supports them.
 
-- **Codex**: For finish-line work, generate or use a `/goal` prompt with the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. Also create or update `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` when durable project state is useful.
-- **Codex fallback**: If `/goal` or a native goal/task capability is unavailable, do not claim that a native goal was started. Use the fallback launch prompt and run one bounded `$loop-it` iteration at a time.
-- **Claude Code**: For finish-line work, use `/goal` with the verifier and cap. Use Claude Code `/loop` for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
-- **Cursor**: Cursor does not provide the same native finish-line `/goal` primitive here. Use `.loop-it/LOOP.md`, `.loop-it/progress.json`, `.loop-it/LAUNCH.md`, and a bounded `/loop-it` Agent-chat prompt.
+- **Codex**: For finish-line work, generate a normal-message prompt with the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. It may say to use `$loop-it` when available, but it must still tell Codex to run the bounded task directly when the skill or slash commands are unavailable.
+- **Claude Code**: Generate a normal-message prompt with the verifier and cap. Use Claude Code `/loop` only for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
+- **Cursor**: Generate a normal Agent-chat prompt. It may say to use `/loop-it` when available, but it must still run as plain instructions when the skill command is unavailable.
 
-Never describe portable `.loop-it` state as a native host goal. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: native `/goal`, portable loop files, or both.
+Never describe portable `.loop-it` state as a native host goal. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: portable loop files, host skill command, or plain agent prompt.
 
 ## Run The Loop
 

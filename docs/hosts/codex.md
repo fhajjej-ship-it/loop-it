@@ -31,10 +31,10 @@ npx @fhajjej/loop-it@latest start \
 
 Codex launch behavior:
 
-- For finish-line work, Loop it generates a `/goal` prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
+- For finish-line work, Loop it generates a normal-message prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
 - It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
 - Those files are the contract, not the repair. Paste the launch prompt or ask Codex to run the loop before expecting changed files.
-- If `/goal` is unavailable in the current Codex host, use the fallback prompt in `.loop-it/LAUNCH.md` and run one bounded iteration at a time.
+- If `$loop-it` or slash commands are unavailable, use the same generated prompt as plain instructions and tell Codex to run the loop now.
 
 Recommended Codex use:
 
