@@ -6,7 +6,7 @@ Use this checklist before publishing `@fhajjej/loop-it`. GitHub is the release s
 
 - Start every release branch from current `main`.
 - Keep `main` as the canonical source for package code, skill files, plugin manifests, docs, and release notes.
-- Publish by creating a GitHub Release whose tag matches `package.json`, for example `v0.3.5`.
+- Publish by creating a GitHub Release whose tag matches `package.json`, for example `v0.3.6`.
 - Treat npm as downstream of GitHub Actions. Do not update npm first unless the GitHub workflow is unavailable and this checklist's manual fallback is being used.
 - Treat local Codex, Claude Code, Cursor, and plugin installs as generated artifacts. Update source files in this repo first, then regenerate or reinstall local copies from the repo/package.
 
@@ -46,7 +46,7 @@ The check script verifies:
 GitHub publish:
 
 1. Commit and push the release changes to `main`.
-2. Create a GitHub release whose tag matches `package.json`, for example `v0.3.5`.
+2. Create a GitHub release whose tag matches `package.json`, for example `v0.3.6`.
 3. Let the `Publish` workflow run `npm run check` and publish to npm.
 
 Manual fallback:

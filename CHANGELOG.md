@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6
+
+### Changed
+
+- Changed generated Codex, Claude Code, and Cursor launch prompts to work as normal agent messages instead of relying on native `/goal` support.
+- Clarified run-mode launch behavior so agents run the bounded task directly when `$loop-it`, `/loop-it`, or slash commands are unavailable.
+- Updated smoke coverage to verify the generated launch prompts preserve the run-now guardrails.
+
 ## 0.3.5
 
 ### Added
