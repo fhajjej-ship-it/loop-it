@@ -160,7 +160,7 @@ function printUsage() {
   loop-it install --agent all --scope project
   loop-it install --agent codex --scope global
   loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
-  loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout"
+  loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout" --execute codex
   loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
   loop-it new --from failing-ci-repair
@@ -173,7 +173,7 @@ function printUsage() {
 Commands:
   install   Copy the loop-it skill into Codex, Claude Code, and/or Cursor skill folders.
   write     Write a verifier-gated .loop-it/LOOP.md contract.
-  run       Inspect repo signals, recommend a loop, and prepare a run-mode launch prompt.
+  run       Inspect repo signals, recommend a loop, prepare a launch prompt, and optionally execute it.
   start     Compile a goal, verifier, stop rules, and host launch prompt.
   new       Create a .loop-it/LOOP.md loop contract in the current directory.
   library   List, search, or show bundled loops.

@@ -29,6 +29,7 @@ npm view @fhajjej/loop-it name version
 
 ```bash
 npm run check
+npm run smoke:public-install
 npm publish --dry-run --access public
 ```
 
@@ -44,6 +45,8 @@ The check script verifies:
 - `.loop-it/LAUNCH.md` creation
 - execution from a packed npm tarball
 - npm package contents through `npm pack --dry-run`
+
+The public install smoke creates a temporary clean project, installs `@fhajjej/loop-it@latest` from npm, verifies the project Codex skill files, and checks the generated Codex launch prompt for the run-now fallback wording. It does not require Codex auth by default.
 
 ## Publish
 
@@ -61,8 +64,10 @@ Use the `Publish` workflow's manual dispatch from GitHub Actions after fixing `N
 
 ```bash
 npm view @fhajjej/loop-it name version bin
-npx @fhajjej/loop-it@latest install --agent all --scope project --cwd /tmp/loop-it-npx-smoke
-npx @fhajjej/loop-it@latest start --goal "Verify public launcher" --check "npm test" --agent all --force
+npm run smoke:public-install
+npm run smoke:public-install -- --codex-run --keep
 ```
+
+Use `--codex-run` only on a local machine with Codex CLI auth. It runs the public package in a temporary fixture and asks Codex to fix a tiny failing `npm test`; `--keep` preserves the fixture for inspection.
 
 After npm is live, make the product page use `npx @fhajjej/loop-it@latest install --agent all --scope project` as the primary command.

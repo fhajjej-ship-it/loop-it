@@ -2,15 +2,19 @@
 
 Use these prompts after installing Loop it.
 
-## Run the right loop from repo context
+## Run the right loop with Codex
 
 ```bash
 npx @fhajjej/loop-it@latest run \
-  --goal "Inspect this repo and run the right loop" \
-  --agent codex
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --agent codex \
+  --execute codex
 ```
 
-`run` inspects repo signals, recommends the highest-confidence loop, infers a verifier when it can, and writes a run-mode launch prompt. The agent still has to execute the prompt, edit real project files when needed, and verify the result.
+`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier, and updates `.loop-it/progress.json` with pass or blocker evidence.
+
+Omit `--execute codex` when you only want to prepare the launch prompt for a human to paste into Codex, Claude Code, or Cursor.
 
 ## Write a verifier-gated loop
 

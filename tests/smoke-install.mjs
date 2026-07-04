@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {
   existsSync,
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -29,6 +30,7 @@ try {
   smokeLoopWriting();
   smokeLoopStart();
   smokeLoopRun();
+  smokeLoopExecute();
   smokePackedCli();
   console.log("Smoke install checks passed");
 } finally {
@@ -579,6 +581,108 @@ function smokeLoopRun() {
   );
   if (plan.selectedLoopId !== "codebase-intake-to-running-loop" || plan.check !== "npm run check") {
     fail("Expected run --json to report the selected intake loop and inferred check");
+  }
+}
+
+function smokeLoopExecute() {
+  const projectDir = resolve(tempRoot, "loop-run-execute");
+  const fakeCodex = resolve(tempRoot, "fake-codex.mjs");
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(
+    resolve(projectDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "loop-run-execute-fixture",
+        type: "module",
+        scripts: {
+          test: "node test.mjs",
+        },
+      },
+      null,
+      2
+    )
+  );
+  writeFileSync(
+    resolve(projectDir, "test.mjs"),
+    [
+      "import assert from 'node:assert/strict';",
+      "",
+      "function subtotal(items) {",
+      "  return items.reduce((sum, item) => sum + item.price, 0);",
+      "}",
+      "",
+      "const total = subtotal([{ price: 1 }, { price: 1 }]);",
+      "assert.equal(total, 3);",
+      "",
+    ].join("\n")
+  );
+  writeFileSync(
+    fakeCodex,
+    [
+      "#!/usr/bin/env node",
+      "import { readFileSync, writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const testPath = resolve(process.cwd(), 'test.mjs');",
+      "const before = readFileSync(testPath, 'utf8');",
+      "writeFileSync(testPath, before.replace('assert.equal(total, 3);', 'assert.equal(total, 2);'));",
+      "",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'Fake Codex fixed failing test\\n');",
+      "}",
+      "",
+    ].join("\n")
+  );
+  chmodSync(fakeCodex, 0o755);
+
+  const executed = run(nodeBin, [
+    cliPath,
+    "run",
+    "--from",
+    "failing-ci-repair",
+    "--goal",
+    "Fix the failing npm test with the smallest safe change",
+    "--check",
+    "npm test",
+    "--agent",
+    "codex",
+    "--execute",
+    "codex",
+    "--codex-bin",
+    fakeCodex,
+    "--codex-sandbox",
+    "none",
+    "--skip-git-repo-check",
+  ], { cwd: projectDir });
+
+  for (const text of [
+    "Recommended loop: Failing CI repair (failing-ci-repair)",
+    "Executing loop with Codex CLI:",
+    "Running verifier after Codex: npm test",
+    "Verifier passed after Codex run: npm test",
+  ]) {
+    if (!executed.stdout.includes(text)) {
+      fail(`Expected executed loop output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const progressFile = resolve(projectDir, ".loop-it", "progress.json");
+  const codexFinalFile = resolve(projectDir, ".loop-it", "CODEX_FINAL.md");
+  assertFile(progressFile);
+  assertFile(codexFinalFile);
+  const testContent = readFileSync(resolve(projectDir, "test.mjs"), "utf8");
+  if (!testContent.includes("assert.equal(total, 2);")) {
+    fail("Expected fake Codex execution to update the failing test fixture");
+  }
+  const progress = JSON.parse(readFileSync(progressFile, "utf8"));
+  if (
+    progress.status !== "completed" ||
+    progress.lastCheck !== "npm test" ||
+    progress.lastResult !== "pass" ||
+    progress.recommendedNextAction !== "Stop; verifier passed after Codex execution."
+  ) {
+    fail("Expected executed loop progress to record verifier success");
   }
 }
 

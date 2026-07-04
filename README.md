@@ -79,15 +79,19 @@ Loop it has three product verbs:
 2. **Recommend** one bundled loop with a verifier gate.
 3. **Run** the selected loop in Codex, Claude Code, or Cursor until proof, blocker, or approval.
 
-`loop-it run` is the happy path when the user wants work done. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
+`loop-it run --execute codex` is the happy path when the user wants work done. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
 
-Inspect the repo and prepare the right run:
+Inspect the repo, choose the loop, run Codex, and rerun the verifier:
 
 ```bash
 npx @fhajjej/loop-it@latest run \
-  --goal "Inspect this repo and run the right loop" \
-  --agent codex
+  --goal "Fix failing checkout tests" \
+  --check "npm test -- checkout" \
+  --agent codex \
+  --execute codex
 ```
+
+Omit `--execute codex` when you only want to prepare `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 
 Write a custom loop:
 
