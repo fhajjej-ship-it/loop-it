@@ -228,6 +228,65 @@ function smokeLibrarySelection() {
   if (completedNext.selected?.loop?.id === "release-readiness") {
     fail("Expected completed progress not to continue the completed active loop");
   }
+
+  const staleReleaseProjectDir = resolve(tempRoot, "next-from-stale-release-progress");
+  mkdirSync(staleReleaseProjectDir, { recursive: true });
+  writeFileSync(
+    resolve(staleReleaseProjectDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "@fhajjej/loop-it",
+        version: "0.3.7",
+      },
+      null,
+      2
+    )
+  );
+  writeProgress(staleReleaseProjectDir, {
+    activeLoopId: "release-readiness",
+    loopName: "Release readiness",
+    status: "blocked",
+    objective:
+      "Ship Loop It 0.3.1 as a patch release containing the skill-sync guardrails, so GitHub, npm, and generated host installs all follow one source of truth.",
+    verifier:
+      "npm run check && test \"$(npm view @fhajjej/loop-it version)\" = \"0.3.1\"",
+    lastResult: "blocked",
+    iterations: [
+      {
+        iteration: 1,
+        phase: "PUBLISH",
+        result: "blocked",
+        outputSummary:
+          "The 0.3.1 release commit was pushed. npm publish was blocked by npm EOTP. npm view @fhajjej/loop-it version still returns 0.3.0.",
+      },
+    ],
+    blockers: ["Need current npm OTP/browser publish authentication for account fhajjej."],
+    remainingRisks: ["npm latest remains 0.3.0 until the OTP-authenticated publish succeeds."],
+    recommendedNextAction: "Run npm publish --access public with the current OTP, then rerun the public npx verifier.",
+    updatedAt: "2026-06-29T12:07:46Z",
+  });
+  const staleReleaseNext = JSON.parse(
+    run(nodeBin, [cliPath, "next", "--cwd", staleReleaseProjectDir, "--json"], {
+      env: {
+        LOOP_IT_SKIP_NPM_VIEW: "1",
+      },
+    }).stdout
+  );
+  if (staleReleaseNext.selected?.loop?.id !== "codebase-intake-to-running-loop") {
+    fail("Expected stale resolved release progress to recommend a fresh intake loop");
+  }
+  if (staleReleaseNext.selected?.loop?.id === "release-readiness") {
+    fail("Expected stale resolved release progress not to continue release-readiness");
+  }
+  if (staleReleaseNext.progressResolution?.state !== "stale-resolved") {
+    fail("Expected stale release progress to include stale-resolved progressResolution");
+  }
+  if (staleReleaseNext.progressResolution?.targetVersion !== "0.3.1") {
+    fail("Expected stale release progress to resolve the old 0.3.1 target");
+  }
+  if (staleReleaseNext.progressResolution?.packageVersion !== "0.3.7") {
+    fail("Expected stale release progress to use the moved package.json version as proof");
+  }
 }
 
 function smokeLoopFileCreation() {
@@ -754,6 +813,7 @@ function smokePackedCli() {
 
 function run(command, args, options = {}) {
   const env = { ...process.env };
+  Object.assign(env, options.env ?? {});
   delete env.npm_config_dry_run;
   delete env.NPM_CONFIG_DRY_RUN;
 

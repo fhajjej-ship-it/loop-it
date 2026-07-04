@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, "..");
@@ -101,8 +102,36 @@ export function readProgress(cwd = process.cwd()) {
 export function recommendLoop(options = {}) {
   const library = options.library ?? loadLibrary();
   const progress = options.progress ?? null;
+  const progressResolution = progress ? resolveProgress(progress, options.cwd ?? process.cwd()) : null;
   const status = String(progress?.data?.status ?? "").toLowerCase();
   const inactiveStatuses = ["complete", "completed", "stopped", "blocked"];
+
+  if (progressResolution?.state === "stale-resolved") {
+    const selectedLoop = findLoopById("codebase-intake-to-running-loop", library);
+    const alternatives = ["release-readiness", "docs-sweep"]
+      .map((id) => findLoopById(id, library))
+      .filter(Boolean)
+      .map((loop) => ({
+        loop,
+        score: 0,
+        reasons: ["fresh follow-up after resolved stale progress"],
+        confidence: "low",
+      }));
+    return withWorkflow({
+      source: "progress",
+      selected: selectedLoop
+        ? {
+            loop: selectedLoop,
+            score: 999,
+            reasons: [progressResolution.reason],
+            confidence: "high",
+          }
+        : null,
+      alternatives,
+      progress,
+      progressResolution,
+    });
+  }
 
   if (progress?.data?.activeLoopId) {
     const activeLoop = findLoopById(progress.data.activeLoopId, library);
@@ -132,6 +161,7 @@ export function recommendLoop(options = {}) {
     selected: ranked[0] ?? null,
     alternatives: ranked.slice(1),
     progress,
+    progressResolution,
   });
 }
 
@@ -405,6 +435,122 @@ function progressFromMarkdown(markdown) {
   };
 }
 
+function resolveProgress(progress, cwd) {
+  const data = progress?.data ?? {};
+  const text = progress?.text ?? "";
+  const status = String(data.status ?? "").toLowerCase();
+  const inactiveStatuses = new Set(["blocked", "complete", "completed", "stopped"]);
+  if (!inactiveStatuses.has(status) || !isReleaseProgress(data, text)) {
+    return null;
+  }
+
+  const versions = referencedVersions(text);
+  const targetVersion = versions.length ? maxVersion(versions) : null;
+  if (!targetVersion) {
+    return null;
+  }
+
+  const packageInfo = readPackageInfo(cwd);
+  const npmLatestVersion = packageInfo?.name ? readNpmLatestVersion(packageInfo.name) : null;
+  const packageMovedPastTarget = packageInfo?.version && compareVersions(packageInfo.version, targetVersion) > 0;
+  const npmPublishedTarget = npmLatestVersion && compareVersions(npmLatestVersion, targetVersion) >= 0;
+
+  if (!packageMovedPastTarget && !npmPublishedTarget) {
+    return {
+      state: "unresolved",
+      reason: `release progress still targets ${targetVersion}`,
+      activeLoopId: data.activeLoopId ?? null,
+      targetVersion,
+      packageVersion: packageInfo?.version ?? null,
+      npmLatestVersion,
+    };
+  }
+
+  const proof = npmPublishedTarget
+    ? `npm latest ${npmLatestVersion} is at or past ${targetVersion}`
+    : `package.json ${packageInfo.version} moved past ${targetVersion}`;
+  return {
+    state: "stale-resolved",
+    reason: `stale release progress ignored because ${proof}`,
+    activeLoopId: data.activeLoopId ?? null,
+    targetVersion,
+    packageVersion: packageInfo?.version ?? null,
+    npmLatestVersion,
+  };
+}
+
+function isReleaseProgress(data, text) {
+  const lowered = [data.activeLoopId, data.loopName, data.objective, data.verifier, text]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+  return (
+    lowered.includes("release-readiness") ||
+    lowered.includes("release readiness") ||
+    lowered.includes("npm publish") ||
+    lowered.includes("npm latest") ||
+    lowered.includes("npm view") ||
+    lowered.includes("publish")
+  );
+}
+
+function referencedVersions(text) {
+  return [...String(text ?? "").matchAll(/\b\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/g)].map((match) => match[0]);
+}
+
+function maxVersion(versions) {
+  return versions.reduce((max, version) => (compareVersions(version, max) > 0 ? version : max), versions[0]);
+}
+
+function compareVersions(left, right) {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] !== b[i]) {
+      return a[i] > b[i] ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
+function versionParts(version) {
+  return String(version ?? "")
+    .split(/[+-]/)[0]
+    .split(".")
+    .slice(0, 3)
+    .map((part) => Number.parseInt(part, 10) || 0);
+}
+
+function readPackageInfo(cwd) {
+  const packagePath = resolve(cwd, "package.json");
+  if (!existsSync(packagePath)) {
+    return null;
+  }
+  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+  return {
+    name: typeof packageJson.name === "string" ? packageJson.name : null,
+    version: typeof packageJson.version === "string" ? packageJson.version : null,
+  };
+}
+
+function readNpmLatestVersion(packageName) {
+  if (process.env.LOOP_IT_NPM_LATEST_VERSION) {
+    return process.env.LOOP_IT_NPM_LATEST_VERSION;
+  }
+  if (process.env.LOOP_IT_SKIP_NPM_VIEW === "1") {
+    return null;
+  }
+  const result = spawnSync("npm", ["view", packageName, "version", "--silent"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+    timeout: 5000,
+  });
+  if (result.status !== 0) {
+    return null;
+  }
+  return result.stdout.trim() || null;
+}
+
 function section(markdown, heading) {
   const pattern = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=\\n## |\\n# |$)`, "m");
   return markdown.match(pattern)?.[1]?.trim();
@@ -566,7 +712,7 @@ function printNext(args) {
     return;
   }
 
-  const recommendation = recommendLoop({ progress });
+  const recommendation = recommendLoop({ progress, cwd });
   if (args.json) {
     printJson(recommendation);
     return;
