@@ -18,19 +18,19 @@ if (!command || ["help", "--help", "-h"].includes(command)) {
 if (command === "install") {
   install(parseArgs(argv));
 } else if (command === "new") {
-  runCreateLoop(argv);
+  runSkillScript("create-loop.mjs", argv);
 } else if (command === "write") {
-  runWriteLoop(argv);
+  runSkillScript("create-loop.mjs", ["--require-fields", ...argv]);
 } else if (command === "start") {
-  runStartLoop(argv);
+  runSkillScript("start-loop.mjs", argv);
 } else if (command === "run") {
-  runRunLoop(argv);
+  runSkillScript("run-loop.mjs", argv);
 } else if (command === "library") {
-  runSelectLoop(argv);
+  runSkillScript("select-loop.mjs", argv);
 } else if (command === "recommend") {
-  runSelectLoop(["recommend", ...argv]);
+  runSkillScript("select-loop.mjs", ["recommend", ...argv]);
 } else if (command === "next") {
-  runSelectLoop(["next", ...argv]);
+  runSkillScript("select-loop.mjs", ["next", ...argv]);
 } else {
   fail(`Unknown command: ${command}`);
 }
@@ -79,48 +79,15 @@ function targetFor(agent, scope, cwd) {
   return base?.[agent] ? resolve(base[agent], "loop-it") : null;
 }
 
-function runCreateLoop(args) {
-  const script = resolve(skillSource, "scripts", "create-loop.mjs");
+function runSkillScript(scriptName, args) {
+  const script = resolve(skillSource, "scripts", scriptName);
   const result = spawnSync(process.execPath, [script, ...args], {
     cwd: process.cwd(),
     stdio: "inherit",
   });
-  process.exit(result.status ?? 1);
-}
-
-function runWriteLoop(args) {
-  const script = resolve(skillSource, "scripts", "create-loop.mjs");
-  const result = spawnSync(process.execPath, [script, "--require-fields", ...args], {
-    cwd: process.cwd(),
-    stdio: "inherit",
-  });
-  process.exit(result.status ?? 1);
-}
-
-function runStartLoop(args) {
-  const script = resolve(skillSource, "scripts", "start-loop.mjs");
-  const result = spawnSync(process.execPath, [script, ...args], {
-    cwd: process.cwd(),
-    stdio: "inherit",
-  });
-  process.exit(result.status ?? 1);
-}
-
-function runRunLoop(args) {
-  const script = resolve(skillSource, "scripts", "run-loop.mjs");
-  const result = spawnSync(process.execPath, [script, ...args], {
-    cwd: process.cwd(),
-    stdio: "inherit",
-  });
-  process.exit(result.status ?? 1);
-}
-
-function runSelectLoop(args) {
-  const script = resolve(skillSource, "scripts", "select-loop.mjs");
-  const result = spawnSync(process.execPath, [script, ...args], {
-    cwd: process.cwd(),
-    stdio: "inherit",
-  });
+  if (result.error) {
+    fail(`Failed to run ${scriptName}: ${result.error.message}`);
+  }
   process.exit(result.status ?? 1);
 }
 
