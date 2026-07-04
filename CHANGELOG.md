@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.7
+
+### Added
+
+- Added `loop-it run --execute codex` to prepare a selected loop, call Codex CLI, rerun the verifier, and update `.loop-it/progress.json` with pass, failure, or blocker evidence.
+- Added smoke coverage for runner execution using a fake Codex executable so CI can verify the orchestration path without Codex auth or model calls.
+- Added `npm run smoke:public-install` to verify `@fhajjej/loop-it@latest` installs from npm, writes project Codex skill files, and preserves the run-now launch fallback wording.
+
+### Changed
+
+- Clarified docs and CLI help so `loop-it run` without `--execute` means prepare the launch contract, while `loop-it run --execute codex` means run the selected loop locally through Codex CLI.
+
 ## 0.3.6
 
 ### Changed
