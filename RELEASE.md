@@ -66,6 +66,8 @@ Use the `Publish` workflow's manual dispatch from GitHub Actions after fixing `N
 npm view @fhajjej/loop-it name version bin
 npm run smoke:public-install
 npm run smoke:public-install -- --codex-run --keep
+npm run sync:codex-plugin
+codex plugin list | grep 'loop-it@personal'
 ```
 
 Use `--codex-run` only on a local machine with Codex CLI auth. It runs the public package in a temporary fixture and asks Codex to fix a tiny failing `npm test`; `--keep` preserves the fixture for inspection.
@@ -76,3 +78,7 @@ must use `npx @fhajjej/loop-it@latest install --agent all --scope project` as
 the primary install command, show the current package version, describe the
 current runner behavior, and keep the portfolio consumer dependency aligned
 with the published npm version.
+
+After the product page is aligned, refresh the local Codex plugin with
+`npm run sync:codex-plugin` so `loop-it@personal` in Codex points at the same
+version as the GitHub/npm release.
