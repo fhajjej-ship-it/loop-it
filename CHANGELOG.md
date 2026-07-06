@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.12
+
+### Added
+
+- Added opt-in worktree isolation for `loop-it run --execute codex` via `--worktree`, with optional base, branch, and path controls.
+- Added run-proof smoke coverage that proves isolated worktree execution leaves the source checkout untouched and records worktree metadata in `.loop-it/progress.json`.
+
 ## 0.3.11
 
 ### Added

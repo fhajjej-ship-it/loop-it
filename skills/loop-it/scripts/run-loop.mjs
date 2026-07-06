@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { findLoopById, recommendLoop } from "./select-loop.mjs";
@@ -28,6 +28,7 @@ const iterationCap = positiveInteger(maxIterations, "--max-iterations");
 const agent = stringArg(args.agent, "codex");
 const execute = stringArg(args.execute, "none");
 const checker = stringArg(args.checker ?? args.review, "none");
+const isolateWorktree = Boolean(args.worktree);
 
 if (!["none", "codex"].includes(execute)) {
   fail(`Unsupported --execute value: ${execute}`);
@@ -40,6 +41,9 @@ if (!["none", "codex"].includes(checker)) {
 }
 if (checker === "codex" && execute !== "codex") {
   fail("--checker codex requires --execute codex");
+}
+if (isolateWorktree && execute !== "codex") {
+  fail("--worktree requires --execute codex");
 }
 
 const readiness = assessReadiness({
@@ -60,6 +64,14 @@ const plan = {
   agent,
   execute,
   checker,
+  worktree: isolateWorktree
+    ? {
+        requested: true,
+        base: stringArg(args["worktree-base"], "auto"),
+        branch: stringArg(args["worktree-branch"], "auto"),
+        path: stringArg(args["worktree-dir"], "auto"),
+      }
+    : { requested: false },
   readiness,
   repoSignals: repo,
 };
@@ -89,6 +101,22 @@ if (execute === "codex" && readiness.action !== "run") {
 console.log("");
 console.log("Preparing run-mode launch prompt...");
 
+const isolation = isolateWorktree
+  ? prepareIsolatedWorktree(cwd, {
+      goal,
+      base: args["worktree-base"],
+      branch: args["worktree-branch"],
+      dir: args["worktree-dir"],
+    })
+  : null;
+const runCwd = isolation?.executionCwd ?? cwd;
+
+if (isolation) {
+  console.log(`Worktree isolation: ${isolation.path}`);
+  console.log(`Worktree branch: ${isolation.branch}`);
+  console.log(`Worktree base: ${isolation.base}`);
+}
+
 const startArgs = [
   startScript,
   "--from",
@@ -108,7 +136,7 @@ if (args.force) {
 }
 
 const result = spawnSync(process.execPath, startArgs, {
-  cwd,
+  cwd: runCwd,
   stdio: "inherit",
 });
 
@@ -118,12 +146,13 @@ if (result.status !== 0) {
 
 if (execute === "codex") {
   executeWithCodex({
-    cwd,
+    cwd: runCwd,
     goal,
     check,
     loop,
     maxIterations: iterationCap,
     checker,
+    worktree: isolation ? publicWorktreeInfo(isolation) : null,
   });
 }
 
@@ -191,6 +220,7 @@ function executeWithCodex(run) {
         blockers: [`Codex execution failed: ${codexResult.error.message}`],
         remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
         recommendedNextAction: "Install or authenticate Codex CLI, then rerun loop-it run --execute codex.",
+        ...worktreePatch(run),
       });
       fail(`Codex execution failed: ${codexResult.error.message}`);
     }
@@ -216,6 +246,7 @@ function executeWithCodex(run) {
         blockers: [`Codex CLI exited ${codexResult.status ?? 1}`],
         remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
         recommendedNextAction: `Inspect ${codexOutput} and rerun the loop after resolving the blocker.`,
+        ...worktreePatch(run),
       });
       process.exit(codexResult.status ?? 1);
     }
@@ -308,6 +339,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
       remainingRisks: ["Run the manual verifier before calling this loop complete."],
       recommendedNextAction: `Run the manual verifier and record the result in .loop-it/progress.json. Codex output: ${codexOutput}`,
       changedFiles: files,
+      ...worktreePatch(run),
     });
     console.log("");
     console.log(`Manual verifier required: ${check}`);
@@ -318,6 +350,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
         result: "manual-verification-required",
         codexOutput,
         changedFiles: files,
+        ...worktreePatch(run),
       },
     };
   }
@@ -338,6 +371,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
     codexOutput,
     changedFiles: files,
     verifierOutput: truncate(output),
+    ...worktreePatch(run),
   };
 
   if (verifier.status === 0) {
@@ -390,6 +424,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
       remainingRisks,
       recommendedNextAction: nextAction,
       changedFiles: files,
+      ...worktreePatch(run),
       proof: {
         selectedLoopId: run.loop.id,
         selectedLoopTitle: run.loop.title,
@@ -402,6 +437,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
         changedFiles: files,
         checker: checkerReceipt,
         iterations: [...previousProofIterations, iterationProof],
+        ...worktreePatch(run),
       },
     });
     if (output) {
@@ -418,6 +454,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
       codexOutput,
       changedFiles: files,
       checker: checkerReceipt,
+      worktree: run.worktree,
     });
     return {
       result: checkerPassed ? "pass" : result,
@@ -451,6 +488,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
     remainingRisks: [`Verifier still fails: ${check}`],
     recommendedNextAction: "Inspect the verifier output and rerun the loop only if the next pass has a clear expected improvement.",
     changedFiles: files,
+    ...worktreePatch(run),
     proof: {
       selectedLoopId: run.loop.id,
       selectedLoopTitle: run.loop.title,
@@ -462,6 +500,7 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
       codexOutput,
       changedFiles: files,
       iterations: [...previousProofIterations, iterationProof],
+      ...worktreePatch(run),
     },
   });
   if (output) {
@@ -600,6 +639,133 @@ function buildCheckerPrompt(run, context) {
     "",
     "If blocked, include one line starting with CHECKER_BLOCKER: that states the concrete reason.",
   ].join("\n");
+}
+
+function prepareIsolatedWorktree(cwd, options) {
+  const sourceRoot = gitOutput(cwd, ["rev-parse", "--show-toplevel"], "Loop It can only create an isolated worktree inside a git repository.");
+  const base = stringArg(options.base, "") || resolveDefaultWorktreeBase(sourceRoot);
+  const branch = stringArg(options.branch, defaultWorktreeBranch(options.goal));
+  const path = options.dir
+    ? resolve(cwd, options.dir)
+    : resolve(dirname(sourceRoot), `${basename(sourceRoot)}-${safePathSegment(branch)}`);
+
+  if (existsSync(path)) {
+    fail(`Worktree path already exists: ${path}`);
+  }
+
+  const add = spawnSync("git", ["worktree", "add", "-b", branch, path, base], {
+    cwd: sourceRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  if (add.error) {
+    fail(`Could not create isolated worktree: ${add.error.message}`);
+  }
+  if (add.status !== 0) {
+    fail(
+      [
+        `Could not create isolated worktree from ${base}.`,
+        add.stdout.trim(),
+        add.stderr.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+  }
+
+  const subdir = relative(sourceRoot, cwd);
+  const executionCwd = subdir && subdir !== "." ? resolve(path, subdir) : path;
+  if (!existsSync(executionCwd)) {
+    fail(`Created worktree, but the target subdirectory does not exist on ${base}: ${executionCwd}`);
+  }
+
+  return {
+    enabled: true,
+    sourceCwd: cwd,
+    sourceRoot,
+    path,
+    executionCwd,
+    branch,
+    base,
+  };
+}
+
+function publicWorktreeInfo(worktree) {
+  if (!worktree) {
+    return null;
+  }
+  return {
+    enabled: true,
+    sourceCwd: worktree.sourceCwd,
+    sourceRoot: worktree.sourceRoot,
+    path: worktree.path,
+    executionCwd: worktree.executionCwd,
+    branch: worktree.branch,
+    base: worktree.base,
+  };
+}
+
+function worktreePatch(run) {
+  return run.worktree ? { worktree: run.worktree } : {};
+}
+
+function resolveDefaultWorktreeBase(sourceRoot) {
+  for (const ref of ["origin/main", "main", "origin/master", "master", "HEAD"]) {
+    const result = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], {
+      cwd: sourceRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (result.status === 0) {
+      return ref;
+    }
+  }
+  fail("Could not find a base ref for the isolated worktree. Pass --worktree-base <ref>.");
+}
+
+function defaultWorktreeBranch(goal) {
+  const stamp = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  return `codex/loop-it-${slug(goal)}-${stamp}`;
+}
+
+function slug(value) {
+  const text = String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return text || "run";
+}
+
+function safePathSegment(value) {
+  return String(value)
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "loop-it-worktree";
+}
+
+function gitOutput(cwd, commandArgs, failureMessage) {
+  const result = spawnSync("git", commandArgs, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.error) {
+    fail(`${failureMessage} ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    fail(
+      [
+        failureMessage,
+        result.stdout.trim(),
+        result.stderr.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+  }
+  return result.stdout.trim();
 }
 
 function parseCheckerResult(output) {
@@ -879,6 +1045,7 @@ function markStoppedAfterFailure(run, observation, proofIterations, reason) {
     remainingRisks: [`Verifier still fails: ${run.check}`],
     recommendedNextAction: nextAction,
     changedFiles: observation.files,
+    ...worktreePatch(run),
     proof: {
       selectedLoopId: run.loop.id,
       selectedLoopTitle: run.loop.title,
@@ -890,6 +1057,7 @@ function markStoppedAfterFailure(run, observation, proofIterations, reason) {
       codexOutput: observation.codexOutput,
       changedFiles: observation.files,
       iterations: proofIterations,
+      ...worktreePatch(run),
     },
   });
 }
@@ -948,7 +1116,7 @@ function outputPathForIteration(basePath, iteration) {
   return `${basePath}.iteration-${iteration}`;
 }
 
-function printRunProof({ loop, executor, verifier, result, iteration, maxIterations, codexOutput, changedFiles: files, checker }) {
+function printRunProof({ loop, executor, verifier, result, iteration, maxIterations, codexOutput, changedFiles: files, checker, worktree }) {
   console.log("");
   console.log("Run proof:");
   console.log(`- Selected loop: ${loop.title} (${loop.id})`);
@@ -964,6 +1132,11 @@ function printRunProof({ loop, executor, verifier, result, iteration, maxIterati
   }
   if (iteration && maxIterations) {
     console.log(`- Iteration: ${iteration}/${maxIterations}`);
+  }
+  if (worktree) {
+    console.log(`- Worktree: ${worktree.path}`);
+    console.log(`- Worktree branch: ${worktree.branch}`);
+    console.log(`- Worktree base: ${worktree.base}`);
   }
   console.log(`- Progress: .loop-it/progress.json`);
   console.log(`- Codex output: ${codexOutput}`);
@@ -997,6 +1170,7 @@ function parseArgs(tokens) {
         "skip-git-repo-check",
         "codex-ignore-user-config",
         "checker-ignore-user-config",
+        "worktree",
         "help",
         "h",
       ].includes(key)
@@ -1050,6 +1224,10 @@ Options:
   --checker-bin <path>      Checker Codex executable, default --codex-bin
   --checker-sandbox <mode>  Checker sandbox mode, default read-only; use none to omit
   --checker-output <path>   Checker receipt path, default .loop-it/CODEX_CHECKER.md
+  --worktree                Create a fresh git worktree/branch and run Codex there
+  --worktree-base <ref>     Base ref for --worktree, default origin/main, main, origin/master, master, or HEAD
+  --worktree-branch <name>  Branch name for --worktree, default codex/loop-it-<goal>-<timestamp>
+  --worktree-dir <path>     Worktree path for --worktree, default sibling of the source repo
   --codex-ignore-user-config  Pass --ignore-user-config to codex exec
   --checker-ignore-user-config Pass --ignore-user-config to the checker Codex exec
   --skip-git-repo-check     Pass --skip-git-repo-check to codex exec
