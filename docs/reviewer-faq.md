@@ -2,7 +2,7 @@
 
 ## What is Loop it?
 
-Loop it is a portable loop router, library, launcher, and Agent Skill that turns a coding goal into a verifier-gated run: inspect the repo, recommend a loop, prepare the agent prompt, and keep work bounded by proof.
+Loop it is a portable loop router, library, launcher, runner, and Agent Skill that turns a coding goal into a verifier-gated run: inspect the repo, recommend a loop, run or prepare the agent prompt, and keep work bounded by proof.
 
 ## What does it install?
 
@@ -24,6 +24,7 @@ No. The skill explicitly keeps production writes, deploys, external messages, cr
 
 ```bash
 npm run check
+npm run smoke:run-proof
 node ./bin/loop-it.mjs install --agent all --scope project --cwd /tmp/loop-it-review
 node ./bin/loop-it.mjs run --goal "Inspect this repo and run the right loop" --agent codex --cwd /tmp/loop-it-review
 node ./bin/loop-it.mjs write --goal "Check install" --check "manual inspection"
@@ -37,6 +38,10 @@ It creates `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md
 ## Does `loop-it start` fix code by itself?
 
 No. `loop-it start` prepares the loop contract and launch prompt. The repair starts only after the launch prompt is run inside Codex, Claude Code, Cursor, or another compatible agent.
+
+## Does `loop-it run --execute codex` fix code by itself?
+
+It calls Codex CLI to run the generated contract, then reruns the verifier. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. If Codex is unavailable, the verifier is manual, or the verifier still fails, progress is marked blocked or active instead of completed.
 
 ## What is intentionally out of scope?
 

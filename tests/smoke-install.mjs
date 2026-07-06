@@ -675,6 +675,17 @@ function smokeLoopExecute() {
       "",
     ].join("\n")
   );
+  const beforeExecution = spawnSync("npm", ["test"], {
+    cwd: projectDir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (beforeExecution.status === 0) {
+    fail("Expected loop execution fixture to fail before fake Codex runs");
+  }
+  if (!`${beforeExecution.stdout}\n${beforeExecution.stderr}`.includes("3")) {
+    fail("Expected pre-execution fixture failure output to include the wrong expected total");
+  }
   writeFileSync(
     fakeCodex,
     [
@@ -720,6 +731,13 @@ function smokeLoopExecute() {
     "Executing loop with Codex CLI:",
     "Running verifier after Codex: npm test",
     "Verifier passed after Codex run: npm test",
+    "Run proof:",
+    "- Selected loop: Failing CI repair (failing-ci-repair)",
+    "- Executor: Codex CLI",
+    "- Verifier: npm test",
+    "- Result: pass",
+    "- Progress: .loop-it/progress.json",
+    "- Codex output: .loop-it/CODEX_FINAL.md",
   ]) {
     if (!executed.stdout.includes(text)) {
       fail(`Expected executed loop output to include ${JSON.stringify(text)}`);
@@ -739,9 +757,21 @@ function smokeLoopExecute() {
     progress.status !== "completed" ||
     progress.lastCheck !== "npm test" ||
     progress.lastResult !== "pass" ||
+    progress.lastExecutor !== "codex" ||
+    progress.lastCodexOutput !== ".loop-it/CODEX_FINAL.md" ||
     progress.recommendedNextAction !== "Stop; verifier passed after Codex execution."
   ) {
     fail("Expected executed loop progress to record verifier success");
+  }
+  if (
+    progress.proof?.selectedLoopId !== "failing-ci-repair" ||
+    progress.proof?.executor !== "codex" ||
+    progress.proof?.verifier !== "npm test" ||
+    progress.proof?.result !== "pass" ||
+    progress.proof?.codexOutput !== ".loop-it/CODEX_FINAL.md" ||
+    !Array.isArray(progress.proof?.changedFiles)
+  ) {
+    fail("Expected executed loop progress to include machine-readable run proof");
   }
 }
 

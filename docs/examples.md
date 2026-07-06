@@ -12,7 +12,7 @@ npx @fhajjej/loop-it@latest run \
   --execute codex
 ```
 
-`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier, and updates `.loop-it/progress.json` with pass or blocker evidence.
+`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier, and updates `.loop-it/progress.json` with pass or blocker evidence. When the verifier passes, the CLI prints a `Run proof` summary and records a machine-readable `proof` object with the selected loop, executor, verifier, result, Codex output path, and changed files.
 
 Omit `--execute codex` when you only want to prepare the launch prompt for a human to paste into Codex, Claude Code, or Cursor.
 

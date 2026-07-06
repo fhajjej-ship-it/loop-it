@@ -154,13 +154,15 @@ Use this mode when the user expects the issue to be fixed, not merely prepared. 
 
 Run-mode guardrail: `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` are state files, not the repair. Changes only under `.loop-it` do not count as a successful iteration. If the first pass only created or edited loop files, keep going: run the verifier, inspect the failing surface, and make a real project change when the verifier fails.
 
-Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract. Add `--execute codex` when the current machine should call Codex CLI, rerun the verifier, and update `.loop-it/progress.json` with pass or blocker evidence:
+Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract. Add `--execute codex` when the current machine should call Codex CLI, rerun the verifier, print a `Run proof` summary, and update `.loop-it/progress.json` with pass or blocker evidence:
 
 ```bash
 node <skill-dir>/scripts/run-loop.mjs --goal "Inspect this repo and run the right loop" --agent codex
 node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
 node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex --execute codex
 ```
+
+When `--execute codex` succeeds, progress must include a machine-readable `proof` object with the selected loop, executor, verifier, result, Codex output file, and changed files. Treat missing proof as incomplete even if `.loop-it` files were created.
 
 Use execution mode only for local, verifier-gated repository work. Do not use it for production writes, external messages, payments, destructive git operations, credential changes, deploys, or irreversible data changes without explicit approval.
 

@@ -68,6 +68,14 @@ npx @fhajjej/loop-it@latest start --goal "Fix failing CI" --check "npm run check
 
 Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. Creating `.loop-it` files only prepares the loop; the pasted prompt is what asks the agent to repair and verify. If the agent only changes `.loop-it`, keep going because the issue has not been fixed.
 
+For Codex CLI execution, use `run --execute codex` instead of only preparing a launch prompt:
+
+```bash
+npx @fhajjej/loop-it@latest run --goal "Fix failing CI" --check "npm run check" --agent codex --execute codex
+```
+
+That path calls Codex, reruns the verifier, prints a `Run proof` summary, and records the selected loop, executor, verifier, result, Codex output path, and changed files in `.loop-it/progress.json`.
+
 You can also ask your agent to use Loop it directly:
 
 ```text

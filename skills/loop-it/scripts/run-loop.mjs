@@ -160,16 +160,19 @@ function executeWithCodex(run) {
     process.exit(codexResult.status ?? 1);
   }
 
-  verifyAfterCodex(run.cwd, run.check, outputPath);
+  verifyAfterCodex(run, outputPath);
 }
 
-function verifyAfterCodex(cwd, check, codexOutputPath) {
+function verifyAfterCodex(run, codexOutputPath) {
+  const { cwd, check } = run;
   if (isManualCheck(check)) {
     updateProgress(cwd, {
       status: "blocked",
       currentIteration: 1,
       lastCheck: check,
       lastResult: "manual-verification-required",
+      lastExecutor: "codex",
+      lastCodexOutput: relativeToCwd(cwd, codexOutputPath),
       blockers: ["Verifier is manual, so Loop It cannot prove completion automatically."],
       remainingRisks: ["Run the manual verifier before calling this loop complete."],
       recommendedNextAction: `Run the manual verifier and record the result in .loop-it/progress.json. Codex output: ${relativeToCwd(cwd, codexOutputPath)}`,
@@ -191,34 +194,68 @@ function verifyAfterCodex(cwd, check, codexOutputPath) {
   const output = [verifier.stdout, verifier.stderr].filter(Boolean).join("\n").trim();
 
   if (verifier.status === 0) {
+    const files = changedFiles(cwd);
+    const codexOutput = relativeToCwd(cwd, codexOutputPath);
     updateProgress(cwd, {
       status: "completed",
       currentIteration: 1,
       lastCheck: check,
       lastResult: "pass",
+      lastExecutor: "codex",
+      lastCodexOutput: codexOutput,
       lastVerifierOutput: truncate(output),
       blockers: [],
       remainingRisks: [],
       recommendedNextAction: "Stop; verifier passed after Codex execution.",
-      changedFiles: changedFiles(cwd),
+      changedFiles: files,
+      proof: {
+        selectedLoopId: run.loop.id,
+        selectedLoopTitle: run.loop.title,
+        executor: "codex",
+        verifier: check,
+        result: "pass",
+        codexOutput,
+        changedFiles: files,
+      },
     });
     if (output) {
       console.log(output);
     }
     console.log(`Verifier passed after Codex run: ${check}`);
+    printRunProof({
+      loop: run.loop,
+      executor: "Codex CLI",
+      verifier: check,
+      result: "pass",
+      codexOutput,
+      changedFiles: files,
+    });
     return;
   }
 
+  const files = changedFiles(cwd);
+  const codexOutput = relativeToCwd(cwd, codexOutputPath);
   updateProgress(cwd, {
     status: "active",
     currentIteration: 1,
     lastCheck: check,
     lastResult: "failed",
+    lastExecutor: "codex",
+    lastCodexOutput: codexOutput,
     lastVerifierOutput: truncate(output),
     blockers: [],
     remainingRisks: [`Verifier still fails: ${check}`],
     recommendedNextAction: "Inspect the verifier output and rerun the loop only if the next pass has a clear expected improvement.",
-    changedFiles: changedFiles(cwd),
+    changedFiles: files,
+    proof: {
+      selectedLoopId: run.loop.id,
+      selectedLoopTitle: run.loop.title,
+      executor: "codex",
+      verifier: check,
+      result: "failed",
+      codexOutput,
+      changedFiles: files,
+    },
   });
   if (output) {
     console.error(output);
@@ -390,6 +427,18 @@ function truncate(value, maxLength = 4000) {
     return value;
   }
   return `${value.slice(0, maxLength)}\n... truncated ...`;
+}
+
+function printRunProof({ loop, executor, verifier, result, codexOutput, changedFiles: files }) {
+  console.log("");
+  console.log("Run proof:");
+  console.log(`- Selected loop: ${loop.title} (${loop.id})`);
+  console.log(`- Executor: ${executor}`);
+  console.log(`- Verifier: ${verifier}`);
+  console.log(`- Result: ${result}`);
+  console.log(`- Progress: .loop-it/progress.json`);
+  console.log(`- Codex output: ${codexOutput}`);
+  console.log(`- Changed files: ${files.length ? files.join(", ") : "none"}`);
 }
 
 function parseArgs(tokens) {
