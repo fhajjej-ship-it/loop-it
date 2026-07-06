@@ -1,6 +1,6 @@
 {
   "name": "loop-it",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Find, recommend, and run verifier-gated coding loops for AI agents.",
   "author": {
     "name": "Loop it",
