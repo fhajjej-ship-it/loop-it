@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.9
+
+### Added
+
+- Added a readiness preflight before unattended `loop-it run --execute codex` execution so Codex does not start when no automated verifier is available or the requested work requires approval-sensitive actions.
+- Added smoke coverage for readiness blocking on manual-only verification and approval-sensitive publishing requests.
+
+### Changed
+
+- Documented the readiness preflight in the README and portable Loop It skill instructions.
+
 ## 0.3.8
 
 ### Changed
