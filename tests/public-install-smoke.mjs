@@ -10,11 +10,9 @@ const runCodex = args.has("--codex-run") || process.env.LOOP_IT_PUBLIC_SMOKE_COD
 const npxBin = process.platform === "win32" ? "npx.cmd" : "npx";
 const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
 const gitBin = process.platform === "win32" ? "git.exe" : "git";
-const codexBin = process.platform === "win32" ? "codex.cmd" : "codex";
 const packageSpec = "@fhajjej/loop-it@latest";
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-public-install-"));
 const projectDir = resolve(tempRoot, "repo");
-const launchOutput = resolve(projectDir, "codex-final.md");
 let passed = false;
 
 try {
@@ -76,14 +74,14 @@ try {
   if (runCodex) {
     runCodexProof();
   } else {
-    console.log("Codex host run skipped. Use -- --codex-run to run the optional agent proof.");
+    console.log("Codex host run skipped. Run npm run smoke:public-codex -- --keep to prove public execution.");
   }
 
   console.log("Public install smoke passed");
   console.log(`Package: ${packageSpec}`);
   console.log("Verified: npm latest install, project skill files, and Codex run-now launch wording");
   if (runCodex) {
-    console.log("Verified: optional Codex run fixed the failing fixture and npm test passed");
+    console.log("Verified: public loop-it run --execute codex fixed the failing fixture and recorded proof");
   }
   passed = true;
 } catch (error) {
@@ -135,10 +133,10 @@ function createFixture(targetDir) {
 }
 
 function runCodexProof() {
-  const startResult = run(npxBin, [
+  const executed = run(npxBin, [
     "--yes",
     packageSpec,
-    "start",
+    "run",
     "--from",
     "failing-ci-repair",
     "--goal",
@@ -147,33 +145,48 @@ function runCodexProof() {
     "npm test",
     "--agent",
     "codex",
-    "--force",
-  ], { cwd: projectDir });
-
-  const launchFile = resolve(projectDir, ".loop-it", "LAUNCH.md");
-  assertFile(launchFile);
-  assertIncludes(startResult.stdout, "Created .loop-it/LAUNCH.md", "public start output");
-
-  const prompt = [
-    "Run this public-install smoke fixture using the project-installed Loop It skill.",
-    "Do not publish, deploy, or change files outside this temporary fixture.",
-    "",
-    readFileSync(launchFile, "utf8"),
-  ].join("\n");
-
-  run(codexBin, [
-    "exec",
+    "--execute",
+    "codex",
+    "--max-iterations",
+    "3",
     "--skip-git-repo-check",
-    "--sandbox",
-    "workspace-write",
-    "--ignore-user-config",
-    "--output-last-message",
-    launchOutput,
-    prompt,
-  ], { cwd: projectDir, timeout: 180000 });
+    "--force",
+  ], { cwd: projectDir, timeout: 300000 });
+
+  for (const text of [
+    "Recommended loop: Failing CI repair (failing-ci-repair)",
+    "Executing loop with Codex CLI:",
+    "Running verifier after Codex iteration",
+    "Verifier passed after Codex iteration",
+    "Run proof:",
+    "- Selected loop: Failing CI repair (failing-ci-repair)",
+    "- Executor: Codex CLI",
+    "- Verifier: npm test",
+    "- Result: pass",
+    "- Progress: .loop-it/progress.json",
+  ]) {
+    assertIncludes(executed.stdout, text, "public Codex execution output");
+  }
 
   run(npmBin, ["test"], { cwd: projectDir });
-  assertFile(launchOutput);
+  const progressPath = resolve(projectDir, ".loop-it", "progress.json");
+  assertFile(progressPath);
+
+  const progress = JSON.parse(readFileSync(progressPath, "utf8"));
+  if (
+    progress.status !== "completed" ||
+    progress.lastResult !== "pass" ||
+    progress.proof?.selectedLoopId !== "failing-ci-repair" ||
+    progress.proof?.executor !== "codex" ||
+    progress.proof?.verifier !== "npm test" ||
+    progress.proof?.result !== "pass" ||
+    !progress.proof?.codexOutput ||
+    !Array.isArray(progress.proof?.changedFiles) ||
+    !progress.proof.changedFiles.some((file) => file.endsWith("test.mjs"))
+  ) {
+    fail("Expected public run --execute codex to record completed proof for the fixed fixture");
+  }
+  assertFile(resolve(projectDir, progress.proof.codexOutput));
 }
 
 function run(command, commandArgs, options = {}) {

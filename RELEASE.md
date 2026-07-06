@@ -65,12 +65,12 @@ Use the `Publish` workflow's manual dispatch from GitHub Actions after fixing `N
 ```bash
 npm view @fhajjej/loop-it name version bin
 npm run smoke:public-install
-npm run smoke:public-install -- --codex-run --keep
+npm run smoke:public-codex -- --keep
 npm run sync:codex-plugin
 codex plugin list | grep 'loop-it@personal'
 ```
 
-Use `--codex-run` only on a local machine with Codex CLI auth. It runs the public package in a temporary fixture and asks Codex to fix a tiny failing `npm test`; `--keep` preserves the fixture for inspection.
+Use `npm run smoke:public-codex -- --keep` only on a local machine with Codex CLI auth. It installs the public package in a temporary fixture, runs `loop-it run --execute codex`, asks Codex to fix a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. `--keep` preserves the fixture for inspection.
 
 After npm is live, update the Swarmix product page at
 `/experiments/loop-it-poc` before treating the release as complete. The page

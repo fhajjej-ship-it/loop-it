@@ -43,6 +43,8 @@ No. `loop-it start` prepares the loop contract and launch prompt. The repair sta
 
 It calls Codex CLI to run the generated contract, reruns the verifier after each pass, and repeats up to the iteration cap. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. If Codex is unavailable, the verifier is manual, the same failure repeats, or the iteration cap is reached, progress is marked blocked or active instead of completed.
 
+The public-package proof command is `npm run smoke:public-codex -- --keep`. It installs `@fhajjej/loop-it@latest` into a fresh fixture and exercises the actual public `loop-it run --execute codex` path, so it is intentionally separate from normal CI checks and requires local Codex CLI auth.
+
 ## What is intentionally out of scope?
 
 Scheduling, background automation, dashboards, multi-agent orchestration, billing, production deploy automation, and external-message sending.
