@@ -162,9 +162,12 @@ Use the runner script when available to convert broad requests into a selected l
 node <skill-dir>/scripts/run-loop.mjs --goal "Inspect this repo and run the right loop" --agent codex
 node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
 node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex --execute codex
+node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex --execute codex --checker codex
 ```
 
-When `--execute codex` succeeds, progress must include a machine-readable `proof` object with the selected loop, executor, verifier, result, final Codex output file, changed files, and per-iteration evidence. Treat missing proof as incomplete even if `.loop-it` files were created.
+Use `--checker codex` when the run needs maker-checker proof. The checker is a second read-only Codex pass after the verifier passes; it must inspect the changed files, verifier output, Codex output, and `.loop-it/progress.json`, then return a pass, blocker, or inconclusive receipt. If no checker is requested, the proof must say the checker was skipped.
+
+When `--execute codex` succeeds, progress must include a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output file, changed files, and per-iteration evidence. Treat missing proof as incomplete even if `.loop-it` files were created.
 
 Use execution mode only for local, verifier-gated repository work. Do not use it for production writes, external messages, payments, destructive git operations, credential changes, deploys, or irreversible data changes without explicit approval.
 

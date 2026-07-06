@@ -81,6 +81,8 @@ Loop it has three product verbs:
 
 `loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
 
+Add `--checker codex` when the run needs a second, read-only review after the verifier passes. The checker inspects the changed files, verifier output, Codex output, and `.loop-it/progress.json`, then writes a checker receipt. Loop it records whether the checker passed, blocked, was inconclusive, or was skipped.
+
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
 - The goal must be concrete enough to run.
@@ -97,12 +99,13 @@ npx @fhajjej/loop-it@latest run \
   --goal "Fix failing checkout tests" \
   --check "npm test -- checkout" \
   --agent codex \
-  --execute codex
+  --execute codex \
+  --checker codex
 ```
 
 Omit `--execute codex` when you only want to prepare `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 
-On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, result, final Codex output file, changed files, and per-iteration evidence.
+On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output file, changed files, and per-iteration evidence. If no checker is requested, the proof says the checker was skipped.
 
 Write a custom loop:
 

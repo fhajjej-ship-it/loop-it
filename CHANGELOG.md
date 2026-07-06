@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added optional maker-checker proof for `loop-it run --execute codex` via `--checker codex`, including read-only checker receipts in `.loop-it/progress.json`.
+- Added smoke coverage for verifier pass plus checker approval in the bounded Codex runner.
+
 ## 0.3.10
 
 ### Added

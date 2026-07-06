@@ -736,6 +736,7 @@ function smokeLoopExecute() {
     "- Executor: Codex CLI",
     "- Verifier: npm test",
     "- Result: pass",
+    "- Checker: skipped",
     "- Progress: .loop-it/progress.json",
     "- Codex output: .loop-it/CODEX_FINAL.md",
   ]) {
@@ -759,7 +760,10 @@ function smokeLoopExecute() {
     progress.lastResult !== "pass" ||
     progress.lastExecutor !== "codex" ||
     progress.lastCodexOutput !== ".loop-it/CODEX_FINAL.md" ||
-    progress.recommendedNextAction !== "Stop; verifier passed after Codex execution."
+    progress.lastChecker !== "skipped" ||
+    progress.lastCheckerOutput !== null ||
+    progress.recommendedNextAction !==
+      "Stop; verifier passed after Codex execution. Add --checker codex when independent review proof is required."
   ) {
     fail("Expected executed loop progress to record verifier success");
   }
@@ -769,6 +773,7 @@ function smokeLoopExecute() {
     progress.proof?.verifier !== "npm test" ||
     progress.proof?.result !== "pass" ||
     progress.proof?.codexOutput !== ".loop-it/CODEX_FINAL.md" ||
+    progress.proof?.checker?.result !== "skipped" ||
     !Array.isArray(progress.proof?.changedFiles)
   ) {
     fail("Expected executed loop progress to include machine-readable run proof");

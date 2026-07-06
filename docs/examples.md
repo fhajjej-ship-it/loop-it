@@ -9,10 +9,11 @@ npx @fhajjej/loop-it@latest run \
   --goal "Fix failing checkout tests" \
   --check "npm test -- checkout" \
   --agent codex \
-  --execute codex
+  --execute codex \
+  --checker codex
 ```
 
-`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. When the verifier passes, the CLI prints a `Run proof` summary and records a machine-readable `proof` object with the selected loop, executor, verifier, result, final Codex output path, changed files, and per-iteration evidence.
+`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. Add `--checker codex` when you want a second read-only Codex pass to inspect the changed files, verifier output, Codex output, and `.loop-it/progress.json` before the run is accepted. When the verifier passes, the CLI prints a `Run proof` summary and records a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output path, changed files, and per-iteration evidence.
 
 Omit `--execute codex` when you only want to prepare the launch prompt for a human to paste into Codex, Claude Code, or Cursor.
 

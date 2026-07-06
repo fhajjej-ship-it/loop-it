@@ -27,12 +27,19 @@ const maxIterations = stringArg(args["max-iterations"], loop.maxIterations ?? "3
 const iterationCap = positiveInteger(maxIterations, "--max-iterations");
 const agent = stringArg(args.agent, "codex");
 const execute = stringArg(args.execute, "none");
+const checker = stringArg(args.checker ?? args.review, "none");
 
 if (!["none", "codex"].includes(execute)) {
   fail(`Unsupported --execute value: ${execute}`);
 }
 if (execute === "codex" && !["codex", "all"].includes(agent)) {
   fail("--execute codex requires --agent codex or --agent all");
+}
+if (!["none", "codex"].includes(checker)) {
+  fail(`Unsupported --checker value: ${checker}`);
+}
+if (checker === "codex" && execute !== "codex") {
+  fail("--checker codex requires --execute codex");
 }
 
 const readiness = assessReadiness({
@@ -52,6 +59,7 @@ const plan = {
   maxIterations: iterationCap,
   agent,
   execute,
+  checker,
   readiness,
   repoSignals: repo,
 };
@@ -115,6 +123,7 @@ if (execute === "codex") {
     check,
     loop,
     maxIterations: iterationCap,
+    checker,
   });
 }
 
@@ -125,6 +134,9 @@ function executeWithCodex(run) {
   const outputPath = resolve(run.cwd, stringArg(args["codex-output"], ".loop-it/CODEX_FINAL.md"));
   const codexBin = stringArg(args["codex-bin"], "codex");
   const sandbox = stringArg(args["codex-sandbox"], "workspace-write");
+  const checkerBin = stringArg(args["checker-bin"], codexBin);
+  const checkerSandbox = stringArg(args["checker-sandbox"], "read-only");
+  const checkerOutputPath = resolve(run.cwd, stringArg(args["checker-output"], ".loop-it/CODEX_CHECKER.md"));
 
   if (!existsSync(launchPath)) {
     fail(`Expected launch file to exist before execution: ${launchPath}`);
@@ -208,13 +220,26 @@ function executeWithCodex(run) {
       process.exit(codexResult.status ?? 1);
     }
 
-    const observation = verifyAfterCodex(run, iterationOutputPath, iteration, proofIterations);
+    const observation = verifyAfterCodex(
+      {
+        ...run,
+        checkerBin,
+        checkerSandbox,
+        checkerOutputPath,
+      },
+      iterationOutputPath,
+      iteration,
+      proofIterations
+    );
     proofIterations.push(observation.iterationProof);
 
     if (observation.result === "pass") {
       return;
     }
     if (observation.result === "manual-verification-required") {
+      process.exit(2);
+    }
+    if (["checker-blocked", "checker-blocker", "checker-inconclusive"].includes(observation.result)) {
       process.exit(2);
     }
 
@@ -316,38 +341,66 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
   };
 
   if (verifier.status === 0) {
+    const checkerReceipt = runCheckerAfterVerifier(run, {
+      iteration,
+      check,
+      verifierOutput: output,
+      codexOutput,
+      changedFiles: files,
+    });
+    const checkerPassed = ["pass", "skipped"].includes(checkerReceipt.result);
+    const result = checkerPassed
+      ? "pass"
+      : checkerReceipt.result === "blocker"
+        ? "checker-blocked"
+        : `checker-${checkerReceipt.result}`;
+    const blockers = checkerPassed ? [] : [checkerReceipt.summary];
+    const remainingRisks = checkerPassed
+      ? []
+      : ["The verifier passed, but the checker did not approve the run proof."];
+    const nextAction =
+      checkerReceipt.result === "pass"
+        ? "Stop; verifier and checker passed after Codex execution."
+        : checkerReceipt.result === "skipped"
+          ? "Stop; verifier passed after Codex execution. Add --checker codex when independent review proof is required."
+          : "Stop; inspect the checker output before continuing or accepting the run.";
+
     recordProgressIteration(cwd, {
       iteration,
-      phase: "VERIFY",
+      phase: checkerReceipt.result === "skipped" ? "VERIFY" : "CHECKER",
       check,
-      result: "pass",
+      result,
       outputSummary: truncate(output, 1200),
       changedFiles: files,
-      blockers: [],
-      remainingRisks: [],
-      nextAction: "Stop; verifier passed after Codex execution.",
+      blockers,
+      remainingRisks,
+      nextAction,
+      checker: checkerReceipt,
     }, {
-      status: "completed",
+      status: checkerPassed ? "completed" : "blocked",
       currentIteration: iteration,
       lastCheck: check,
-      lastResult: "pass",
+      lastResult: result,
       lastExecutor: "codex",
       lastCodexOutput: codexOutput,
       lastVerifierOutput: truncate(output),
-      blockers: [],
-      remainingRisks: [],
-      recommendedNextAction: "Stop; verifier passed after Codex execution.",
+      lastChecker: checkerReceipt.result,
+      lastCheckerOutput: checkerReceipt.outputPath,
+      blockers,
+      remainingRisks,
+      recommendedNextAction: nextAction,
       changedFiles: files,
       proof: {
         selectedLoopId: run.loop.id,
         selectedLoopTitle: run.loop.title,
         executor: "codex",
         verifier: check,
-        result: "pass",
+        result,
         iteration,
         maxIterations: run.maxIterations,
         codexOutput,
         changedFiles: files,
+        checker: checkerReceipt,
         iterations: [...previousProofIterations, iterationProof],
       },
     });
@@ -364,13 +417,15 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
       maxIterations: run.maxIterations,
       codexOutput,
       changedFiles: files,
+      checker: checkerReceipt,
     });
     return {
-      result: "pass",
+      result: checkerPassed ? "pass" : result,
       output,
       files,
       codexOutput,
       iterationProof,
+      checker: checkerReceipt,
     };
   }
 
@@ -420,6 +475,146 @@ function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIteratio
     iterationProof,
     failureSignature: failureSignature(output, verifier.status),
   };
+}
+
+function runCheckerAfterVerifier(run, context) {
+  if (run.checker === "none") {
+    return {
+      type: "none",
+      result: "skipped",
+      summary: "Checker pass skipped.",
+      outputPath: null,
+      reviewed: {
+        verifier: context.check,
+        codexOutput: context.codexOutput,
+        progress: ".loop-it/progress.json",
+      },
+    };
+  }
+
+  const checkerOutputPath = run.checkerOutputPath;
+  const checkerOutput = relativeToCwd(run.cwd, checkerOutputPath);
+  mkdirSync(dirname(checkerOutputPath), { recursive: true });
+  const checkerArgs = ["exec"];
+  if (args["skip-git-repo-check"]) {
+    checkerArgs.push("--skip-git-repo-check");
+  }
+  if (args["codex-ignore-user-config"] || args["checker-ignore-user-config"]) {
+    checkerArgs.push("--ignore-user-config");
+  }
+  if (run.checkerSandbox !== "none") {
+    checkerArgs.push("--sandbox", run.checkerSandbox);
+  }
+  checkerArgs.push("--output-last-message", checkerOutputPath, buildCheckerPrompt(run, context));
+
+  console.log("");
+  console.log("Running read-only checker with Codex CLI.");
+  console.log(`Executing checker: ${run.checkerBin} ${checkerArgs.slice(0, -1).join(" ")}`);
+  const checkerResult = spawnSync(run.checkerBin, checkerArgs, {
+    cwd: run.cwd,
+    stdio: "inherit",
+  });
+
+  if (checkerResult.error) {
+    return {
+      type: "codex",
+      result: "blocked",
+      summary: `Checker execution failed: ${checkerResult.error.message}`,
+      outputPath: checkerOutput,
+      reviewed: {
+        verifier: context.check,
+        codexOutput: context.codexOutput,
+        progress: ".loop-it/progress.json",
+      },
+    };
+  }
+
+  if (checkerResult.status !== 0) {
+    return {
+      type: "codex",
+      result: "blocked",
+      summary: `Checker CLI exited ${checkerResult.status ?? 1}`,
+      outputPath: checkerOutput,
+      reviewed: {
+        verifier: context.check,
+        codexOutput: context.codexOutput,
+        progress: ".loop-it/progress.json",
+      },
+    };
+  }
+
+  const output = existsSync(checkerOutputPath) ? readFileSync(checkerOutputPath, "utf8").trim() : "";
+  const parsed = parseCheckerResult(output);
+  const summary =
+    parsed === "pass"
+      ? "Checker approved the verifier-passing run."
+      : parsed === "blocker"
+        ? extractCheckerBlocker(output)
+        : "Checker output did not include CHECKER_RESULT: pass or CHECKER_RESULT: blocker.";
+
+  if (parsed === "pass") {
+    console.log("Checker passed.");
+  } else {
+    console.log(`Checker did not approve: ${summary}`);
+  }
+
+  return {
+    type: "codex",
+    result: parsed,
+    summary,
+    outputPath: checkerOutput,
+    outputSummary: truncate(output),
+    reviewed: {
+      verifier: context.check,
+      codexOutput: context.codexOutput,
+      progress: ".loop-it/progress.json",
+      changedFiles: context.changedFiles,
+    },
+  };
+}
+
+function buildCheckerPrompt(run, context) {
+  return [
+    "Review this Loop It run as a read-only checker.",
+    "",
+    "Rules:",
+    "- Do not edit files.",
+    "- Do not run destructive commands.",
+    "- Inspect the changed files, .loop-it/progress.json, the Codex output file, and the verifier evidence.",
+    "- Approve only when the changed files match the goal and the verifier proof is credible.",
+    "",
+    `Goal: ${run.goal}`,
+    `Selected loop: ${run.loop.title} (${run.loop.id})`,
+    `Verifier that passed: ${context.check}`,
+    `Iteration: ${context.iteration} of ${run.maxIterations}`,
+    `Codex output file: ${context.codexOutput}`,
+    `Changed files: ${context.changedFiles.length ? context.changedFiles.join(", ") : "none"}`,
+    "",
+    "Verifier output:",
+    truncate(context.verifierOutput || "(no verifier output)", 1600),
+    "",
+    "Return exactly one marker line:",
+    "CHECKER_RESULT: pass",
+    "or",
+    "CHECKER_RESULT: blocker",
+    "",
+    "If blocked, include one line starting with CHECKER_BLOCKER: that states the concrete reason.",
+  ].join("\n");
+}
+
+function parseCheckerResult(output) {
+  if (/^CHECKER_RESULT:\s*pass\b/im.test(output)) {
+    return "pass";
+  }
+  if (/^CHECKER_RESULT:\s*blocker\b/im.test(output)) {
+    return "blocker";
+  }
+  return "inconclusive";
+}
+
+function extractCheckerBlocker(output) {
+  const match = output.match(/^CHECKER_BLOCKER:\s*(.+)$/im);
+  return match?.[1]?.trim() || "Checker reported a blocker without a concrete reason.";
 }
 
 function selectLoop(args, goal, repo) {
@@ -753,13 +948,20 @@ function outputPathForIteration(basePath, iteration) {
   return `${basePath}.iteration-${iteration}`;
 }
 
-function printRunProof({ loop, executor, verifier, result, iteration, maxIterations, codexOutput, changedFiles: files }) {
+function printRunProof({ loop, executor, verifier, result, iteration, maxIterations, codexOutput, changedFiles: files, checker }) {
   console.log("");
   console.log("Run proof:");
   console.log(`- Selected loop: ${loop.title} (${loop.id})`);
   console.log(`- Executor: ${executor}`);
   console.log(`- Verifier: ${verifier}`);
   console.log(`- Result: ${result}`);
+  if (checker) {
+    const checkerDetail =
+      checker.result === "skipped"
+        ? "skipped"
+        : `${checker.result}${checker.outputPath ? ` (${checker.outputPath})` : ""}`;
+    console.log(`- Checker: ${checkerDetail}`);
+  }
   if (iteration && maxIterations) {
     console.log(`- Iteration: ${iteration}/${maxIterations}`);
   }
@@ -788,7 +990,17 @@ function parseArgs(tokens) {
     }
 
     const key = token.slice(2);
-    if (["force", "json", "skip-git-repo-check", "codex-ignore-user-config", "help", "h"].includes(key)) {
+    if (
+      [
+        "force",
+        "json",
+        "skip-git-repo-check",
+        "codex-ignore-user-config",
+        "checker-ignore-user-config",
+        "help",
+        "h",
+      ].includes(key)
+    ) {
       parsed[key] = true;
       continue;
     }
@@ -831,10 +1043,15 @@ Options:
   --cwd <path>              Repository root, default current working directory
   --max-iterations <n>      Iteration cap, default selected loop cap
   --execute <none|codex>    Execute the generated loop with Codex CLI, default none
+  --checker <none|codex>    Optional read-only checker after the verifier passes, default none
   --codex-bin <path>        Codex executable for --execute codex, default codex
   --codex-sandbox <mode>    Codex sandbox mode, default workspace-write; use none to omit
   --codex-output <path>     Last Codex message path, default .loop-it/CODEX_FINAL.md
+  --checker-bin <path>      Checker Codex executable, default --codex-bin
+  --checker-sandbox <mode>  Checker sandbox mode, default read-only; use none to omit
+  --checker-output <path>   Checker receipt path, default .loop-it/CODEX_CHECKER.md
   --codex-ignore-user-config  Pass --ignore-user-config to codex exec
+  --checker-ignore-user-config Pass --ignore-user-config to the checker Codex exec
   --skip-git-repo-check     Pass --skip-git-repo-check to codex exec
   --json                    Print the selected run plan and readiness preflight without writing files
   --force                   Replace existing .loop-it files`);

@@ -71,10 +71,10 @@ Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or 
 For Codex CLI execution, use `run --execute codex` instead of only preparing a launch prompt:
 
 ```bash
-npx @fhajjej/loop-it@latest run --goal "Fix failing CI" --check "npm run check" --agent codex --execute codex
+npx @fhajjej/loop-it@latest run --goal "Fix failing CI" --check "npm run check" --agent codex --execute codex --checker codex
 ```
 
-That path calls Codex, reruns the verifier after each pass, repeats up to the iteration cap, prints a `Run proof` summary on success, and records the selected loop, executor, verifier, result, Codex output paths, changed files, and per-iteration evidence in `.loop-it/progress.json`.
+That path calls Codex, reruns the verifier after each pass, repeats up to the iteration cap, optionally runs a read-only checker, prints a `Run proof` summary on success, and records the selected loop, executor, verifier, checker result, Codex output paths, changed files, and per-iteration evidence in `.loop-it/progress.json`.
 
 You can also ask your agent to use Loop it directly:
 
