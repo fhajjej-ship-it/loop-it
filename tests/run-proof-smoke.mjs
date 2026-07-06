@@ -11,6 +11,8 @@ const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-run-proof-"));
 const projectDir = resolve(tempRoot, "repo");
 const blockedProjectDir = resolve(tempRoot, "blocked-repo");
+const isolatedProjectDir = resolve(tempRoot, "isolated-repo");
+const isolatedWorktreeDir = resolve(tempRoot, "isolated-run-worktree");
 const fakeCodex = resolve(tempRoot, "fake-codex.mjs");
 const fakeCodexPass = resolve(tempRoot, "fake-codex-pass.mjs");
 const fakeChecker = resolve(tempRoot, "fake-checker.mjs");
@@ -149,8 +151,59 @@ try {
     fail("Expected progress.json to record checker-blocked proof");
   }
 
+  createFailingFixture(isolatedProjectDir);
+  initGitRepo(isolatedProjectDir);
+  expectFailure("npm", ["test"], "Expected isolated source fixture npm test to fail before Codex runs", isolatedProjectDir);
+  const isolated = run(nodeBin, [
+    cliPath,
+    "run",
+    "--from",
+    "failing-ci-repair",
+    "--goal",
+    "Fix the isolated failing npm test with the smallest safe change",
+    "--check",
+    "npm test",
+    "--agent",
+    "codex",
+    "--execute",
+    "codex",
+    "--codex-bin",
+    fakeCodexPass,
+    "--codex-sandbox",
+    "none",
+    "--max-iterations",
+    "1",
+    "--skip-git-repo-check",
+    "--worktree",
+    "--worktree-base",
+    "HEAD",
+    "--worktree-branch",
+    "codex/loop-it-isolated-smoke",
+    "--worktree-dir",
+    isolatedWorktreeDir,
+  ], { cwd: isolatedProjectDir });
+
+  assertIncludes(isolated.stdout, `Worktree isolation: ${isolatedWorktreeDir}`, "worktree run output");
+  assertIncludes(isolated.stdout, "Worktree branch: codex/loop-it-isolated-smoke", "worktree run output");
+  assertIncludes(isolated.stdout, `- Worktree: ${isolatedWorktreeDir}`, "worktree proof output");
+  run("npm", ["test"], { cwd: isolatedWorktreeDir });
+  expectFailure("npm", ["test"], "Expected isolated source checkout to remain failing after worktree run", isolatedProjectDir);
+  assertNotExists(resolve(isolatedProjectDir, ".loop-it"));
+
+  const isolatedProgress = JSON.parse(readFileSync(resolve(isolatedWorktreeDir, ".loop-it", "progress.json"), "utf8"));
+  if (
+    isolatedProgress.status !== "completed" ||
+    isolatedProgress.lastResult !== "pass" ||
+    isolatedProgress.worktree?.path !== isolatedWorktreeDir ||
+    isolatedProgress.worktree?.branch !== "codex/loop-it-isolated-smoke" ||
+    isolatedProgress.proof?.worktree?.path !== isolatedWorktreeDir ||
+    isolatedProgress.proof?.result !== "pass"
+  ) {
+    fail("Expected isolated run to record completed proof with worktree metadata");
+  }
+
   console.log("Run proof smoke passed");
-  console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, checker pass/block, and progress proof");
+  console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, checker pass/block, isolated worktree execution, and progress proof");
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
@@ -279,6 +332,20 @@ function createFakeCheckerBlocker() {
   chmodSync(fakeCheckerBlocker, 0o755);
 }
 
+function initGitRepo(targetDir) {
+  run("git", ["init", "-b", "main"], { cwd: targetDir });
+  run("git", ["add", "."], { cwd: targetDir });
+  run("git", [
+    "-c",
+    "user.name=Loop It",
+    "-c",
+    "user.email=loop-it@example.com",
+    "commit",
+    "-m",
+    "Initial fixture",
+  ], { cwd: targetDir });
+}
+
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: options.cwd ?? repoRoot,
@@ -346,6 +413,12 @@ function expectFailure(command, commandArgs, message, cwd = projectDir) {
 function assertFile(path) {
   if (!existsSync(path)) {
     fail(`Expected file to exist: ${path}`);
+  }
+}
+
+function assertNotExists(path) {
+  if (existsSync(path)) {
+    fail(`Expected path not to exist: ${path}`);
   }
 }
 

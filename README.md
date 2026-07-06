@@ -83,6 +83,8 @@ Loop it has three product verbs:
 
 Add `--checker codex` when the run needs a second, read-only review after the verifier passes. The checker inspects the changed files, verifier output, Codex output, and `.loop-it/progress.json`, then writes a checker receipt. Loop it records whether the checker passed, blocked, was inconclusive, or was skipped.
 
+Add `--worktree` when the run should happen away from the current checkout. Loop it creates a fresh git worktree and branch from `origin/main`, `main`, `origin/master`, `master`, or `HEAD`, then runs Codex there and records the worktree path, branch, and base ref in `.loop-it/progress.json`. Use `--worktree-base`, `--worktree-branch`, or `--worktree-dir` when you need exact control.
+
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
 - The goal must be concrete enough to run.
@@ -100,12 +102,13 @@ npx @fhajjej/loop-it@latest run \
   --check "npm test -- checkout" \
   --agent codex \
   --execute codex \
-  --checker codex
+  --checker codex \
+  --worktree
 ```
 
 Omit `--execute codex` when you only want to prepare `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 
-On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output file, changed files, and per-iteration evidence. If no checker is requested, the proof says the checker was skipped.
+On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output file, changed files, worktree metadata when isolation was used, and per-iteration evidence. If no checker is requested, the proof says the checker was skipped.
 
 Write a custom loop:
 
@@ -276,7 +279,7 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 
 `npm run check` verifies CLI syntax, selector syntax, skill generator syntax, loop runner syntax, loop launcher syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection evals, loop-file creation, loop launch creation, packed-tarball execution, and package contents.
 
-`npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, and checks that `.loop-it/progress.json` records completed proof.
+`npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, exercises checker pass/block behavior, proves isolated worktree execution leaves the source checkout untouched, and checks that `.loop-it/progress.json` records completed proof.
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
 

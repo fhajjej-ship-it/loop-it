@@ -128,6 +128,7 @@ function printUsage() {
   loop-it install --agent codex --scope global
   loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
   loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout" --execute codex
+  loop-it run --goal "Fix failing CI" --check "npm run check" --execute codex --checker codex --worktree
   loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
   loop-it new --from failing-ci-repair
@@ -151,7 +152,12 @@ Install options:
   --agent <codex|claude|cursor|all>  Default: all
   --scope <project|global>           Default: project
   --cwd <path>                       Project root for project installs
-  --force                            Replace an existing installed skill`);
+  --force                            Replace an existing installed skill
+
+Run execution options:
+  --execute codex                    Call Codex CLI and rerun the verifier after each pass
+  --checker codex                    Run a second read-only checker after the verifier passes
+  --worktree                         Create a fresh git worktree/branch and run Codex there`);
 }
 
 function fail(message) {
