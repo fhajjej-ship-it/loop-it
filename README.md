@@ -81,6 +81,15 @@ Loop it has three product verbs:
 
 `loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
 
+Before `--execute codex` starts, Loop it runs a readiness preflight:
+
+- The goal must be concrete enough to run.
+- The verifier must be an automated command, not only manual review.
+- The iteration cap must be present.
+- The goal and check must not require approval-sensitive work such as production deploys, npm publishing, external messages, payments, credential changes, destructive git operations, or irreversible data changes.
+
+If the preflight fails, Loop it does not start Codex. It prints the missing verifier, approval risk, or next action instead of silently creating loop files and pretending work happened.
+
 Inspect the repo, choose the loop, run Codex, and keep verifying until a stop condition is reached:
 
 ```bash
@@ -249,6 +258,7 @@ This creates `.loop-it/LOOP.md` and `.loop-it/progress.json` in the current dire
 ```bash
 npm run check
 npm run smoke
+npm run smoke:readiness
 npm publish --dry-run --access public
 node ./bin/loop-it.mjs install --agent all --scope project
 node ./bin/loop-it.mjs run --goal "Inspect this repo and run the right loop" --agent codex
@@ -263,6 +273,8 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 `npm run check` verifies CLI syntax, selector syntax, skill generator syntax, loop runner syntax, loop launcher syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection evals, loop-file creation, loop launch creation, packed-tarball execution, and package contents.
 
 `npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, and checks that `.loop-it/progress.json` records completed proof.
+
+`npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
 
 ## Release Status
 

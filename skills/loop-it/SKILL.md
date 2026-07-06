@@ -154,6 +154,8 @@ Use this mode when the user expects the issue to be fixed, not merely prepared. 
 
 Run-mode guardrail: `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` are state files, not the repair. Changes only under `.loop-it` do not count as a successful iteration. If the first pass only created or edited loop files, keep going: run the verifier, inspect the failing surface, and make a real project change when the verifier fails.
 
+Before unattended execution, run a readiness preflight. A loop can execute only when the goal is concrete, the verifier is an automated command, the iteration cap is present, and the next action does not require production writes, external messages, payments, destructive git operations, credential changes, deploys, publishing, or irreversible data changes. If any of those are missing, do not start Codex; ask for the missing verifier, prepare a manual launch only, or stop for explicit approval.
+
 Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract. Add `--execute codex` when the current machine should call Codex CLI, rerun the verifier after each pass, repeat up to the iteration cap, print a `Run proof` summary on success, and update `.loop-it/progress.json` with pass, repeated-failure, cap, or blocker evidence:
 
 ```bash
