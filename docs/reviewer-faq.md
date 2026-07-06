@@ -41,7 +41,7 @@ No. `loop-it start` prepares the loop contract and launch prompt. The repair sta
 
 ## Does `loop-it run --execute codex` fix code by itself?
 
-It calls Codex CLI to run the generated contract, reruns the verifier after each pass, and repeats up to the iteration cap. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. If Codex is unavailable, the verifier is manual, the same failure repeats, or the iteration cap is reached, progress is marked blocked or active instead of completed.
+It calls Codex CLI to run the generated contract, reruns the verifier after each pass, and repeats up to the iteration cap. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. Add `--checker codex` when the run needs a second, read-only Codex receipt before completion. If Codex is unavailable, the verifier is manual, the checker blocks, the same failure repeats, or the iteration cap is reached, progress is marked blocked or active instead of completed.
 
 The public-package proof command is `npm run smoke:public-codex -- --keep`. It installs `@fhajjej/loop-it@latest` into a fresh fixture and exercises the actual public `loop-it run --execute codex` path, so it is intentionally separate from normal CI checks and requires local Codex CLI auth.
 

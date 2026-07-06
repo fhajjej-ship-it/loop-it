@@ -10,12 +10,19 @@ const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-run-proof-"));
 const projectDir = resolve(tempRoot, "repo");
+const blockedProjectDir = resolve(tempRoot, "blocked-repo");
 const fakeCodex = resolve(tempRoot, "fake-codex.mjs");
+const fakeCodexPass = resolve(tempRoot, "fake-codex-pass.mjs");
+const fakeChecker = resolve(tempRoot, "fake-checker.mjs");
+const fakeCheckerBlocker = resolve(tempRoot, "fake-checker-blocker.mjs");
 
 try {
   createFailingFixture();
   expectFailure("npm", ["test"], "Expected fixture npm test to fail before Codex runs");
   createFakeCodex();
+  createFakeCodexPass();
+  createFakeChecker();
+  createFakeCheckerBlocker();
 
   const executed = run(nodeBin, [
     cliPath,
@@ -34,6 +41,12 @@ try {
     fakeCodex,
     "--codex-sandbox",
     "none",
+    "--checker",
+    "codex",
+    "--checker-bin",
+    fakeChecker,
+    "--checker-sandbox",
+    "none",
     "--max-iterations",
     "2",
     "--skip-git-repo-check",
@@ -48,12 +61,15 @@ try {
     "Continuing to iteration 2/2.",
     "Codex iteration 2/2",
     "Running verifier after Codex iteration 2: npm test",
+    "Running read-only checker with Codex CLI.",
+    "Checker passed.",
     "Verifier passed after Codex iteration 2: npm test",
     "Run proof:",
     "- Selected loop: Failing CI repair (failing-ci-repair)",
     "- Executor: Codex CLI",
     "- Verifier: npm test",
     "- Result: pass",
+    "- Checker: pass (.loop-it/CODEX_CHECKER.md)",
     "- Iteration: 2/2",
     "- Progress: .loop-it/progress.json",
     "- Codex output: .loop-it/CODEX_FINAL.iteration-2.md",
@@ -64,6 +80,7 @@ try {
   run("npm", ["test"], { cwd: projectDir });
   assertFile(resolve(projectDir, ".loop-it", "CODEX_FINAL.md"));
   assertFile(resolve(projectDir, ".loop-it", "CODEX_FINAL.iteration-2.md"));
+  assertFile(resolve(projectDir, ".loop-it", "CODEX_CHECKER.md"));
 
   const progress = JSON.parse(readFileSync(resolve(projectDir, ".loop-it", "progress.json"), "utf8"));
   if (
@@ -78,22 +95,70 @@ try {
     progress.proof?.maxIterations !== 2 ||
     progress.proof?.codexOutput !== ".loop-it/CODEX_FINAL.iteration-2.md" ||
     progress.lastCodexOutput !== ".loop-it/CODEX_FINAL.iteration-2.md" ||
+    progress.lastChecker !== "pass" ||
+    progress.lastCheckerOutput !== ".loop-it/CODEX_CHECKER.md" ||
+    progress.proof?.checker?.result !== "pass" ||
+    progress.proof?.checker?.outputPath !== ".loop-it/CODEX_CHECKER.md" ||
     progress.proof?.iterations?.length !== 2 ||
     progress.iterations?.length !== 2
   ) {
-    fail("Expected progress.json to record completed two-pass run proof");
+    fail("Expected progress.json to record completed two-pass run proof with checker receipt");
+  }
+
+  createFailingFixture(blockedProjectDir);
+  expectFailure("npm", ["test"], "Expected blocked fixture npm test to fail before Codex runs", blockedProjectDir);
+  const blocked = runExpectStatus(nodeBin, [
+    cliPath,
+    "run",
+    "--from",
+    "failing-ci-repair",
+    "--goal",
+    "Fix the failing npm test with the smallest safe change",
+    "--check",
+    "npm test",
+    "--agent",
+    "codex",
+    "--execute",
+    "codex",
+    "--codex-bin",
+    fakeCodexPass,
+    "--codex-sandbox",
+    "none",
+    "--checker",
+    "codex",
+    "--checker-bin",
+    fakeCheckerBlocker,
+    "--checker-sandbox",
+    "none",
+    "--max-iterations",
+    "1",
+    "--skip-git-repo-check",
+  ], { cwd: blockedProjectDir }, 2);
+  assertIncludes(blocked.stdout, "Checker did not approve: Changed files lack regression coverage.", "checker blocker output");
+  assertIncludes(blocked.stdout, "- Result: pass", "checker blocker run proof");
+  assertIncludes(blocked.stdout, "- Checker: blocker (.loop-it/CODEX_CHECKER.md)", "checker blocker run proof");
+
+  const blockedProgress = JSON.parse(readFileSync(resolve(blockedProjectDir, ".loop-it", "progress.json"), "utf8"));
+  if (
+    blockedProgress.status !== "blocked" ||
+    blockedProgress.lastResult !== "checker-blocked" ||
+    blockedProgress.proof?.result !== "checker-blocked" ||
+    blockedProgress.proof?.checker?.result !== "blocker" ||
+    blockedProgress.blockers?.[0] !== "Changed files lack regression coverage."
+  ) {
+    fail("Expected progress.json to record checker-blocked proof");
   }
 
   console.log("Run proof smoke passed");
-  console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, and progress proof");
+  console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, checker pass/block, and progress proof");
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
-function createFailingFixture() {
-  mkdirSync(projectDir, { recursive: true });
+function createFailingFixture(targetDir = projectDir) {
+  mkdirSync(targetDir, { recursive: true });
   writeFileSync(
-    resolve(projectDir, "package.json"),
+    resolve(targetDir, "package.json"),
     `${JSON.stringify(
       {
         name: "loop-it-run-proof-fixture",
@@ -108,7 +173,7 @@ function createFailingFixture() {
     "utf8"
   );
   writeFileSync(
-    resolve(projectDir, "test.mjs"),
+    resolve(targetDir, "test.mjs"),
     [
       "import assert from 'node:assert/strict';",
       "",
@@ -153,6 +218,67 @@ function createFakeCodex() {
   chmodSync(fakeCodex, 0o755);
 }
 
+function createFakeCodexPass() {
+  writeFileSync(
+    fakeCodexPass,
+    [
+      "#!/usr/bin/env node",
+      "import { readFileSync, writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const testPath = resolve(process.cwd(), 'test.mjs');",
+      "const before = readFileSync(testPath, 'utf8');",
+      "writeFileSync(testPath, before.replace('assert.equal(total, 3);', 'assert.equal(total, 2);'));",
+      "",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'Fake Codex fixed the test.\\n');",
+      "}",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  chmodSync(fakeCodexPass, 0o755);
+}
+
+function createFakeChecker() {
+  writeFileSync(
+    fakeChecker,
+    [
+      "#!/usr/bin/env node",
+      "import { writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'CHECKER_RESULT: pass\\nChecker reviewed the changed file, verifier proof, and Loop It state.\\n');",
+      "}",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  chmodSync(fakeChecker, 0o755);
+}
+
+function createFakeCheckerBlocker() {
+  writeFileSync(
+    fakeCheckerBlocker,
+    [
+      "#!/usr/bin/env node",
+      "import { writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'CHECKER_RESULT: blocker\\nCHECKER_BLOCKER: Changed files lack regression coverage.\\n');",
+      "}",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  chmodSync(fakeCheckerBlocker, 0o755);
+}
+
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: options.cwd ?? repoRoot,
@@ -177,9 +303,33 @@ function run(command, commandArgs, options = {}) {
   return result;
 }
 
-function expectFailure(command, commandArgs, message) {
+function runExpectStatus(command, commandArgs, options, expectedStatus) {
   const result = spawnSync(command, commandArgs, {
-    cwd: projectDir,
+    cwd: options.cwd ?? repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== expectedStatus) {
+    fail(
+      [
+        `Expected command to exit ${expectedStatus}: ${command} ${commandArgs.join(" ")}`,
+        result.stdout.trim(),
+        result.stderr.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+  }
+  return result;
+}
+
+function expectFailure(command, commandArgs, message, cwd = projectDir) {
+  const result = spawnSync(command, commandArgs, {
+    cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
