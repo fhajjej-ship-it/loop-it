@@ -70,4 +70,9 @@ npm run smoke:public-install -- --codex-run --keep
 
 Use `--codex-run` only on a local machine with Codex CLI auth. It runs the public package in a temporary fixture and asks Codex to fix a tiny failing `npm test`; `--keep` preserves the fixture for inspection.
 
-After npm is live, make the product page use `npx @fhajjej/loop-it@latest install --agent all --scope project` as the primary command.
+After npm is live, update the Swarmix product page at
+`/experiments/loop-it-poc` before treating the release as complete. The page
+must use `npx @fhajjej/loop-it@latest install --agent all --scope project` as
+the primary install command, show the current package version, describe the
+current runner behavior, and keep the portfolio consumer dependency aligned
+with the published npm version.
