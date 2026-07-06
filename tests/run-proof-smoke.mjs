@@ -34,43 +34,58 @@ try {
     fakeCodex,
     "--codex-sandbox",
     "none",
+    "--max-iterations",
+    "2",
     "--skip-git-repo-check",
   ], { cwd: projectDir });
 
   for (const text of [
     "Recommended loop: Failing CI repair (failing-ci-repair)",
+    "Codex iteration 1/2",
     "Executing loop with Codex CLI:",
-    "Running verifier after Codex: npm test",
-    "Verifier passed after Codex run: npm test",
+    "Running verifier after Codex iteration 1: npm test",
+    "Verifier still failed after Codex iteration 1: npm test",
+    "Continuing to iteration 2/2.",
+    "Codex iteration 2/2",
+    "Running verifier after Codex iteration 2: npm test",
+    "Verifier passed after Codex iteration 2: npm test",
     "Run proof:",
     "- Selected loop: Failing CI repair (failing-ci-repair)",
     "- Executor: Codex CLI",
     "- Verifier: npm test",
     "- Result: pass",
+    "- Iteration: 2/2",
     "- Progress: .loop-it/progress.json",
-    "- Codex output: .loop-it/CODEX_FINAL.md",
+    "- Codex output: .loop-it/CODEX_FINAL.iteration-2.md",
   ]) {
     assertIncludes(executed.stdout, text, "run proof output");
   }
 
   run("npm", ["test"], { cwd: projectDir });
   assertFile(resolve(projectDir, ".loop-it", "CODEX_FINAL.md"));
+  assertFile(resolve(projectDir, ".loop-it", "CODEX_FINAL.iteration-2.md"));
 
   const progress = JSON.parse(readFileSync(resolve(projectDir, ".loop-it", "progress.json"), "utf8"));
   if (
     progress.status !== "completed" ||
+    progress.currentIteration !== 2 ||
     progress.lastResult !== "pass" ||
     progress.proof?.selectedLoopId !== "failing-ci-repair" ||
     progress.proof?.executor !== "codex" ||
     progress.proof?.verifier !== "npm test" ||
     progress.proof?.result !== "pass" ||
-    progress.proof?.codexOutput !== ".loop-it/CODEX_FINAL.md"
+    progress.proof?.iteration !== 2 ||
+    progress.proof?.maxIterations !== 2 ||
+    progress.proof?.codexOutput !== ".loop-it/CODEX_FINAL.iteration-2.md" ||
+    progress.lastCodexOutput !== ".loop-it/CODEX_FINAL.iteration-2.md" ||
+    progress.proof?.iterations?.length !== 2 ||
+    progress.iterations?.length !== 2
   ) {
-    fail("Expected progress.json to record completed run proof");
+    fail("Expected progress.json to record completed two-pass run proof");
   }
 
   console.log("Run proof smoke passed");
-  console.log("Verified: failing fixture before run, selected loop, fake Codex execution, verifier pass, and progress proof");
+  console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, and progress proof");
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
@@ -114,16 +129,22 @@ function createFakeCodex() {
     fakeCodex,
     [
       "#!/usr/bin/env node",
-      "import { readFileSync, writeFileSync } from 'node:fs';",
+      "import { existsSync, readFileSync, writeFileSync } from 'node:fs';",
       "import { resolve } from 'node:path';",
       "",
       "const testPath = resolve(process.cwd(), 'test.mjs');",
+      "const countPath = resolve(process.cwd(), '.loop-it', 'fake-codex-count.txt');",
+      "const count = existsSync(countPath) ? Number(readFileSync(countPath, 'utf8')) : 0;",
+      "const nextCount = count + 1;",
+      "writeFileSync(countPath, String(nextCount));",
       "const before = readFileSync(testPath, 'utf8');",
-      "writeFileSync(testPath, before.replace('assert.equal(total, 3);', 'assert.equal(total, 2);'));",
+      "const afterFirstPass = before.replace('assert.equal(total, 3);', 'assert.equal(total, 4);');",
+      "const afterSecondPass = before.replace('assert.equal(total, 4);', 'assert.equal(total, 2);').replace('assert.equal(total, 3);', 'assert.equal(total, 2);');",
+      "writeFileSync(testPath, nextCount === 1 ? afterFirstPass : afterSecondPass);",
       "",
       "const outputIndex = process.argv.indexOf('--output-last-message');",
       "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
-      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'Fake Codex fixed failing test\\n');",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), `Fake Codex pass ${nextCount}\\n`);",
       "}",
       "",
     ].join("\n"),

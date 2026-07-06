@@ -24,6 +24,7 @@ const repo = inspectRepository(cwd);
 const loop = selectLoop(args, goal, repo);
 const check = stringArg(args.check, inferCheck(goal, repo));
 const maxIterations = stringArg(args["max-iterations"], loop.maxIterations ?? "3");
+const iterationCap = positiveInteger(maxIterations, "--max-iterations");
 const agent = stringArg(args.agent, "codex");
 const execute = stringArg(args.execute, "none");
 
@@ -40,7 +41,7 @@ const plan = {
   selectedLoopId: loop.id,
   selectedLoopTitle: loop.title,
   check,
-  maxIterations: Number(maxIterations),
+  maxIterations: iterationCap,
   agent,
   execute,
   repoSignals: repo,
@@ -93,7 +94,7 @@ if (execute === "codex") {
     goal,
     check,
     loop,
-    maxIterations,
+    maxIterations: iterationCap,
   });
 }
 
@@ -111,80 +112,173 @@ function executeWithCodex(run) {
 
   mkdirSync(dirname(outputPath), { recursive: true });
   const launch = readFileSync(launchPath, "utf8");
-  const prompt = [
+  let previousFailureSignature = null;
+  let previousVerifierOutput = "";
+  const proofIterations = [];
+
+  for (let iteration = 1; iteration <= run.maxIterations; iteration += 1) {
+    const iterationOutputPath = outputPathForIteration(outputPath, iteration);
+    mkdirSync(dirname(iterationOutputPath), { recursive: true });
+    const prompt = buildCodexPrompt(run, launch, iteration, previousVerifierOutput);
+    const codexArgs = ["exec"];
+    if (args["skip-git-repo-check"]) {
+      codexArgs.push("--skip-git-repo-check");
+    }
+    if (args["codex-ignore-user-config"]) {
+      codexArgs.push("--ignore-user-config");
+    }
+    if (sandbox !== "none") {
+      codexArgs.push("--sandbox", sandbox);
+    }
+    codexArgs.push("--output-last-message", iterationOutputPath, prompt);
+
+    console.log("");
+    console.log(`Codex iteration ${iteration}/${run.maxIterations}`);
+    console.log(`Executing loop with Codex CLI: ${codexBin} ${codexArgs.slice(0, -1).join(" ")}`);
+    const codexResult = spawnSync(codexBin, codexArgs, {
+      cwd: run.cwd,
+      stdio: "inherit",
+    });
+
+    if (codexResult.error) {
+      recordProgressIteration(run.cwd, {
+        iteration,
+        phase: "EXECUTE",
+        check: run.check,
+        result: "blocked",
+        outputSummary: `Codex execution failed: ${codexResult.error.message}`,
+        changedFiles: changedFiles(run.cwd),
+        blockers: [`Codex execution failed: ${codexResult.error.message}`],
+        remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
+        nextAction: "Install or authenticate Codex CLI, then rerun loop-it run --execute codex.",
+      }, {
+        status: "blocked",
+        currentIteration: iteration,
+        lastResult: "blocked",
+        lastExecutor: "codex",
+        blockers: [`Codex execution failed: ${codexResult.error.message}`],
+        remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
+        recommendedNextAction: "Install or authenticate Codex CLI, then rerun loop-it run --execute codex.",
+      });
+      fail(`Codex execution failed: ${codexResult.error.message}`);
+    }
+
+    if (codexResult.status !== 0) {
+      const codexOutput = relativeToCwd(run.cwd, iterationOutputPath);
+      recordProgressIteration(run.cwd, {
+        iteration,
+        phase: "EXECUTE",
+        check: run.check,
+        result: "blocked",
+        outputSummary: `Codex CLI exited ${codexResult.status ?? 1}`,
+        changedFiles: changedFiles(run.cwd),
+        blockers: [`Codex CLI exited ${codexResult.status ?? 1}`],
+        remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
+        nextAction: `Inspect ${codexOutput} and rerun the loop after resolving the blocker.`,
+      }, {
+        status: "blocked",
+        currentIteration: iteration,
+        lastResult: "blocked",
+        lastExecutor: "codex",
+        lastCodexOutput: codexOutput,
+        blockers: [`Codex CLI exited ${codexResult.status ?? 1}`],
+        remainingRisks: ["Codex execution did not complete, so the verifier was not run."],
+        recommendedNextAction: `Inspect ${codexOutput} and rerun the loop after resolving the blocker.`,
+      });
+      process.exit(codexResult.status ?? 1);
+    }
+
+    const observation = verifyAfterCodex(run, iterationOutputPath, iteration, proofIterations);
+    proofIterations.push(observation.iterationProof);
+
+    if (observation.result === "pass") {
+      return;
+    }
+    if (observation.result === "manual-verification-required") {
+      process.exit(2);
+    }
+
+    if (previousFailureSignature && previousFailureSignature === observation.failureSignature) {
+      markStoppedAfterFailure(run, observation, proofIterations, "repeated-failure");
+      fail(`Verifier failure repeated after Codex iteration ${iteration}: ${run.check}`);
+    }
+
+    previousFailureSignature = observation.failureSignature;
+    previousVerifierOutput = observation.output;
+
+    if (iteration >= run.maxIterations) {
+      markStoppedAfterFailure(run, observation, proofIterations, "iteration-cap-reached");
+      fail(`Iteration cap reached with verifier still failing: ${run.check}`);
+    }
+
+    console.log("");
+    console.log(`Verifier still failed after Codex iteration ${iteration}: ${run.check}`);
+    console.log(`Continuing to iteration ${iteration + 1}/${run.maxIterations}.`);
+  }
+}
+
+function buildCodexPrompt(run, launch, iteration, previousVerifierOutput) {
+  return [
     "Run this Loop It contract now.",
     `Selected loop: ${run.loop.title} (${run.loop.id})`,
     `Goal: ${run.goal}`,
     `Verifier: ${run.check}`,
+    `Iteration: ${iteration} of ${run.maxIterations}`,
     `Iteration cap: ${run.maxIterations}`,
+    previousVerifierOutput
+      ? "The previous verifier attempt failed. Make a different, evidence-based change; do not only update .loop-it files."
+      : "",
+    previousVerifierOutput ? "Previous verifier output:" : "",
+    previousVerifierOutput ? truncate(previousVerifierOutput, 1600) : "",
     "",
     launch,
-  ].join("\n");
-
-  const codexArgs = ["exec"];
-  if (args["skip-git-repo-check"]) {
-    codexArgs.push("--skip-git-repo-check");
-  }
-  if (args["codex-ignore-user-config"]) {
-    codexArgs.push("--ignore-user-config");
-  }
-  if (sandbox !== "none") {
-    codexArgs.push("--sandbox", sandbox);
-  }
-  codexArgs.push("--output-last-message", outputPath, prompt);
-
-  console.log("");
-  console.log(`Executing loop with Codex CLI: ${codexBin} ${codexArgs.slice(0, -1).join(" ")}`);
-  const codexResult = spawnSync(codexBin, codexArgs, {
-    cwd: run.cwd,
-    stdio: "inherit",
-  });
-
-  if (codexResult.error) {
-    updateProgress(run.cwd, {
-      status: "blocked",
-      lastResult: "blocked",
-      blockers: [`Codex execution failed: ${codexResult.error.message}`],
-      recommendedNextAction: "Install or authenticate Codex CLI, then rerun loop-it run --execute codex.",
-    });
-    fail(`Codex execution failed: ${codexResult.error.message}`);
-  }
-
-  if (codexResult.status !== 0) {
-    updateProgress(run.cwd, {
-      status: "blocked",
-      lastResult: "blocked",
-      blockers: [`Codex CLI exited ${codexResult.status ?? 1}`],
-      recommendedNextAction: `Inspect ${relativeToCwd(run.cwd, outputPath)} and rerun the loop after resolving the blocker.`,
-    });
-    process.exit(codexResult.status ?? 1);
-  }
-
-  verifyAfterCodex(run, outputPath);
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
-function verifyAfterCodex(run, codexOutputPath) {
+function verifyAfterCodex(run, codexOutputPath, iteration, previousProofIterations) {
   const { cwd, check } = run;
+  const codexOutput = relativeToCwd(cwd, codexOutputPath);
   if (isManualCheck(check)) {
-    updateProgress(cwd, {
+    const files = changedFiles(cwd);
+    recordProgressIteration(cwd, {
+      iteration,
+      phase: "VERIFY",
+      check,
+      result: "manual-verification-required",
+      outputSummary: "Verifier is manual, so Loop It cannot prove completion automatically.",
+      changedFiles: files,
+      blockers: ["Verifier is manual, so Loop It cannot prove completion automatically."],
+      remainingRisks: ["Run the manual verifier before calling this loop complete."],
+      nextAction: `Run the manual verifier and record the result in .loop-it/progress.json. Codex output: ${codexOutput}`,
+    }, {
       status: "blocked",
-      currentIteration: 1,
+      currentIteration: iteration,
       lastCheck: check,
       lastResult: "manual-verification-required",
       lastExecutor: "codex",
-      lastCodexOutput: relativeToCwd(cwd, codexOutputPath),
+      lastCodexOutput: codexOutput,
       blockers: ["Verifier is manual, so Loop It cannot prove completion automatically."],
       remainingRisks: ["Run the manual verifier before calling this loop complete."],
-      recommendedNextAction: `Run the manual verifier and record the result in .loop-it/progress.json. Codex output: ${relativeToCwd(cwd, codexOutputPath)}`,
-      changedFiles: changedFiles(cwd),
+      recommendedNextAction: `Run the manual verifier and record the result in .loop-it/progress.json. Codex output: ${codexOutput}`,
+      changedFiles: files,
     });
     console.log("");
     console.log(`Manual verifier required: ${check}`);
-    process.exit(2);
+    return {
+      result: "manual-verification-required",
+      iterationProof: {
+        iteration,
+        result: "manual-verification-required",
+        codexOutput,
+        changedFiles: files,
+      },
+    };
   }
 
   console.log("");
-  console.log(`Running verifier after Codex: ${check}`);
+  console.log(`Running verifier after Codex iteration ${iteration}: ${check}`);
   const verifier = spawnSync(check, {
     cwd,
     shell: true,
@@ -192,13 +286,29 @@ function verifyAfterCodex(run, codexOutputPath) {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const output = [verifier.stdout, verifier.stderr].filter(Boolean).join("\n").trim();
+  const files = changedFiles(cwd);
+  const iterationProof = {
+    iteration,
+    result: verifier.status === 0 ? "pass" : "failed",
+    codexOutput,
+    changedFiles: files,
+    verifierOutput: truncate(output),
+  };
 
   if (verifier.status === 0) {
-    const files = changedFiles(cwd);
-    const codexOutput = relativeToCwd(cwd, codexOutputPath);
-    updateProgress(cwd, {
+    recordProgressIteration(cwd, {
+      iteration,
+      phase: "VERIFY",
+      check,
+      result: "pass",
+      outputSummary: truncate(output, 1200),
+      changedFiles: files,
+      blockers: [],
+      remainingRisks: [],
+      nextAction: "Stop; verifier passed after Codex execution.",
+    }, {
       status: "completed",
-      currentIteration: 1,
+      currentIteration: iteration,
       lastCheck: check,
       lastResult: "pass",
       lastExecutor: "codex",
@@ -214,30 +324,49 @@ function verifyAfterCodex(run, codexOutputPath) {
         executor: "codex",
         verifier: check,
         result: "pass",
+        iteration,
+        maxIterations: run.maxIterations,
         codexOutput,
         changedFiles: files,
+        iterations: [...previousProofIterations, iterationProof],
       },
     });
     if (output) {
       console.log(output);
     }
-    console.log(`Verifier passed after Codex run: ${check}`);
+    console.log(`Verifier passed after Codex iteration ${iteration}: ${check}`);
     printRunProof({
       loop: run.loop,
       executor: "Codex CLI",
       verifier: check,
       result: "pass",
+      iteration,
+      maxIterations: run.maxIterations,
       codexOutput,
       changedFiles: files,
     });
-    return;
+    return {
+      result: "pass",
+      output,
+      files,
+      codexOutput,
+      iterationProof,
+    };
   }
 
-  const files = changedFiles(cwd);
-  const codexOutput = relativeToCwd(cwd, codexOutputPath);
-  updateProgress(cwd, {
+  recordProgressIteration(cwd, {
+    iteration,
+    phase: "VERIFY",
+    check,
+    result: "failed",
+    outputSummary: truncate(output, 1200),
+    changedFiles: files,
+    blockers: [],
+    remainingRisks: [`Verifier still fails: ${check}`],
+    nextAction: "Continue only if the next pass has a clear expected improvement.",
+  }, {
     status: "active",
-    currentIteration: 1,
+    currentIteration: iteration,
     lastCheck: check,
     lastResult: "failed",
     lastExecutor: "codex",
@@ -253,14 +382,24 @@ function verifyAfterCodex(run, codexOutputPath) {
       executor: "codex",
       verifier: check,
       result: "failed",
+      iteration,
+      maxIterations: run.maxIterations,
       codexOutput,
       changedFiles: files,
+      iterations: [...previousProofIterations, iterationProof],
     },
   });
   if (output) {
     console.error(output);
   }
-  fail(`Verifier still failed after Codex run: ${check}`);
+  return {
+    result: "failed",
+    output,
+    files,
+    codexOutput,
+    iterationProof,
+    failureSignature: failureSignature(output, verifier.status),
+  };
 }
 
 function selectLoop(args, goal, repo) {
@@ -394,6 +533,57 @@ function updateProgress(cwd, patch) {
   writeFileSync(progressPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
 }
 
+function recordProgressIteration(cwd, entry, patch) {
+  const progressPath = resolve(cwd, ".loop-it", "progress.json");
+  if (!existsSync(progressPath)) {
+    return;
+  }
+
+  const current = readJson(progressPath);
+  const next = {
+    ...current,
+    ...patch,
+    iterations: [...(Array.isArray(current.iterations) ? current.iterations : []), entry],
+    updatedAt: new Date().toISOString(),
+  };
+  writeFileSync(progressPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+}
+
+function markStoppedAfterFailure(run, observation, proofIterations, reason) {
+  const repeated = reason === "repeated-failure";
+  const blocker = repeated
+    ? `Verifier failure repeated after Codex iteration ${observation.iterationProof.iteration}: ${run.check}`
+    : `Iteration cap ${run.maxIterations} reached with verifier still failing: ${run.check}`;
+  const nextAction = repeated
+    ? "Stop and inspect the repeated verifier failure before rerunning the loop."
+    : "Stop and inspect the remaining verifier failure; increase the cap only after identifying a new expected improvement.";
+  updateProgress(run.cwd, {
+    status: "blocked",
+    currentIteration: observation.iterationProof.iteration,
+    lastCheck: run.check,
+    lastResult: reason,
+    lastExecutor: "codex",
+    lastCodexOutput: observation.codexOutput,
+    lastVerifierOutput: truncate(observation.output),
+    blockers: [blocker],
+    remainingRisks: [`Verifier still fails: ${run.check}`],
+    recommendedNextAction: nextAction,
+    changedFiles: observation.files,
+    proof: {
+      selectedLoopId: run.loop.id,
+      selectedLoopTitle: run.loop.title,
+      executor: "codex",
+      verifier: run.check,
+      result: reason,
+      iteration: observation.iterationProof.iteration,
+      maxIterations: run.maxIterations,
+      codexOutput: observation.codexOutput,
+      changedFiles: observation.files,
+      iterations: proofIterations,
+    },
+  });
+}
+
 function changedFiles(cwd) {
   const result = spawnSync("git", ["status", "--short"], {
     cwd,
@@ -429,13 +619,35 @@ function truncate(value, maxLength = 4000) {
   return `${value.slice(0, maxLength)}\n... truncated ...`;
 }
 
-function printRunProof({ loop, executor, verifier, result, codexOutput, changedFiles: files }) {
+function failureSignature(output, status) {
+  const normalized = String(output || "")
+    .replace(/\bat .+:\d+:\d+\)?/g, "at <stack>")
+    .replace(/\b\d{4}-\d{2}-\d{2}T[\d:.]+Z\b/g, "<timestamp>")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${status ?? "unknown"}:${normalized.slice(0, 2000)}`;
+}
+
+function outputPathForIteration(basePath, iteration) {
+  if (iteration === 1) {
+    return basePath;
+  }
+  if (basePath.endsWith(".md")) {
+    return basePath.replace(/\.md$/, `.iteration-${iteration}.md`);
+  }
+  return `${basePath}.iteration-${iteration}`;
+}
+
+function printRunProof({ loop, executor, verifier, result, iteration, maxIterations, codexOutput, changedFiles: files }) {
   console.log("");
   console.log("Run proof:");
   console.log(`- Selected loop: ${loop.title} (${loop.id})`);
   console.log(`- Executor: ${executor}`);
   console.log(`- Verifier: ${verifier}`);
   console.log(`- Result: ${result}`);
+  if (iteration && maxIterations) {
+    console.log(`- Iteration: ${iteration}/${maxIterations}`);
+  }
   console.log(`- Progress: .loop-it/progress.json`);
   console.log(`- Codex output: ${codexOutput}`);
   console.log(`- Changed files: ${files.length ? files.join(", ") : "none"}`);
@@ -471,6 +683,14 @@ function stringArg(value, fallback) {
     return fallback;
   }
   return value.trim();
+}
+
+function positiveInteger(value, label) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    fail(`${label} must be a positive integer`);
+  }
+  return parsed;
 }
 
 function printUsage() {

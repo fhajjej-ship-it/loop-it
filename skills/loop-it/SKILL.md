@@ -16,7 +16,7 @@ First decide which mode the user needs. Bias toward **Run now** when the user as
 - **Next from progress**: inspect `.loop-it/progress.json` or `.loop-it/LOOP.md` and recommend what to loop next.
 - **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt. This prepares the loop; it does not repair code until an agent runs the launch prompt.
 - **Design only**: produce a reusable loop prompt or project-local loop file without claiming the issue was fixed.
-- **Run now**: inspect the target codebase, select the right loop, execute one bounded iteration at a time, edit when needed, verify it, record evidence, and decide whether another iteration is justified.
+- **Run now**: inspect the target codebase, select the right loop, execute bounded iterations, edit when needed, verify after each pass, record evidence, and stop on proof, repeated failure, blocker, approval need, or the iteration cap.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
 
 If a prompt says "Run The Loop mode", "run the prompt", "fix the issue", or "repair", treat it as **Run now**. Do not create another loop contract as the main output.
@@ -154,7 +154,7 @@ Use this mode when the user expects the issue to be fixed, not merely prepared. 
 
 Run-mode guardrail: `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` are state files, not the repair. Changes only under `.loop-it` do not count as a successful iteration. If the first pass only created or edited loop files, keep going: run the verifier, inspect the failing surface, and make a real project change when the verifier fails.
 
-Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract. Add `--execute codex` when the current machine should call Codex CLI, rerun the verifier, print a `Run proof` summary, and update `.loop-it/progress.json` with pass or blocker evidence:
+Use the runner script when available to convert broad requests into a selected loop and run-mode launch contract. Add `--execute codex` when the current machine should call Codex CLI, rerun the verifier after each pass, repeat up to the iteration cap, print a `Run proof` summary on success, and update `.loop-it/progress.json` with pass, repeated-failure, cap, or blocker evidence:
 
 ```bash
 node <skill-dir>/scripts/run-loop.mjs --goal "Inspect this repo and run the right loop" --agent codex
@@ -162,7 +162,7 @@ node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --chec
 node <skill-dir>/scripts/run-loop.mjs --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex --execute codex
 ```
 
-When `--execute codex` succeeds, progress must include a machine-readable `proof` object with the selected loop, executor, verifier, result, Codex output file, and changed files. Treat missing proof as incomplete even if `.loop-it` files were created.
+When `--execute codex` succeeds, progress must include a machine-readable `proof` object with the selected loop, executor, verifier, result, final Codex output file, changed files, and per-iteration evidence. Treat missing proof as incomplete even if `.loop-it` files were created.
 
 Use execution mode only for local, verifier-gated repository work. Do not use it for production writes, external messages, payments, destructive git operations, credential changes, deploys, or irreversible data changes without explicit approval.
 

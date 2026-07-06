@@ -41,7 +41,7 @@ No. `loop-it start` prepares the loop contract and launch prompt. The repair sta
 
 ## Does `loop-it run --execute codex` fix code by itself?
 
-It calls Codex CLI to run the generated contract, then reruns the verifier. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. If Codex is unavailable, the verifier is manual, or the verifier still fails, progress is marked blocked or active instead of completed.
+It calls Codex CLI to run the generated contract, reruns the verifier after each pass, and repeats up to the iteration cap. On success it prints a `Run proof` summary and records a machine-readable `proof` object in `.loop-it/progress.json`. If Codex is unavailable, the verifier is manual, the same failure repeats, or the iteration cap is reached, progress is marked blocked or active instead of completed.
 
 ## What is intentionally out of scope?
 

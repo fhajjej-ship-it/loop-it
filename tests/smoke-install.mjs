@@ -729,8 +729,8 @@ function smokeLoopExecute() {
   for (const text of [
     "Recommended loop: Failing CI repair (failing-ci-repair)",
     "Executing loop with Codex CLI:",
-    "Running verifier after Codex: npm test",
-    "Verifier passed after Codex run: npm test",
+    "Running verifier after Codex iteration 1: npm test",
+    "Verifier passed after Codex iteration 1: npm test",
     "Run proof:",
     "- Selected loop: Failing CI repair (failing-ci-repair)",
     "- Executor: Codex CLI",

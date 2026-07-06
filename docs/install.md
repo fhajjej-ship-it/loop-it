@@ -74,7 +74,7 @@ For Codex CLI execution, use `run --execute codex` instead of only preparing a l
 npx @fhajjej/loop-it@latest run --goal "Fix failing CI" --check "npm run check" --agent codex --execute codex
 ```
 
-That path calls Codex, reruns the verifier, prints a `Run proof` summary, and records the selected loop, executor, verifier, result, Codex output path, and changed files in `.loop-it/progress.json`.
+That path calls Codex, reruns the verifier after each pass, repeats up to the iteration cap, prints a `Run proof` summary on success, and records the selected loop, executor, verifier, result, Codex output paths, changed files, and per-iteration evidence in `.loop-it/progress.json`.
 
 You can also ask your agent to use Loop it directly:
 

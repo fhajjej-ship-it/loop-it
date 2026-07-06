@@ -79,9 +79,9 @@ Loop it has three product verbs:
 2. **Recommend** one bundled loop with a verifier gate.
 3. **Run** the selected loop in Codex, Claude Code, or Cursor until proof, blocker, or approval.
 
-`loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier, and records run proof in `.loop-it/progress.json`. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
+`loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
 
-Inspect the repo, choose the loop, run Codex, and rerun the verifier:
+Inspect the repo, choose the loop, run Codex, and keep verifying until a stop condition is reached:
 
 ```bash
 npx @fhajjej/loop-it@latest run \
@@ -93,7 +93,7 @@ npx @fhajjej/loop-it@latest run \
 
 Omit `--execute codex` when you only want to prepare `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 
-On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, result, Codex output file, and changed files.
+On a successful execution, the runner prints a `Run proof` summary and stores a machine-readable `proof` object with the selected loop, executor, verifier, result, final Codex output file, changed files, and per-iteration evidence.
 
 Write a custom loop:
 
@@ -262,7 +262,7 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 
 `npm run check` verifies CLI syntax, selector syntax, skill generator syntax, loop runner syntax, loop launcher syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection evals, loop-file creation, loop launch creation, packed-tarball execution, and package contents.
 
-`npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor, reruns `npm test`, and checks that `.loop-it/progress.json` records completed proof.
+`npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, and checks that `.loop-it/progress.json` records completed proof.
 
 ## Release Status
 

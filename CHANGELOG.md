@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Changed `loop-it run --execute codex` from one Codex pass into a bounded runner that repeats Codex execution and verifier checks until proof, repeated failure, a blocker, approval-sensitive work, or the iteration cap stops it.
+- Expanded run-proof smoke coverage so the fake Codex executor must fail once, run a second pass, then prove success through `.loop-it/progress.json`.
+
 ## 0.3.7
 
 ### Added
