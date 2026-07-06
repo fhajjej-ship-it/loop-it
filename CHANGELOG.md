@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `npm run smoke:public-codex` as the named public-package execution proof for `@fhajjej/loop-it@latest`.
+
+### Changed
+
+- Changed the optional public install Codex smoke to exercise `loop-it run --execute codex` directly and assert completed `.loop-it/progress.json` proof.
+
 ## 0.3.9
 
 ### Added

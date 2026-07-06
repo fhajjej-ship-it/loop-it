@@ -259,6 +259,7 @@ This creates `.loop-it/LOOP.md` and `.loop-it/progress.json` in the current dire
 npm run check
 npm run smoke
 npm run smoke:readiness
+npm run smoke:public-codex -- --keep
 npm publish --dry-run --access public
 node ./bin/loop-it.mjs install --agent all --scope project
 node ./bin/loop-it.mjs run --goal "Inspect this repo and run the right loop" --agent codex
@@ -275,6 +276,8 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 `npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, and checks that `.loop-it/progress.json` records completed proof.
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
+
+`npm run smoke:public-codex -- --keep` is the public-package execution proof. It installs `@fhajjej/loop-it@latest` into a fresh temporary repo, runs the public `loop-it run --execute codex` path against a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. It requires local Codex CLI auth and may use a real Codex request, so it is kept out of `npm run check`.
 
 ## Release Status
 
