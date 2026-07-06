@@ -35,6 +35,14 @@ if (execute === "codex" && !["codex", "all"].includes(agent)) {
   fail("--execute codex requires --agent codex or --agent all");
 }
 
+const readiness = assessReadiness({
+  goal,
+  check,
+  repo,
+  execute,
+  iterationCap,
+});
+
 const plan = {
   goal,
   cwd,
@@ -44,6 +52,7 @@ const plan = {
   maxIterations: iterationCap,
   agent,
   execute,
+  readiness,
   repoSignals: repo,
 };
 
@@ -55,9 +64,20 @@ if (args.json) {
 console.log(`Recommended loop: ${loop.title} (${loop.id})`);
 console.log(`Goal: ${goal}`);
 console.log(`Verifier: ${check}`);
+printReadiness(readiness);
 if (repo.summary.length) {
   console.log(`Repo signals: ${repo.summary.join(", ")}`);
 }
+
+if (execute === "codex" && readiness.action !== "run") {
+  console.log("");
+  console.log("Loop It did not start Codex because this run is not ready for unattended execution.");
+  if (readiness.nextAction) {
+    console.log(`Next action: ${readiness.nextAction}`);
+  }
+  process.exit(2);
+}
+
 console.log("");
 console.log("Preparing run-mode launch prompt...");
 
@@ -419,6 +439,101 @@ function selectLoop(args, goal, repo) {
   return recommendation.selected?.loop ?? requiredLoop("codebase-intake-to-running-loop");
 }
 
+function assessReadiness({ goal, check, repo, execute, iterationCap }) {
+  const blockers = [];
+  const warnings = [];
+  const questions = [];
+  const signals = [];
+  const approvalRisks = approvalRiskSignals(goal, check);
+  const automatedVerifier = !isManualCheck(check);
+
+  if (String(goal ?? "").trim()) {
+    signals.push("goal present");
+  } else {
+    blockers.push("Missing a concrete goal.");
+    questions.push("What should be true when the loop is done?");
+  }
+
+  if (automatedVerifier) {
+    signals.push("automated verifier present");
+  } else {
+    blockers.push("No automated verifier was found.");
+    questions.push("What command should fail bad output and pass good output?");
+  }
+
+  if (repo.hasPackageJson && repo.scripts.length > 0) {
+    signals.push(`repo scripts available: ${repo.scripts.slice(0, 5).join(", ")}`);
+  } else if (!automatedVerifier) {
+    warnings.push("No package scripts were found, so Loop It cannot infer a safe local check.");
+  }
+
+  if (iterationCap > 0) {
+    signals.push(`iteration cap ${iterationCap}`);
+  } else {
+    blockers.push("Missing a positive iteration cap.");
+  }
+
+  if (approvalRisks.length > 0) {
+    blockers.push(`Approval required before unattended execution: ${approvalRisks.join(", ")}.`);
+  }
+
+  let action = execute === "codex" ? "run" : "prepare-only";
+  let nextAction =
+    execute === "codex"
+      ? "Start Codex execution and rerun the verifier after each pass."
+      : "Prepare the loop contract and launch prompt; add --execute codex when you want local execution.";
+
+  if (!automatedVerifier) {
+    action = execute === "codex" ? "ask-for-check" : "prepare-only";
+    nextAction = "Provide an automated verifier command, or run without --execute and complete manual proof yourself.";
+  }
+
+  if (approvalRisks.length > 0) {
+    action = "approval-required";
+    nextAction = "Get explicit approval or narrow the goal to local, reversible verification work.";
+  }
+
+  if (blockers.length > 0 && action === "run") {
+    action = "ask-for-check";
+    nextAction = questions[0] ?? "Resolve the readiness blockers before running Codex.";
+  }
+
+  return {
+    action,
+    canExecute: action === "run",
+    automatedVerifier,
+    approvalRisks,
+    blockers,
+    warnings,
+    questions,
+    signals,
+    nextAction,
+  };
+}
+
+function approvalRiskSignals(...values) {
+  const text = values.filter(Boolean).join("\n").toLowerCase();
+  const risks = [];
+  const patterns = [
+    ["production write", /\b(production write|write to production|prod write|production data)\b/],
+    ["deployment", /\b(deploy to production|production deploy|release to production|ship to production|vercel deploy --prod|--prod)\b/],
+    ["publishing", /\b(npm publish|publish package|publish to npm|publish release)\b/],
+    ["external message", /\b(send email|send slack|post to slack|external message|notify customer)\b/],
+    ["payments", /\b(payment|payments|billing|stripe|invoice|charge customer)\b/],
+    ["credentials", /\b(secret|credential|api key|token rotation|rotate key|otp)\b/],
+    ["destructive git operation", /\b(git reset --hard|git clean|force push|delete branch|rewrite history)\b/],
+    ["irreversible data change", /\b(migration on production|drop table|delete production|irreversible)\b/],
+  ];
+
+  for (const [label, pattern] of patterns) {
+    if (pattern.test(text)) {
+      risks.push(label);
+    }
+  }
+
+  return [...new Set(risks)];
+}
+
 function requiredLoop(id) {
   const loop = findLoopById(id);
   if (!loop) {
@@ -653,6 +768,16 @@ function printRunProof({ loop, executor, verifier, result, iteration, maxIterati
   console.log(`- Changed files: ${files.length ? files.join(", ") : "none"}`);
 }
 
+function printReadiness(readiness) {
+  console.log(`Readiness: ${readiness.action}`);
+  if (readiness.blockers.length > 0) {
+    console.log(`Readiness blockers: ${readiness.blockers.join(" ")}`);
+  }
+  if (readiness.warnings.length > 0) {
+    console.log(`Readiness warnings: ${readiness.warnings.join(" ")}`);
+  }
+}
+
 function parseArgs(tokens) {
   const parsed = { _: [] };
   for (let i = 0; i < tokens.length; i += 1) {
@@ -711,7 +836,7 @@ Options:
   --codex-output <path>     Last Codex message path, default .loop-it/CODEX_FINAL.md
   --codex-ignore-user-config  Pass --ignore-user-config to codex exec
   --skip-git-repo-check     Pass --skip-git-repo-check to codex exec
-  --json                    Print the selected run plan without writing files
+  --json                    Print the selected run plan and readiness preflight without writing files
   --force                   Replace existing .loop-it files`);
 }
 
