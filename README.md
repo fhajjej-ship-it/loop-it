@@ -12,7 +12,7 @@
 
 Loop it is a portable loop router, library, launcher, and Agent Skill for turning coding goals into verifier-gated loops for Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-Loop It is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. It is not a background scheduler or proactive automation platform.
+Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns, but Loop It does not provide its own background scheduler or external connector platform.
 
 It turns a vague instruction like "improve this repo" into a bounded run: inspect the codebase, recommend the right loop, run a verifier, make the smallest credible change, track evidence, then stop when the verifier passes or the budget is spent.
 
@@ -102,12 +102,12 @@ Loop It uses the common loop taxonomy so users know what kind of automation they
 
 | Type | Trigger | Stop rule | Loop It support |
 | --- | --- | --- | --- |
-| `turn-based` | User prompt | Agent decides done or asks for context | Supported as portable launch prompts and skill instructions. |
+| `turn-based` | User prompt | Agent answers, verifies once, or asks for context | Supported as one-turn launch prompts and skill instructions. |
 | `goal-based` | User prompt with verifier | Goal passes, blocker appears, or cap is reached | Primary Loop It path: `loop-it run --execute codex`. |
-| `time-based` | Interval or schedule | User cancels or external work completes | Not run by Loop It; use host `/loop` or `/schedule` when available. |
-| `proactive` | Event or schedule without human in real time | Each routed task exits on its own goal | Not run by Loop It yet; keep this outside the local runner. |
+| `time-based` | Interval or schedule | User cancels, external work completes, or the pass budget ends | Library-supported as host-ready patterns; requires a host scheduler such as `/loop` or `/schedule`. |
+| `proactive` | Event or schedule without human in real time | Each routed task exits on proof, route, or blocker | Library-supported as connector workflow templates; requires a host/event source outside Loop It. |
 
-The bundled library is currently `goal-based` because every included pattern needs a concrete finish line and verifier proof.
+The bundled library has 20 patterns: 5 `turn-based`, 5 `goal-based`, 5 `time-based`, and 5 `proactive`. The goal-based loops can be executed locally by Loop It. Time-based and proactive loops are honest host contracts: Loop It can select and write the run plan, but the scheduler or event trigger must come from the host.
 
 Inspect the repo, choose the loop, run Codex, and keep verifying until a stop condition is reached:
 
@@ -210,30 +210,30 @@ npx @fhajjej/loop-it@latest start --from failing-ci-repair --goal "Fix failing C
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
 
-The bundled catalog currently includes 20 local-first loops:
+The bundled catalog currently includes 20 loops, balanced across the four loop types:
 
 | Loop | Type | Category | Best for |
 | --- | --- | --- | --- |
-| `ticket-to-verified-fix` | goal-based | engineering | Turn a bug report or small defect into the smallest patch with proof. |
-| `failing-ci-repair` | goal-based | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
-| `flaky-test-stabilization` | goal-based | engineering | Stabilize an intermittent test or check by isolating nondeterminism and proving repeated passes. |
-| `regression-bisect` | goal-based | engineering | Find the change that introduced a regression, patch the cause, and verify against known good and bad behavior. |
-| `deployment-preview-repair` | goal-based | operations | Repair a failed preview, deployment, or hosted build using deploy logs and local reproduction where possible. |
-| `runtime-error-triage` | goal-based | engineering | Diagnose a runtime crash or console/log error, patch the failing path, and prove the error no longer appears. |
-| `api-contract-drift` | goal-based | engineering | Realign frontend, backend, schema, or client expectations when an API contract has drifted. |
-| `docs-sweep` | goal-based | content | Find and fix stale setup, API, command, or workflow documentation. |
-| `review-repair` | goal-based | operations | Address blocking review findings until the diff is ready to ship. |
-| `release-readiness` | goal-based | operations | Prepare a package, app, or feature for a public release with evidence. |
-| `fresh-setup` | goal-based | engineering | Validate a clean checkout or clean project setup and repair hidden assumptions. |
-| `test-coverage-gap` | goal-based | evaluation | Add focused tests around risky behavior without broad test churn. |
-| `ux-polish` | goal-based | product | Improve a specific user flow for clarity, responsiveness, and accessibility. |
-| `performance-measurement` | goal-based | engineering | Improve speed, memory, bundle size, or latency using before-and-after evidence. |
-| `dependency-upgrade` | goal-based | engineering | Upgrade one dependency or toolchain surface with compatibility proof. |
-| `security-hardening` | goal-based | security | Reduce a concrete security risk with scoped evidence and approval gates. |
-| `refactor-containment` | goal-based | engineering | Refactor a narrow area while proving behavior stays the same. |
-| `product-evaluation` | goal-based | evaluation | Run realistic scenarios, repair misses, and prove the flow meets a quality bar. |
-| `skill-instruction-hardening` | goal-based | operations | Improve Agent Skill routing, examples, and verifier behavior. |
+| `code-path-explanation` | turn-based | engineering | Answer one codebase question with file evidence and no repo edits by default. |
+| `small-edit-verification` | turn-based | engineering | Make one scoped edit, run the narrow proof, and stop. |
+| `diff-review-pass` | turn-based | operations | Review the current diff for regressions, missing tests, and release blockers. |
+| `error-explanation-debug` | turn-based | engineering | Interpret one error, stack trace, or log and choose the smallest next debugging action. |
+| `ui-copy-clarity-pass` | turn-based | product | Improve focused UI wording or action clarity without expanding scope. |
 | `codebase-intake-to-running-loop` | goal-based | operations | Inspect a repo request, choose the right loop, and run one bounded verifier-gated loop. |
+| `failing-ci-repair` | goal-based | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
+| `ticket-to-verified-fix` | goal-based | engineering | Turn a bug report or small defect into the smallest patch with proof. |
+| `security-hardening` | goal-based | security | Reduce a concrete security risk with scoped evidence and approval gates. |
+| `release-readiness` | goal-based | operations | Prepare a package, app, or feature for a public release with evidence. |
+| `pr-review-watch` | time-based | operations | Poll a PR for new review comments and handle actionable feedback. |
+| `ci-health-watch` | time-based | operations | Poll CI until the branch is green, stable-failing, or blocked. |
+| `daily-dependency-watch` | time-based | operations | Run scheduled dependency and advisory checks, then route follow-up work. |
+| `docs-freshness-watch` | time-based | content | Periodically check setup docs, commands, and examples for drift. |
+| `production-smoke-watch` | time-based | operations | Run scheduled public smoke checks and route failures without production writes. |
+| `incoming-bug-triage-routine` | proactive | operations | Classify incoming bug reports and route one actionable item. |
+| `dependency-upgrade-queue-routine` | proactive | operations | Process dependency update items as they appear with compatibility proof. |
+| `review-comment-resolver-routine` | proactive | operations | React to new review comments, apply safe fixes, verify, and request re-review. |
+| `customer-feedback-action-routine` | proactive | product | Classify customer feedback and route fixes or tickets without sending external replies by default. |
+| `weekly-code-health-routine` | proactive | engineering | Find one small recurring code-health improvement and prove it. |
 
 ## Good Loop Contract
 
@@ -310,7 +310,7 @@ npx @fhajjej/loop-it@latest install --agent all --scope project
 
 ## Version Boundaries
 
-Loop it deliberately avoids hosted accounts, ratings, background scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It compiles and runs local goal-based verifier-gated loops; host tools provide time-based or proactive heartbeats when they support one.
+Loop it deliberately avoids hosted accounts, ratings, background scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops; it can describe time-based and proactive host contracts, but the scheduler, connector, and external side effects must come from an approved host workflow.
 
 ## License
 

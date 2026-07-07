@@ -7,7 +7,7 @@ description: Write, choose, compile, launch, find, recommend, design, adapt, exp
 
 Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, and stop when the verifier passes, a blocker is real, or approval is required.
 
-Loop It is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. It is not a background scheduler or proactive automation platform.
+Loop It's local execution path is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. The bundled library also includes turn-based, time-based, and proactive patterns. Treat time-based and proactive loops as host contracts; Loop It does not provide its own scheduler or external connector platform.
 
 ## Decision
 
@@ -43,7 +43,7 @@ When the user expects work to happen, do this instead of only writing `.loop-it`
 
 Every loop needs these fields before execution:
 
-- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library is currently `goal-based`.
+- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library includes 5 loops of each type.
 - Objective: the concrete outcome, not a theme.
 - Scope: repository, files, feature area, data source, or environment.
 - Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
@@ -56,10 +56,10 @@ Push back when the requested loop is just "keep improving" without a check. Offe
 
 Use the loop type to set expectations:
 
-- `turn-based`: a normal agent prompt that may use skill instructions for verification.
-- `goal-based`: Loop It's primary path; run bounded passes until the verifier proves the goal or a stop condition fires.
-- `time-based`: interval or scheduled polling; use host `/loop` or `/schedule` when available, not Loop It's local runner.
-- `proactive`: event or schedule-driven routine without a human in real time; not supported by Loop It today.
+- `turn-based`: one prompt/response cycle that may inspect, edit once, verify once, or ask for context.
+- `goal-based`: Loop It's primary executable path; run bounded passes until the verifier proves the goal or a stop condition fires.
+- `time-based`: interval or scheduled polling; Loop It can write the contract, but the host must provide `/loop`, `/schedule`, or equivalent scheduling.
+- `proactive`: event or schedule-driven routine without a human in real time; Loop It can describe the routine, but the host must provide the event source, connector, and approval boundary.
 
 ## Select A Loop
 
@@ -90,20 +90,10 @@ Read `references/library/loops.json` only when the selector script is unavailabl
 
 Current library categories include:
 
-- Ticket to verified fix: reproduce, diagnose, patch, add regression coverage, verify.
-- Failing CI repair: inspect failing output, reproduce, patch, rerun the failed check.
-- Flaky test stabilization: reproduce intermittent failures, isolate nondeterminism, prove repeated passes.
-- Regression bisect: compare known good and bad behavior, isolate the culprit change, patch current code.
-- Deployment preview repair: inspect hosted build/deploy logs, reproduce locally where possible, verify preview status.
-- Runtime error triage: map stack traces or logs to the failing path, patch root cause, prove the error is gone.
-- API contract drift: align caller, provider, schema, and tests when request or response shapes disagree.
-- Docs sweep: compare docs to implementation, update stale docs, verify examples or links.
-- Product evaluation: define scenarios and criteria, test, fix misses, rerun affected and full checks.
-- Performance loop: measure baseline, make one focused change, remeasure, keep only proven wins.
-- Review repair loop: review diff, fix blocking findings, rerun checks, repeat until only accepted risk remains.
-- Fresh setup loop: start from a clean environment, follow documented setup, fix hidden assumptions, retry cleanly.
-- Release readiness: verify package, deploy, or public install paths before publishing.
-- UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, skill instruction hardening, and codebase intake loops.
+- Turn-based: code path explanation, small edit verification, diff review pass, error explanation debug, and UI copy clarity pass.
+- Goal-based: codebase intake to running loop, failing CI repair, ticket to verified fix, security hardening, and release readiness.
+- Time-based: PR review watch, CI health watch, daily dependency watch, docs freshness watch, and production smoke watch.
+- Proactive: incoming bug triage routine, dependency upgrade queue routine, review comment resolver routine, customer feedback action routine, and weekly code health routine.
 
 The library entries include loop type, example prompts, counterexamples, required signals, example checks, common misroutes, reliability metadata, and plain-language `userGuide` fields. Prefer the `userGuide` fields when explaining a loop to a new user, then use the reliability and routing fields to justify why one loop fits better than another. Do not describe a loop as proven unless its reliability metadata says so; most bundled loops are starter recipes with verifier gates, not guaranteed outcomes.
 

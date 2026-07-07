@@ -1,7 +1,7 @@
 {
   "name": "loop-it",
   "version": "0.3.13",
-  "description": "Find, recommend, and run goal-based verifier-gated coding loops for AI agents.",
+  "description": "Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
   "author": {
     "name": "Loop it",
     "url": "https://github.com/fhajjej-ship-it/loop-it"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Loop it",
-    "shortDescription": "Run goal-based agent loops with proof.",
-    "longDescription": "Loop it packages a portable loop router, library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right goal-based verifier-gated coding loop, run bounded passes, stop on proof or blockers, and keep evidence logs. It is local runner tooling, not a background scheduler.",
+    "shortDescription": "Run bounded agent loops with proof.",
+    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or prepare host contracts for turn-based, time-based, and proactive workflows. It is local runner tooling, not a background scheduler.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [

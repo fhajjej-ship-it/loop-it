@@ -5,7 +5,7 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 ## Product basics
 
 - [ ] Clear name: Loop it
-- [ ] One-sentence description: Write, choose, and launch goal-based verifier-gated coding loops for AI agents.
+- [ ] One-sentence description: Write, choose, and launch bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.
 - [ ] Public repo: https://github.com/fhajjej-ship-it/loop-it
 - [ ] Product page: https://swarmixai.com/experiments/loop-it-poc
 - [ ] License: MIT

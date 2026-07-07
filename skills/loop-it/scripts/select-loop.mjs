@@ -108,7 +108,7 @@ export function recommendLoop(options = {}) {
 
   if (progressResolution?.state === "stale-resolved") {
     const selectedLoop = findLoopById("codebase-intake-to-running-loop", library);
-    const alternatives = ["release-readiness", "docs-sweep"]
+    const alternatives = ["release-readiness", "docs-freshness-watch"]
       .map((id) => findLoopById(id, library))
       .filter(Boolean)
       .map((loop) => ({

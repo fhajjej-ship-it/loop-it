@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Rebalanced the bundled loop library to 20 patterns: 5 `turn-based`, 5 `goal-based`, 5 `time-based`, and 5 `proactive`.
+- Updated selector evals and smoke coverage so every bundled loop type has routing proof and the library cannot drift back to all goal-based patterns unnoticed.
+- Clarified README, marketplace, and skill instructions that time-based and proactive loops are host contracts, while local Loop It execution remains goal-based and verifier-gated.
+
 ## 0.3.13
 
 ### Added

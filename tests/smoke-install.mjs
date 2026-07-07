@@ -96,10 +96,12 @@ function smokeLibrarySelection() {
     fail("Expected bundled loop library to include at least 15 loops");
   }
 
+  const loopTypeCounts = Object.fromEntries([...allowedLoopTypes].map((loopType) => [loopType, 0]));
   for (const loop of list.loops) {
     if (!allowedLoopTypes.has(loop.loopType)) {
       fail(`Expected ${loop.id} to include a valid loopType`);
     }
+    loopTypeCounts[loop.loopType] += 1;
     for (const field of ["requiredSignals", "goodExamples", "badExamples", "exampleChecks", "commonMisroutes"]) {
       if (!Array.isArray(loop[field]) || loop[field].length === 0) {
         fail(`Expected ${loop.id} to include non-empty ${field}`);
@@ -107,6 +109,11 @@ function smokeLibrarySelection() {
     }
     assertReliabilityMetadata(loop);
     assertUserGuideMetadata(loop);
+  }
+  for (const loopType of allowedLoopTypes) {
+    if (loopTypeCounts[loopType] !== 5) {
+      fail(`Expected bundled loop library to include exactly 5 ${loopType} loops, found ${loopTypeCounts[loopType]}`);
+    }
   }
 
   const search = JSON.parse(run(nodeBin, [cliPath, "library", "search", "failing ci", "--json"]).stdout);
@@ -140,9 +147,10 @@ function smokeLibrarySelection() {
 
   for (const [goal, expectedLoopId] of [
     ["publish npm package", "release-readiness"],
-    ["fix stale installed skill copies", "fresh-setup"],
-    ["improve Loop It skill routing and examples", "skill-instruction-hardening"],
-    ["evaluate Loop It recommendation quality", "product-evaluation"],
+    ["fix stale installed skill copies", "release-readiness"],
+    ["explain how checkout auth flow works without editing code", "code-path-explanation"],
+    ["watch my PR every 10 minutes and address new review comments", "pr-review-watch"],
+    ["turn customer feedback messages into fixes or tickets automatically", "customer-feedback-action-routine"],
     ["sanitize unsafe user input", "security-hardening"],
     ["inspect this repo and run the right loop", "codebase-intake-to-running-loop"],
   ]) {
@@ -200,16 +208,16 @@ function smokeLibrarySelection() {
     recommendedNextAction: "Add focused test coverage around the checkout regression",
   });
   const blockedNext = JSON.parse(run(nodeBin, [cliPath, "next", "--cwd", blockedProjectDir, "--json"]).stdout);
-  if (blockedNext.selected?.loop?.id !== "test-coverage-gap") {
-    fail("Expected blocked progress to recommend test-coverage-gap");
+  if (blockedNext.selected?.loop?.id !== "small-edit-verification") {
+    fail("Expected blocked progress to recommend small-edit-verification");
   }
   if (blockedNext.selected?.loop?.id === "failing-ci-repair") {
     fail("Expected blocked progress not to continue the blocked active loop");
   }
-  if (!blockedNext.workflow?.write?.startsWith("loop-it write --from test-coverage-gap")) {
+  if (!blockedNext.workflow?.write?.startsWith("loop-it write --from small-edit-verification")) {
     fail("Expected blocked progress recommendation to include the next loop write workflow");
   }
-  if (!blockedNext.workflow?.start?.startsWith("loop-it start --from test-coverage-gap")) {
+  if (!blockedNext.workflow?.start?.startsWith("loop-it start --from small-edit-verification")) {
     fail("Expected blocked progress recommendation to include the next loop launch workflow");
   }
 
@@ -226,8 +234,8 @@ function smokeLibrarySelection() {
     recommendedNextAction: "Run a docs sweep for setup commands and examples",
   });
   const completedNext = JSON.parse(run(nodeBin, [cliPath, "next", "--cwd", completedProjectDir, "--json"]).stdout);
-  if (completedNext.selected?.loop?.id !== "docs-sweep") {
-    fail("Expected completed progress to recommend docs-sweep");
+  if (completedNext.selected?.loop?.id !== "docs-freshness-watch") {
+    fail("Expected completed progress to recommend docs-freshness-watch");
   }
   if (completedNext.selected?.loop?.id === "release-readiness") {
     fail("Expected completed progress not to continue the completed active loop");
