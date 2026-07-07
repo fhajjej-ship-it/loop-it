@@ -7,6 +7,8 @@ description: Write, choose, compile, launch, find, recommend, design, adapt, exp
 
 Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, and stop when the verifier passes, a blocker is real, or approval is required.
 
+Loop It is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. It is not a background scheduler or proactive automation platform.
+
 ## Decision
 
 First decide which mode the user needs. Bias toward **Run now** when the user asks to fix, improve, debug, harden, ship, clean up, or otherwise change a codebase.
@@ -41,6 +43,7 @@ When the user expects work to happen, do this instead of only writing `.loop-it`
 
 Every loop needs these fields before execution:
 
+- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library is currently `goal-based`.
 - Objective: the concrete outcome, not a theme.
 - Scope: repository, files, feature area, data source, or environment.
 - Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
@@ -50,6 +53,13 @@ Every loop needs these fields before execution:
 - Approval gates: production writes, external messages, payments, destructive git operations, credentials, deploys, or irreversible data changes.
 
 Push back when the requested loop is just "keep improving" without a check. Offer a smaller loop with a clear check instead.
+
+Use the loop type to set expectations:
+
+- `turn-based`: a normal agent prompt that may use skill instructions for verification.
+- `goal-based`: Loop It's primary path; run bounded passes until the verifier proves the goal or a stop condition fires.
+- `time-based`: interval or scheduled polling; use host `/loop` or `/schedule` when available, not Loop It's local runner.
+- `proactive`: event or schedule-driven routine without a human in real time; not supported by Loop It today.
 
 ## Select A Loop
 
@@ -95,7 +105,7 @@ Current library categories include:
 - Release readiness: verify package, deploy, or public install paths before publishing.
 - UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, skill instruction hardening, and codebase intake loops.
 
-The library entries include example prompts, counterexamples, required signals, example checks, common misroutes, reliability metadata, and plain-language `userGuide` fields. Prefer the `userGuide` fields when explaining a loop to a new user, then use the reliability and routing fields to justify why one loop fits better than another. Do not describe a loop as proven unless its reliability metadata says so; most bundled loops are starter recipes with verifier gates, not guaranteed outcomes.
+The library entries include loop type, example prompts, counterexamples, required signals, example checks, common misroutes, reliability metadata, and plain-language `userGuide` fields. Prefer the `userGuide` fields when explaining a loop to a new user, then use the reliability and routing fields to justify why one loop fits better than another. Do not describe a loop as proven unless its reliability metadata says so; most bundled loops are starter recipes with verifier gates, not guaranteed outcomes.
 
 ## Launch A Loop
 
