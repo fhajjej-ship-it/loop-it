@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.3.16
+
+### Added
+
+- Added `loop-it github pr` as a read-only GitHub PR connector that uses `gh` to inspect PR review/CI signals, choose a PR/CI/review loop, write a local connector snapshot, and create a Codex schedule.
+- Added `loop-it schedules list`, `loop-it schedules pause`, and `loop-it schedules resume` for local schedule lifecycle visibility.
+- Added smoke coverage for GitHub connector schedule creation, heartbeat status listing, and schedule pause/resume.
+
+### Changed
+
+- Scheduled loops can persist a `--checker codex` setting so scheduled Codex repairs keep maker-checker proof by default when created through the GitHub connector.
+
 ## 0.3.15
 
 ### Added

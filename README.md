@@ -12,7 +12,7 @@
 
 Loop it is a portable loop router, library, launcher, and Agent Skill for turning coding goals into verifier-gated loops for Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns. Time-based and proactive loops can run through Loop It's Codex-only `schedule`/`tick` path. Add `--heartbeat codex` to create or update the local Codex Scheduled task that calls `tick`; Loop It still does not host a cloud background service or external connector platform.
+Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns. Time-based and proactive loops can run through Loop It's Codex-only `schedule`/`tick` path. Add `--heartbeat codex` to create or update the local Codex Scheduled task that calls `tick`; Loop It still does not host a cloud background service, but it can create local connector-backed schedules for approved sources such as GitHub PRs.
 
 It turns a vague instruction like "improve this repo" into a bounded run: inspect the codebase, recommend the right loop, run a verifier, make the smallest credible change, track evidence, then stop when the verifier passes or the budget is spent.
 
@@ -26,6 +26,7 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 - `skills/loop-it/scripts/select-loop.mjs`: zero-dependency loop selector and recommender.
 - `skills/loop-it/scripts/run-loop.mjs`: repo-intake router that recommends a loop and prepares a run-mode prompt.
 - `skills/loop-it/scripts/schedule-loop.mjs`: file-based schedule registry, Codex Scheduled heartbeat writer, and due-tick runner for Codex-only time-based and proactive loops.
+- `skills/loop-it/scripts/github-connector.mjs`: read-only GitHub PR intake through `gh` that chooses a PR/CI/review loop and creates a local schedule.
 - `skills/loop-it/scripts/start-loop.mjs`: zero-dependency goal/verifier launcher.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
@@ -89,6 +90,10 @@ Add `--checker codex` when the run needs a second, read-only review after the ve
 Add `--worktree` when the run should happen away from the current checkout. Loop it creates a fresh git worktree and branch from `origin/main`, `main`, `origin/master`, `master`, or `HEAD`, then runs Codex there and records the worktree path, branch, and base ref in `.loop-it/progress.json`. Use `--worktree-base`, `--worktree-branch`, or `--worktree-dir` when you need exact control.
 
 Use `loop-it schedule` for time-based or proactive loops that should be checked again later. A schedule writes `.loop-it/schedules/<id>.json`; `loop-it tick --all --execute codex` runs due records once. Add `--heartbeat codex` to create or update a native Codex Scheduled task under `~/.codex/automations/` that calls `npx @fhajjej/loop-it@latest tick --all --execute codex`. Without `--heartbeat codex`, the heartbeat stays external: use cron, launchd, GitHub Actions, or another approved scheduler to call `tick`. Loop It records locks, run counts, the next run time, heartbeat metadata, and schedule proof in `.loop-it/progress.json`.
+
+Use `loop-it schedules list` to see local schedules and whether the Codex heartbeat file exists. Use `loop-it schedules pause --id <id>` and `loop-it schedules resume --id <id>` to stop or restart a local schedule without deleting its evidence.
+
+Use `loop-it github pr` when the trigger should come from GitHub. It reads a PR through the GitHub CLI, chooses `review-comment-resolver-routine`, `ci-health-watch`, or `pr-review-watch`, writes a read-only connector snapshot under `.loop-it/connectors/github/`, and creates a local schedule. It never comments, pushes, requests review, merges, deploys, or changes GitHub state without explicit approval.
 
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
@@ -159,6 +164,27 @@ npx @fhajjej/loop-it@latest tick --all --execute codex
 ```
 
 `schedule` only accepts `time-based` and `proactive` library loops. With `--heartbeat codex`, it also creates or updates the local Codex Scheduled automation that calls `tick` on the chosen interval. `tick` first runs the check; if it already passes, it records proof and waits for the next interval. If the check fails, it runs the selected loop through Codex, reruns the verifier, updates the schedule record, and records proof.
+
+List, pause, or resume schedules:
+
+```bash
+npx @fhajjej/loop-it@latest schedules list
+npx @fhajjej/loop-it@latest schedules pause --id ci-health-watch
+npx @fhajjej/loop-it@latest schedules resume --id ci-health-watch
+```
+
+Create a GitHub PR-backed schedule:
+
+```bash
+npx @fhajjej/loop-it@latest github pr \
+  --repo owner/repo \
+  --pr 123 \
+  --every 10m \
+  --execute codex \
+  --heartbeat codex
+```
+
+The GitHub connector is local and read-only. It requires `gh` auth, writes `.loop-it/connectors/github/<id>.json`, and sets the scheduled verifier from the PR signal. For review changes it checks `reviewDecision`; for CI follow-up it uses `gh pr checks --fail-fast`.
 
 ## Start A Loop
 
@@ -310,6 +336,8 @@ node ./bin/loop-it.mjs library eval
 node ./bin/loop-it.mjs recommend --goal "fix failing CI"
 node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare public release" --check "npm run check"
 node ./bin/loop-it.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
+node ./bin/loop-it.mjs schedules list
+node ./bin/loop-it.mjs github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
 node ./bin/loop-it.mjs tick --all --execute codex
 ```
 
@@ -319,7 +347,7 @@ node ./bin/loop-it.mjs tick --all --execute codex
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
 
-`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, writes the Codex Scheduled heartbeat file, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, and skips locked schedules.
+`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, writes the Codex Scheduled heartbeat file, lists/pause/resumes schedules, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, skips locked schedules, and proves a fake GitHub PR can create a connector-backed scheduled loop.
 
 `npm run smoke:public-codex -- --keep` is the public-package execution proof. It installs `@fhajjej/loop-it@latest` into a fresh temporary repo, runs the public `loop-it run --execute codex` path against a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. It requires local Codex CLI auth and may use a real Codex request, so it is kept out of `npm run check`.
 
@@ -333,7 +361,7 @@ npx @fhajjej/loop-it@latest install --agent all --scope project
 
 ## Version Boundaries
 
-Loop it deliberately avoids hosted accounts, ratings, hosted background services, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops immediately. It can also run time-based and proactive loops through Codex-only `schedule`/`tick` files. In Codex, `--heartbeat codex` can create the local native Scheduled task that calls `tick`; outside Codex, an approved external heartbeat or connector must call `tick`. Loop It does not own external side effects.
+Loop it deliberately avoids hosted accounts, ratings, hosted background services, production automation, broad multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops immediately. It can also run time-based and proactive loops through Codex-only `schedule`/`tick` files. In Codex, `--heartbeat codex` can create the local native Scheduled task that calls `tick`; outside Codex, an approved external heartbeat or connector must call `tick`. The built-in GitHub connector is read-only and local. Loop It does not own external side effects.
 
 ## License
 

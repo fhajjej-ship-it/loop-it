@@ -33,6 +33,7 @@ try {
   smokeLoopRun();
   smokeLoopExecute();
   smokeScheduledRunner();
+  smokeGitHubConnector();
   smokePackedCli();
   console.log("Smoke install checks passed");
 } finally {
@@ -70,6 +71,7 @@ function smokeProjectInstall() {
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".agents/skills/loop-it/scripts/schedule-loop.mjs",
+    ".agents/skills/loop-it/scripts/github-connector.mjs",
   ]) {
     assertFile(resolve(projectDir, target));
   }
@@ -1016,6 +1018,141 @@ function smokeScheduledRunner() {
   if (!lockedTick.stdout.includes("Skipping locked schedule: locked-ci-watch")) {
     fail("Expected locked schedule to be skipped");
   }
+
+  const listed = JSON.parse(run(nodeBin, [cliPath, "schedules", "list", "--cwd", projectDir, "--json"]).stdout);
+  const listedSchedule = listed.schedules.find((item) => item.id === "ci-watch");
+  if (
+    !listedSchedule ||
+    listedSchedule.heartbeat?.type !== "codex" ||
+    listedSchedule.heartbeat?.exists !== true ||
+    listedSchedule.heartbeat?.status !== "ACTIVE"
+  ) {
+    fail("Expected schedules list to report Codex heartbeat status");
+  }
+
+  run(nodeBin, [cliPath, "schedules", "pause", "--cwd", projectDir, "--id", "ci-watch"]);
+  const paused = JSON.parse(readFileSync(schedulePath, "utf8"));
+  if (paused.status !== "paused") {
+    fail("Expected schedules pause to update the schedule status");
+  }
+  run(nodeBin, [cliPath, "schedules", "resume", "--cwd", projectDir, "--id", "ci-watch"]);
+  const resumed = JSON.parse(readFileSync(schedulePath, "utf8"));
+  if (resumed.status !== "active") {
+    fail("Expected schedules resume to update the schedule status");
+  }
+}
+
+function smokeGitHubConnector() {
+  const projectDir = resolve(tempRoot, "github-connector");
+  const codexHome = resolve(tempRoot, "github-codex-home");
+  const fakeGh = resolve(tempRoot, "fake-gh.mjs");
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(
+    fakeGh,
+    [
+      "#!/usr/bin/env node",
+      "const args = process.argv.slice(2);",
+      "if (args[0] === 'pr' && args[1] === 'view' && args.includes('--jq')) {",
+      "  console.log('CHANGES_REQUESTED');",
+      "  process.exit(0);",
+      "}",
+      "if (args[0] === 'pr' && args[1] === 'view') {",
+      "  console.log(JSON.stringify({",
+      "    number: 42,",
+      "    title: 'Fix checkout flow',",
+      "    state: 'OPEN',",
+      "    url: 'https://github.com/acme/app/pull/42',",
+      "    baseRefName: 'main',",
+      "    headRefName: 'fix-checkout',",
+      "    mergeStateStatus: 'CLEAN',",
+      "    reviewDecision: 'CHANGES_REQUESTED',",
+      "    statusCheckRollup: [],",
+      "    reviews: [{ state: 'CHANGES_REQUESTED', author: { login: 'reviewer' } }]",
+      "  }));",
+      "  process.exit(0);",
+      "}",
+      "if (args[0] === 'pr' && args[1] === 'checks') {",
+      "  process.exit(0);",
+      "}",
+      "console.error('unexpected gh args: ' + args.join(' '));",
+      "process.exit(2);",
+      "",
+    ].join("\n")
+  );
+  chmodSync(fakeGh, 0o755);
+
+  const now = "2026-07-07T11:00:00.000Z";
+  const connected = run(nodeBin, [
+    cliPath,
+    "github",
+    "pr",
+    "--repo",
+    "acme/app",
+    "--pr",
+    "42",
+    "--every",
+    "15m",
+    "--execute",
+    "codex",
+    "--heartbeat",
+    "codex",
+    "--heartbeat-id",
+    "github-pr-heartbeat",
+    "--heartbeat-name",
+    "Loop It PR smoke",
+    "--codex-home",
+    codexHome,
+    "--gh-bin",
+    fakeGh,
+    "--no-worktree",
+    "--now",
+    now,
+  ], { cwd: projectDir });
+
+  for (const text of [
+    "GitHub PR connector: acme/app#42",
+    "Selected loop: Review comment resolver routine (review-comment-resolver-routine)",
+    "Reason: PR review decision is CHANGES_REQUESTED",
+    "Connector snapshot: .loop-it/connectors/github/github-pr-acme-app-42.json",
+    "Created schedule: github-pr-acme-app-42",
+    "Heartbeat: Codex Scheduled task Loop It PR smoke (github-pr-heartbeat)",
+  ]) {
+    if (!connected.stdout.includes(text)) {
+      fail(`Expected GitHub connector output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const connectorPath = resolve(projectDir, ".loop-it", "connectors", "github", "github-pr-acme-app-42.json");
+  const schedulePath = resolve(projectDir, ".loop-it", "schedules", "github-pr-acme-app-42.json");
+  const automationPath = resolve(codexHome, "automations", "github-pr-heartbeat", "automation.toml");
+  assertFile(connectorPath);
+  assertFile(schedulePath);
+  assertFile(automationPath);
+
+  const connector = JSON.parse(readFileSync(connectorPath, "utf8"));
+  const schedule = JSON.parse(readFileSync(schedulePath, "utf8"));
+  if (
+    connector.selectedLoopId !== "review-comment-resolver-routine" ||
+    connector.snapshot?.reviewDecision !== "CHANGES_REQUESTED" ||
+    schedule.connector !== "github" ||
+    schedule.loopId !== "review-comment-resolver-routine" ||
+    schedule.target !== "github:acme/app#42" ||
+    schedule.checker !== "codex" ||
+    !schedule.check.includes("reviewDecision")
+  ) {
+    fail("Expected GitHub connector to create a review-driven scheduled loop");
+  }
+
+  const listed = JSON.parse(run(nodeBin, [cliPath, "schedules", "list", "--cwd", projectDir, "--json"]).stdout);
+  const githubSchedule = listed.schedules.find((item) => item.id === "github-pr-acme-app-42");
+  if (
+    !githubSchedule ||
+    githubSchedule.connector !== "github" ||
+    githubSchedule.heartbeat?.exists !== true ||
+    githubSchedule.heartbeat?.status !== "ACTIVE"
+  ) {
+    fail("Expected GitHub schedule to appear in schedule list with heartbeat status");
+  }
 }
 
 function smokePackedCli() {
@@ -1070,6 +1207,7 @@ function smokePackedCli() {
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".agents/skills/loop-it/scripts/schedule-loop.mjs",
+    ".agents/skills/loop-it/scripts/github-connector.mjs",
     ".loop-it/LOOP.md",
     ".loop-it/LAUNCH.md",
   ]) {

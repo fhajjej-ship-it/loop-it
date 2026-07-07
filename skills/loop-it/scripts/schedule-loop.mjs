@@ -27,6 +27,12 @@ if (command === "schedule") {
   schedule(args);
 } else if (command === "tick") {
   tick(args);
+} else if (command === "list" || command === "status") {
+  listSchedules(args);
+} else if (command === "pause") {
+  setScheduleStatus(args, "paused");
+} else if (command === "resume") {
+  setScheduleStatus(args, "active");
 } else {
   fail(`Unknown schedule command: ${command}`);
 }
@@ -73,6 +79,7 @@ function schedule(options) {
     everyMs,
     execute: "codex",
     agent: "codex",
+    checker: stringArg(options.checker, "none"),
     maxIterations: positiveInteger(stringArg(options["max-iterations"], loop.maxIterations ?? "3"), "--max-iterations"),
     worktree: !options["no-worktree"],
     createdAt: now.toISOString(),
@@ -111,6 +118,71 @@ function schedule(options) {
   } else {
     console.log("Heartbeat: external; create a Codex automation, cron, launchd, or GitHub Actions job to call tick.");
   }
+}
+
+function listSchedules(options) {
+  const cwd = resolve(stringArg(options.cwd, process.cwd()));
+  const schedules = loadSchedules(cwd).map((record) => ({
+    id: record.id,
+    status: record.status,
+    loopId: record.loopId,
+    loopTitle: record.loopTitle,
+    loopType: record.loopType,
+    connector: record.connector,
+    target: record.target,
+    check: record.check,
+    every: record.every,
+    nextRunAt: record.nextRunAt,
+    lastRunAt: record.lastRunAt,
+    lastResult: record.lastResult,
+    runCount: Number(record.runCount ?? 0),
+    worktree: Boolean(record.worktree),
+    checker: record.checker ?? "none",
+    heartbeat: heartbeatStatus(record),
+  }));
+
+  if (options.json) {
+    printJson({ ok: true, cwd, count: schedules.length, schedules });
+    return;
+  }
+
+  if (schedules.length === 0) {
+    console.log("No Loop It schedules found.");
+    return;
+  }
+
+  console.log(`Loop It schedules (${schedules.length}):`);
+  for (const schedule of schedules) {
+    const heartbeat = schedule.heartbeat.configured
+      ? `${schedule.heartbeat.type}:${schedule.heartbeat.status}${schedule.heartbeat.exists ? "" : " missing"}`
+      : "external";
+    console.log(
+      `- ${schedule.id} ${schedule.status} ${schedule.loopId} every ${schedule.every} next ${schedule.nextRunAt} heartbeat ${heartbeat}`
+    );
+  }
+}
+
+function setScheduleStatus(options, status) {
+  const cwd = resolve(stringArg(options.cwd, process.cwd()));
+  const id = requiredString(options.id, "--id");
+  const record = loadSchedules(cwd).find((scheduleRecord) => scheduleRecord.id === id);
+  if (!record) {
+    fail(`Unknown schedule id: ${id}`);
+  }
+
+  const updated = {
+    ...record,
+    status,
+    updatedAt: parseNow(options.now).toISOString(),
+  };
+  writeSchedule(cwd, updated);
+
+  if (options.json) {
+    printJson({ ok: true, schedule: updated, path: resolve(scheduleDir(cwd), `${id}.json`) });
+    return;
+  }
+
+  console.log(`${status === "active" ? "Resumed" : "Paused"} schedule: ${id}`);
 }
 
 function tick(options) {
@@ -260,6 +332,9 @@ function runCodexLoop(cwd, record, options) {
   if (record.worktree) {
     runArgs.push("--worktree");
   }
+  if (record.checker && record.checker !== "none" && !options.checker) {
+    runArgs.push("--checker", record.checker);
+  }
   for (const [source, target] of [
     ["codex-bin", "codex-bin"],
     ["codex-sandbox", "codex-sandbox"],
@@ -328,6 +403,33 @@ function loadSchedules(cwd) {
   return readdirJson(dir)
     .map((path) => JSON.parse(readFileSync(path, "utf8")))
     .filter((record) => record && record.version === 1);
+}
+
+function heartbeatStatus(record) {
+  const heartbeat = record.heartbeat ?? null;
+  if (!heartbeat) {
+    return {
+      configured: false,
+      type: "external",
+      exists: false,
+      status: "external",
+      path: null,
+    };
+  }
+
+  const path = heartbeat.path ?? null;
+  const exists = Boolean(path && existsSync(path));
+  const toml = exists ? readFileSync(path, "utf8") : "";
+  return {
+    configured: true,
+    type: heartbeat.type ?? "unknown",
+    id: heartbeat.id ?? null,
+    name: heartbeat.name ?? null,
+    exists,
+    status: readTomlString(toml, "status") ?? heartbeat.status ?? "unknown",
+    rrule: readTomlString(toml, "rrule") ?? heartbeat.rrule ?? null,
+    path,
+  };
 }
 
 function readdirJson(dir) {
@@ -577,6 +679,11 @@ function readTomlNumber(toml, key) {
   return match ? Number(match[1]) : null;
 }
 
+function readTomlString(toml, key) {
+  const match = String(toml).match(new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, "m"));
+  return match ? match[1] : null;
+}
+
 function tomlString(value) {
   return JSON.stringify(String(value));
 }
@@ -695,6 +802,9 @@ function printUsage() {
 
 Commands:
   schedule  Create or replace a .loop-it/schedules/<id>.json record.
+  list      List local schedule records and heartbeat status.
+  pause     Pause one schedule without deleting its record.
+  resume    Resume one paused schedule.
   tick      Run due schedules once. Use cron, launchd, GitHub Actions, or a Codex automation to call this.
 
 Schedule options:
@@ -716,6 +826,7 @@ Schedule options:
   --codex-home <path>           Codex home for automation files. Default: $CODEX_HOME or ~/.codex.
   --no-worktree                Run in the current checkout instead of an isolated worktree.
   --force                      Replace existing schedule.
+  --checker <none|codex>       Persist a checker for scheduled Codex runs. Default: none.
 
 Tick options:
   --all                        Tick every due schedule.
