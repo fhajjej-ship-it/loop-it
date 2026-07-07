@@ -1,6 +1,6 @@
 {
   "name": "loop-it",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "description": "Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
   "author": {
     "name": "Loop it",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Loop it",
     "shortDescription": "Run bounded agent loops with proof.",
-    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or run Codex-only scheduled ticks for time-based and proactive workflows. It is local runner tooling, not a hosted background service.",
+    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or create Codex Scheduled heartbeats for time-based and proactive workflows. It is local runner tooling, not a hosted background service.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [

@@ -14,7 +14,7 @@ It copies `skills/loop-it/` into one or more agent skill directories:
 
 ## Does it call external services?
 
-No. The installer, loop launcher, selector, and loop-file generator run locally.
+No. The installer, loop launcher, selector, and loop-file generator run locally. `loop-it schedule --heartbeat codex` writes a local Codex automation file under `~/.codex/automations/`; it does not call a hosted Loop It service.
 
 ## Does it send messages, deploy, or change production data?
 
@@ -49,4 +49,4 @@ The public-package proof command is `npm run smoke:public-codex -- --keep`. It i
 
 Hosted background services, external connector platforms, dashboards, multi-agent orchestration, billing, production deploy automation, and external-message sending.
 
-Loop it does include a local Codex-only `schedule`/`tick` path for time-based and proactive loops, but an approved external heartbeat such as cron, launchd, GitHub Actions, or Codex automation must call `tick`.
+Loop it does include a local Codex-only `schedule`/`tick` path for time-based and proactive loops. Add `--heartbeat codex` to create or update the local native Codex Scheduled heartbeat that calls `tick`; otherwise an approved external heartbeat such as cron, launchd, or GitHub Actions must call `tick`.
