@@ -2,119 +2,109 @@
   "version": 1,
   "scenarios": [
     {
+      "goal": "explain how checkout auth flow works without editing code",
+      "expectedLoopId": "code-path-explanation",
+      "reason": "Read-only code questions should use the turn-based explanation loop."
+    },
+    {
+      "goal": "make one small copy edit and verify lint still passes",
+      "expectedLoopId": "small-edit-verification",
+      "reason": "One scoped edit with one verifier should use small edit verification."
+    },
+    {
+      "goal": "review this diff for risky changes before merge",
+      "expectedLoopId": "diff-review-pass",
+      "reason": "A one-shot review of existing changes should use the diff review pass."
+    },
+    {
+      "goal": "explain this TypeError stack trace and identify the likely fix",
+      "expectedLoopId": "error-explanation-debug",
+      "reason": "One stack trace with unknown cause should use the error explanation loop."
+    },
+    {
+      "goal": "tighten confusing button copy on the onboarding screen",
+      "expectedLoopId": "ui-copy-clarity-pass",
+      "reason": "Focused UI wording work should use the copy clarity loop."
+    },
+    {
+      "goal": "inspect this repo and run the right loop",
+      "expectedLoopId": "codebase-intake-to-running-loop",
+      "reason": "Broad repo inspection should route to intake before execution."
+    },
+    {
+      "goal": "fix failing CI typecheck job",
+      "expectedLoopId": "failing-ci-repair",
+      "reason": "A named failing check should use the failing CI repair loop."
+    },
+    {
       "goal": "fix bug where checkout redirects to the wrong page",
       "expectedLoopId": "ticket-to-verified-fix",
       "reason": "Concrete wrong behavior with expected behavior should use the bug-fix loop."
     },
     {
-      "goal": "fix failing CI typecheck job",
-      "expectedLoopId": "failing-ci-repair",
-      "reason": "A named failing CI check should use the failing-CI repair loop."
-    },
-    {
-      "goal": "stabilize flaky checkout test that passes on rerun",
-      "expectedLoopId": "flaky-test-stabilization",
-      "reason": "Intermittent pass/fail behavior should use the flaky test stabilization loop."
-    },
-    {
-      "goal": "bisect regression that worked in the last release and now fails",
-      "expectedLoopId": "regression-bisect",
-      "reason": "A known-good to known-bad investigation should use regression bisect."
-    },
-    {
-      "goal": "fix failed Vercel preview deployment build from deploy logs",
-      "expectedLoopId": "deployment-preview-repair",
-      "reason": "Hosted preview failures with deploy logs should use deployment preview repair."
-    },
-    {
-      "goal": "triage runtime stack trace for dashboard crash",
-      "expectedLoopId": "runtime-error-triage",
-      "reason": "A runtime crash with stack trace evidence should use runtime error triage."
-    },
-    {
-      "goal": "align frontend backend API response schema mismatch",
-      "expectedLoopId": "api-contract-drift",
-      "reason": "Caller/provider request or response mismatch should use API contract drift."
-    },
-    {
-      "goal": "update stale README installation docs",
-      "expectedLoopId": "docs-sweep",
-      "reason": "Stale documentation with commands to verify should use the docs sweep loop."
-    },
-    {
-      "goal": "address blocking pull request review comments",
-      "expectedLoopId": "review-repair",
-      "reason": "Blocking review feedback should use the review repair loop."
+      "goal": "sanitize unsafe user input before saving it",
+      "expectedLoopId": "security-hardening",
+      "reason": "A concrete input validation risk should use security hardening."
     },
     {
       "goal": "publish npm package after final release checks",
       "expectedLoopId": "release-readiness",
-      "reason": "Publishing and release checks should use the release readiness loop."
+      "reason": "Publishing and final release checks should use release readiness."
     },
     {
-      "goal": "verify fresh setup from README in a clean directory",
-      "expectedLoopId": "fresh-setup",
-      "reason": "Clean install verification should use the fresh setup loop."
+      "goal": "watch my PR every 10 minutes and address new review comments",
+      "expectedLoopId": "pr-review-watch",
+      "reason": "Interval PR comment polling is time-based."
+    },
+    {
+      "goal": "check CI every 5 minutes until the branch is green",
+      "expectedLoopId": "ci-health-watch",
+      "reason": "Polling CI until green is time-based."
+    },
+    {
+      "goal": "run a daily dependency update check and report advisories",
+      "expectedLoopId": "daily-dependency-watch",
+      "reason": "Scheduled dependency checks should use dependency watch."
+    },
+    {
+      "goal": "check docs once a week for stale install commands",
+      "expectedLoopId": "docs-freshness-watch",
+      "reason": "Recurring docs drift checks should use docs freshness watch."
+    },
+    {
+      "goal": "run production smoke every morning and report failures",
+      "expectedLoopId": "production-smoke-watch",
+      "reason": "Scheduled public smoke checks should use production smoke watch."
+    },
+    {
+      "goal": "triage incoming bug reports from the issue queue and route them",
+      "expectedLoopId": "incoming-bug-triage-routine",
+      "reason": "Event-driven bug queue handling should use incoming bug triage."
+    },
+    {
+      "goal": "proactively process dependency upgrade tickets as they arrive",
+      "expectedLoopId": "dependency-upgrade-queue-routine",
+      "reason": "Live dependency queue handling should use the proactive queue routine."
+    },
+    {
+      "goal": "automatically resolve new PR review comments and request review",
+      "expectedLoopId": "review-comment-resolver-routine",
+      "reason": "Event-triggered review comment resolution is proactive."
+    },
+    {
+      "goal": "turn customer feedback messages into fixes or tickets automatically",
+      "expectedLoopId": "customer-feedback-action-routine",
+      "reason": "Feedback queue routing should use the proactive feedback routine."
+    },
+    {
+      "goal": "run a weekly code health routine and open small cleanup PRs",
+      "expectedLoopId": "weekly-code-health-routine",
+      "reason": "Recurring code-health work should use the proactive maintenance routine."
     },
     {
       "goal": "add regression tests for an uncovered checkout edge case",
-      "expectedLoopId": "test-coverage-gap",
-      "reason": "Missing focused coverage should use the test coverage gap loop."
-    },
-    {
-      "goal": "make onboarding flow easier to understand on mobile",
-      "expectedLoopId": "ux-polish",
-      "reason": "A confusing user flow should use the UX polish loop."
-    },
-    {
-      "goal": "measure and improve slow dashboard load time",
-      "expectedLoopId": "performance-measurement",
-      "reason": "Measured speed work should use the performance loop."
-    },
-    {
-      "goal": "upgrade React dependency and fix compatibility issues",
-      "expectedLoopId": "dependency-upgrade",
-      "reason": "Scoped dependency migration should use the dependency upgrade loop."
-    },
-    {
-      "goal": "sanitize unsafe user input before saving it",
-      "expectedLoopId": "security-hardening",
-      "reason": "A concrete input validation risk should use the security hardening loop."
-    },
-    {
-      "goal": "refactor checkout module without changing behavior",
-      "expectedLoopId": "refactor-containment",
-      "reason": "Behavior-preserving structural work should use the refactor containment loop."
-    },
-    {
-      "goal": "evaluate Loop It recommendation quality across realistic scenarios",
-      "expectedLoopId": "product-evaluation",
-      "reason": "Scenario-based quality assessment should use the product evaluation loop."
-    },
-    {
-      "goal": "improve Loop It skill routing and examples",
-      "expectedLoopId": "skill-instruction-hardening",
-      "reason": "Skill instructions and routing metadata should use the skill hardening loop."
-    },
-    {
-      "goal": "fix the page copy and mobile layout for Loop It onboarding",
-      "expectedLoopId": "ux-polish",
-      "reason": "One confusing user-facing flow should route to UX polish, not skill instruction hardening."
-    },
-    {
-      "goal": "improve the loop library selector scenarios and misroute examples",
-      "expectedLoopId": "skill-instruction-hardening",
-      "reason": "Selector scenarios and routing examples are skill/library behavior."
-    },
-    {
-      "goal": "audit product quality scenarios for the loop recommendation flow",
-      "expectedLoopId": "product-evaluation",
-      "reason": "Scenario-based product quality work should use product evaluation."
-    },
-    {
-      "goal": "upgrade vulnerable dependency and prove compatibility",
-      "expectedLoopId": "dependency-upgrade",
-      "reason": "A dependency upgrade with compatibility proof should route to dependency upgrade, even with vulnerability language."
+      "expectedLoopId": "small-edit-verification",
+      "reason": "Focused test coverage is a scoped one-turn edit when no failing command is supplied."
     },
     {
       "goal": "security review finding for auth bypass",
@@ -122,44 +112,14 @@
       "reason": "A concrete auth bypass finding should route to security hardening."
     },
     {
-      "goal": "update stale README installation docs after npx command changed",
-      "expectedLoopId": "docs-sweep",
-      "reason": "Stale docs that need command verification should route to docs sweep."
-    },
-    {
-      "goal": "new user cannot run npx install from a clean project",
-      "expectedLoopId": "fresh-setup",
-      "reason": "First-run install failure from a clean environment should route to fresh setup."
-    },
-    {
-      "goal": "refactor selector scoring without changing recommendations",
-      "expectedLoopId": "refactor-containment",
-      "reason": "Behavior-preserving selector cleanup should route to refactor containment."
-    },
-    {
-      "goal": "add regression coverage for library misroute behavior",
-      "expectedLoopId": "test-coverage-gap",
-      "reason": "A missing regression test around routing behavior should route to test coverage gap."
-    },
-    {
-      "goal": "prepare npm package release after loop library updates",
+      "goal": "fix stale installed skill copies",
       "expectedLoopId": "release-readiness",
-      "reason": "Final package verification after library changes should route to release readiness."
-    },
-    {
-      "goal": "inspect this repo and run the right loop",
-      "expectedLoopId": "codebase-intake-to-running-loop",
-      "reason": "Broad repo inspection should route to the intake loop before selecting the concrete execution loop."
+      "reason": "Install-surface drift before publishing should route to release readiness."
     },
     {
       "goal": "find the next actionable issue in this codebase",
       "expectedLoopId": "codebase-intake-to-running-loop",
-      "reason": "A broad next-issue request should use codebase intake rather than guessing a specific fix loop."
-    },
-    {
-      "goal": "what should Loop It tackle next in this repo",
-      "expectedLoopId": "codebase-intake-to-running-loop",
-      "reason": "Asking what to tackle next needs repository intake and loop selection."
+      "reason": "A broad next-issue request should use intake rather than guessing a fix loop."
     }
   ]
 }

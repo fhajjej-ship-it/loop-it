@@ -7,7 +7,7 @@ description: Write, choose, compile, launch, find, recommend, design, adapt, exp
 
 Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, and stop when the verifier passes, a blocker is real, or approval is required.
 
-Loop It is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. It is not a background scheduler or proactive automation platform.
+Loop It's local execution path is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. The bundled library also includes turn-based, time-based, and proactive patterns. Time-based and proactive loops can run only through Loop It's Codex-only `schedule`/`tick` path, and an external heartbeat or connector must call `tick`.
 
 ## Decision
 
@@ -19,6 +19,7 @@ First decide which mode the user needs. Bias toward **Run now** when the user as
 - **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt. This prepares the loop; it does not repair code until an agent runs the launch prompt.
 - **Design only**: produce a reusable loop prompt or project-local loop file without claiming the issue was fixed.
 - **Run now**: inspect the target codebase, select the right loop, execute bounded iterations, edit when needed, verify after each pass, record evidence, and stop on proof, repeated failure, blocker, approval need, or the iteration cap.
+- **Schedule/tick**: for time-based or proactive loops, create `.loop-it/schedules/<id>.json` and let an external heartbeat call `tick` to run due Codex executions.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
 
 If a prompt says "Run The Loop mode", "run the prompt", "fix the issue", or "repair", treat it as **Run now**. Do not create another loop contract as the main output.
@@ -43,7 +44,7 @@ When the user expects work to happen, do this instead of only writing `.loop-it`
 
 Every loop needs these fields before execution:
 
-- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library is currently `goal-based`.
+- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library includes 5 loops of each type.
 - Objective: the concrete outcome, not a theme.
 - Scope: repository, files, feature area, data source, or environment.
 - Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
@@ -56,10 +57,10 @@ Push back when the requested loop is just "keep improving" without a check. Offe
 
 Use the loop type to set expectations:
 
-- `turn-based`: a normal agent prompt that may use skill instructions for verification.
-- `goal-based`: Loop It's primary path; run bounded passes until the verifier proves the goal or a stop condition fires.
-- `time-based`: interval or scheduled polling; use host `/loop` or `/schedule` when available, not Loop It's local runner.
-- `proactive`: event or schedule-driven routine without a human in real time; not supported by Loop It today.
+- `turn-based`: one prompt/response cycle that may inspect, edit once, verify once, or ask for context.
+- `goal-based`: Loop It's primary executable path; run bounded passes until the verifier proves the goal or a stop condition fires.
+- `time-based`: interval or scheduled polling; Loop It can write a schedule record and run due ticks through Codex, but cron, launchd, GitHub Actions, Codex automation, or another approved heartbeat must call `tick`.
+- `proactive`: event or schedule-driven routine without a human in real time; Loop It can run Codex-only scheduled ticks when a connector supplies a safe command/check, but the event source, connector, and approval boundary stay outside Loop It.
 
 ## Select A Loop
 
@@ -90,20 +91,10 @@ Read `references/library/loops.json` only when the selector script is unavailabl
 
 Current library categories include:
 
-- Ticket to verified fix: reproduce, diagnose, patch, add regression coverage, verify.
-- Failing CI repair: inspect failing output, reproduce, patch, rerun the failed check.
-- Flaky test stabilization: reproduce intermittent failures, isolate nondeterminism, prove repeated passes.
-- Regression bisect: compare known good and bad behavior, isolate the culprit change, patch current code.
-- Deployment preview repair: inspect hosted build/deploy logs, reproduce locally where possible, verify preview status.
-- Runtime error triage: map stack traces or logs to the failing path, patch root cause, prove the error is gone.
-- API contract drift: align caller, provider, schema, and tests when request or response shapes disagree.
-- Docs sweep: compare docs to implementation, update stale docs, verify examples or links.
-- Product evaluation: define scenarios and criteria, test, fix misses, rerun affected and full checks.
-- Performance loop: measure baseline, make one focused change, remeasure, keep only proven wins.
-- Review repair loop: review diff, fix blocking findings, rerun checks, repeat until only accepted risk remains.
-- Fresh setup loop: start from a clean environment, follow documented setup, fix hidden assumptions, retry cleanly.
-- Release readiness: verify package, deploy, or public install paths before publishing.
-- UX polish, dependency upgrade, security hardening, refactor containment, test coverage gap, skill instruction hardening, and codebase intake loops.
+- Turn-based: code path explanation, small edit verification, diff review pass, error explanation debug, and UI copy clarity pass.
+- Goal-based: codebase intake to running loop, failing CI repair, ticket to verified fix, security hardening, and release readiness.
+- Time-based: PR review watch, CI health watch, daily dependency watch, docs freshness watch, and production smoke watch.
+- Proactive: incoming bug triage routine, dependency upgrade queue routine, review comment resolver routine, customer feedback action routine, and weekly code health routine.
 
 The library entries include loop type, example prompts, counterexamples, required signals, example checks, common misroutes, reliability metadata, and plain-language `userGuide` fields. Prefer the `userGuide` fields when explaining a loop to a new user, then use the reliability and routing fields to justify why one loop fits better than another. Do not describe a loop as proven unless its reliability metadata says so; most bundled loops are starter recipes with verifier gates, not guaranteed outcomes.
 
@@ -136,7 +127,7 @@ Use this structure for loop prompts and state files:
 4. Define the iteration cap and stop conditions.
 5. Define what the final report must include.
 
-Keep version 1 narrow: one repository, one primary role, one primary success check. Delay scheduling, dashboards, multi-agent orchestration, and production automation until a manual loop has proven useful.
+Keep version 1 narrow: one repository, one primary role, one primary success check. Use scheduling only after the same verifier-gated loop has proven useful. Delay dashboards, broad multi-agent orchestration, hosted automation, and production automation until a manual loop has proven useful.
 
 When a durable state file is useful, create `.loop-it/LOOP.md` from `references/loop-template.md` or run:
 
@@ -196,6 +187,27 @@ For each iteration:
 Stop immediately when continuing would require hidden assumptions about safety, credentials, production data, billing, user messaging, destructive git operations, or deployment approval.
 
 Do not describe an exhausted, blocked, or partially verified loop as complete. Say exactly which condition stopped it and what evidence exists.
+
+## Schedule The Loop
+
+Use schedule mode only when the user asks for a time-based or proactive loop to run again later. Do not schedule `goal-based` or `turn-based` loops.
+
+```bash
+node <skill-dir>/scripts/schedule-loop.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex
+node <skill-dir>/scripts/schedule-loop.mjs tick --all --execute codex
+```
+
+Schedule mode is Codex-only. `schedule` writes `.loop-it/schedules/<id>.json` with the selected time-based or proactive library loop, goal, verifier, interval, next run time, and worktree preference. `tick` runs each due schedule once: first it runs the verifier, records proof if the verifier already passes, and only calls the run loop through Codex when the verifier fails.
+
+The heartbeat is not hosted by Loop It. A user, cron, launchd, GitHub Actions, Codex automation, or a future plugin connector must call `tick`. Do not claim Loop It is polling, listening, or running in the background unless such a caller is actually configured.
+
+For scheduled ticks:
+
+1. Require `--execute codex`.
+2. Prefer worktree isolation unless the user or fixture passes `--no-worktree`.
+3. Respect lock files under `.loop-it/schedules/*.lock`; skip locked schedules instead of running twice.
+4. Record schedule evidence in `.loop-it/progress.json`.
+5. Stop or report blocked for production writes, external messages, payments, credential changes, deploys, destructive git operations, or irreversible side effects.
 
 ## Export
 

@@ -1,2174 +1,34 @@
 {
-  "version": "1",
+  "version": "2",
   "loops": [
     {
-      "id": "ticket-to-verified-fix",
-      "title": "Ticket to verified fix",
+      "id": "code-path-explanation",
+      "title": "Code path explanation",
       "category": "engineering",
-      "summary": "Turn a bug report or small defect into the smallest patch with proof.",
+      "loopType": "turn-based",
+      "summary": "Answer one codebase question with file evidence and no repo edits unless the user asks for a change.",
       "aliases": [
-        "bug",
-        "defect",
-        "ticket",
-        "regression",
-        "customer issue",
-        "broken behavior"
+        "explain code",
+        "walkthrough",
+        "architecture question",
+        "how does this work",
+        "code path"
       ],
       "bestFor": [
-        "A concrete behavior is wrong or failing.",
-        "The expected behavior is known.",
-        "A focused test or reproduction can prove the fix."
+        "Understanding one flow, module, or behavior before changing it.",
+        "Answering a repo question with cited files and commands."
       ],
       "avoidWhen": [
-        "The product decision is still unresolved.",
-        "The requested change is a broad refactor without a failing behavior."
+        "The user already gave a verifier and wants edits.",
+        "A failing check needs repair.",
+        "The task should run on a schedule."
       ],
-      "defaultObjective": "Fix the reported behavior without unrelated refactors.",
-      "defaultCheck": "Run the original reproduction and the narrowest relevant regression check.",
-      "maxIterations": 3,
+      "defaultObjective": "Explain the selected code path with evidence from the repository.",
+      "defaultCheck": "Cite the files inspected and run the narrowest read-only command if one is available.",
+      "maxIterations": 1,
       "stopConditions": [
-        "The reproduction and regression check pass.",
-        "The issue cannot be reproduced after two serious attempts.",
-        "The next step requires product clarification or access approval."
-      ],
-      "approvalGates": [
-        "destructive git operations",
-        "production writes",
-        "credentials",
-        "deploys"
-      ],
-      "questions": [
-        "What exact behavior is wrong?",
-        "What command, test, or click path proves the bug?",
-        "What changed most recently around this area?"
-      ],
-      "body": "Reproduce the issue, identify the smallest root cause, patch it, add or update regression coverage when practical, rerun the reproduction and relevant checks, then decide whether another pass is justified.",
-      "progressSignals": {
-        "keywords": [
-          "bug",
-          "broken",
-          "regression",
-          "repro",
-          "reproduce",
-          "failing test",
-          "customer issue"
-        ]
-      },
-      "requiredSignals": [
-        "wrong behavior",
-        "expected behavior",
-        "reproduction or regression check"
-      ],
-      "goodExamples": [
-        "fix a broken checkout redirect",
-        "repair a customer-reported regression",
-        "make the repro pass with a focused patch"
-      ],
-      "badExamples": [
-        "red CI job with logs",
-        "broad refactor with no failing behavior",
-        "undefined product decision"
-      ],
-      "exampleChecks": [
-        "Run the original reproduction",
-        "Run the narrowest regression test",
-        "Run the related feature smoke"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "fix failing ci",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "CI failure repair starts from job output, not a product bug report."
-        },
-        {
-          "query": "add missing tests",
-          "preferLoopId": "test-coverage-gap",
-          "reason": "Coverage work starts from an uncovered behavior, not a reported defect."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when the wrong behavior and a focused reproduction are available.",
-        "bestWhen": [
-          "A concrete wrong behavior and expected behavior are known.",
-          "A reproduction or focused regression check can be run.",
-          "The desired fix should stay small and behavior-preserving."
-        ],
-        "failsWhen": [
-          "The issue cannot be reproduced or observed.",
-          "The request is broad feature work disguised as a bug.",
-          "No check can prove the behavior changed."
-        ],
-        "requiredCheck": "Run the original reproduction plus the narrowest regression check covering the behavior."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to turn a specific bug report into a small fix with proof.",
-        "useWhen": "Pick this when one behavior is wrong, the expected behavior is known, and you can reproduce it.",
-        "starterRequest": "Fix the broken checkout redirect and prove the reproduction now passes.",
-        "firstStep": "Paste the bug report, expected behavior, and the reproduction or failing test.",
-        "proofTip": "Keep the proof tied to the original behavior, then add the narrowest regression check you can run.",
-        "notFor": "Do not use it for vague product changes, broad refactors, or red CI logs without a product bug."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "failing-ci-repair",
-      "title": "Failing CI repair",
-      "category": "engineering",
-      "summary": "Repair a failing build, lint, type-check, or test job with the smallest verified change.",
-      "aliases": [
-        "ci",
-        "build failed",
-        "checks failed",
-        "lint failed",
-        "typecheck failed",
-        "test failed"
-      ],
-      "bestFor": [
-        "A specific CI job or local command is failing.",
-        "Logs or failure output are available.",
-        "The goal is to get checks green without broad cleanup."
-      ],
-      "avoidWhen": [
-        "There is no failure output or command to inspect.",
-        "The failure depends on missing secrets or production-only access."
-      ],
-      "defaultObjective": "Fix the failing check with the smallest safe change.",
-      "defaultCheck": "Run the failing command locally or the closest available equivalent.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The failing check passes.",
-        "The same failure repeats twice without new evidence.",
-        "The check requires unavailable secrets, services, or approval."
-      ],
-      "approvalGates": [
-        "credential changes",
-        "CI secret changes",
-        "destructive git operations",
-        "deploys"
-      ],
-      "questions": [
-        "Which CI job or command is failing?",
-        "What is the most relevant failure output?",
-        "Did the failure start after a specific commit or dependency change?"
-      ],
-      "body": "Read the failing output first, reproduce locally when practical, isolate the smallest failing surface, patch the root cause, rerun the failing command, then broaden verification only after the narrow check passes.",
-      "progressSignals": {
-        "keywords": [
-          "ci",
-          "build",
-          "lint",
-          "eslint",
-          "typecheck",
-          "tsc",
-          "test failed",
-          "red check",
-          "workflow"
-        ]
-      },
-      "requiredSignals": [
-        "specific failing command or CI job",
-        "failure output",
-        "green check is the goal"
-      ],
-      "goodExamples": [
-        "fix failing CI",
-        "repair npm run check",
-        "make lint pass after dependency update"
-      ],
-      "badExamples": [
-        "feature quality is uncertain",
-        "fresh install fails for a new user",
-        "security risk with no CI failure"
-      ],
-      "exampleChecks": [
-        "Run the failing command locally",
-        "Rerun the CI-equivalent check",
-        "Broaden to npm run check after the narrow check passes"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "fresh install fails",
-          "preferLoopId": "fresh-setup",
-          "reason": "First-run setup failures need a clean-environment loop."
-        },
-        {
-          "query": "publish npm package",
-          "preferLoopId": "release-readiness",
-          "reason": "Publishing needs release verification and approval gates."
-        },
-        {
-          "query": "flaky test",
-          "preferLoopId": "flaky-test-stabilization",
-          "reason": "Intermittent failures need repeated reproduction and nondeterminism isolation."
-        },
-        {
-          "query": "preview deployment failed",
-          "preferLoopId": "deployment-preview-repair",
-          "reason": "Preview or deploy failures need deployment-log and environment-specific repair."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter for a single failing command, CI job, or test with usable output.",
-        "bestWhen": [
-          "The failing command, job, or test name is known.",
-          "Failure output is available before edits begin.",
-          "The goal is to get the same check green with minimal change."
-        ],
-        "failsWhen": [
-          "The failure is flaky and cannot be reproduced or isolated.",
-          "Several unrelated jobs are failing at once.",
-          "The fix requires product or infrastructure approval before code changes."
-        ],
-        "requiredCheck": "Run the failing command locally or the closest available equivalent until it passes."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to repair one failing CI, lint, build, type-check, or test job.",
-        "useWhen": "Pick this when you have failing command output and want the smallest change that makes it pass.",
-        "starterRequest": "Fix the failing CI job using the log output and rerun the failing command.",
-        "firstStep": "Paste the failing command, the most relevant error lines, and any recent related changes.",
-        "proofTip": "Rerun the exact failing command first; broaden checks only after the original failure is gone.",
-        "notFor": "Do not use it for a user-facing bug report unless the CI output is the main evidence."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "flaky-test-stabilization",
-      "title": "Flaky test stabilization",
-      "category": "engineering",
-      "summary": "Stabilize an intermittent test or check by isolating nondeterminism and proving repeated passes.",
-      "aliases": [
-        "flaky",
-        "flaky test",
-        "intermittent",
-        "non-deterministic",
-        "race condition",
-        "random failure",
-        "timing issue"
-      ],
-      "bestFor": [
-        "A test, CI job, or check fails intermittently.",
-        "The same command sometimes passes without code changes.",
-        "The likely cause is timing, async state, test isolation, order dependence, or randomness."
-      ],
-      "avoidWhen": [
-        "The failure is deterministic and has clear output.",
-        "The only evidence is a broad quality complaint with no failing check.",
-        "The failure needs unavailable external services to reproduce."
-      ],
-      "defaultObjective": "Stabilize the intermittent failure without weakening the test's behavioral contract.",
-      "defaultCheck": "Run the flaky test or check repeatedly under the same command until it passes consistently.",
-      "maxIterations": 4,
-      "stopConditions": [
-        "The target check passes repeatedly without intermittent failure.",
-        "The same nondeterministic failure cannot be reproduced after serious attempts.",
-        "The suspected cause requires unavailable services, time, or approval."
-      ],
-      "approvalGates": [
-        "weakening assertions",
-        "skipping or deleting tests",
-        "changing global test timeouts",
-        "external service changes"
-      ],
-      "questions": [
-        "Which test or command is flaky?",
-        "How often does it fail, and under what command?",
-        "What recent change touched timing, async state, randomness, or shared fixtures?"
-      ],
-      "body": "Run the target check enough times to observe the failure pattern, identify nondeterministic state such as timing, random data, shared fixtures, order dependence, or network reliance, make the smallest stabilization that preserves the behavior being tested, then rerun the same check repeatedly before broadening verification.",
-      "progressSignals": {
-        "keywords": [
-          "flaky",
-          "intermittent",
-          "random failure",
-          "race",
-          "nondeterministic",
-          "non-deterministic",
-          "timing",
-          "order dependent",
-          "passes locally"
-        ]
-      },
-      "requiredSignals": [
-        "intermittent failure",
-        "repeatable command",
-        "proof from repeated runs"
-      ],
-      "goodExamples": [
-        "stabilize flaky checkout test",
-        "fix intermittent CI failure that passes on rerun",
-        "repair race condition in async test"
-      ],
-      "badExamples": [
-        "single deterministic failing test",
-        "delete unstable tests",
-        "broad CI failure with no repeat evidence"
-      ],
-      "exampleChecks": [
-        "Run the target test multiple times before and after the fix",
-        "Rerun the CI-equivalent command after stabilization",
-        "Confirm assertions still test the intended behavior"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "single failing test",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "Deterministic failures should use failing CI repair."
-        },
-        {
-          "query": "add missing regression test",
-          "preferLoopId": "test-coverage-gap",
-          "reason": "Missing coverage is different from an unstable existing test."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful when the same command can be run repeatedly and the failure pattern can be observed.",
-        "bestWhen": [
-          "The target command and flaky test are known.",
-          "The test can be run repeatedly in the local environment.",
-          "The fix can preserve assertions instead of hiding the failure."
-        ],
-        "failsWhen": [
-          "The failure cannot be reproduced or observed.",
-          "The only fix is to skip, delete, or weaken the test.",
-          "The flake depends on unavailable external infrastructure."
-        ],
-        "requiredCheck": "Run the target test or check repeatedly and record consistent passes after the fix."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this when a test sometimes fails and sometimes passes, and you need to make it trustworthy.",
-        "useWhen": "Pick this when rerunning the same test changes the result or the failure looks timing/order/randomness-related.",
-        "starterRequest": "Stabilize the flaky checkout test and prove it passes repeatedly without weakening the assertion.",
-        "firstStep": "Run the exact command multiple times and record the pass/fail pattern before editing.",
-        "proofTip": "A single green run is not enough; repeat the target check after the fix.",
-        "notFor": "Do not use it for a deterministic red check with one clear failure."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "regression-bisect",
-      "title": "Regression bisect",
-      "category": "engineering",
-      "summary": "Find the change that introduced a regression, patch the cause, and verify against known good and bad behavior.",
-      "aliases": [
-        "bisect",
-        "regression bisect",
-        "used to work",
-        "introduced regression",
-        "known good",
-        "known bad",
-        "culprit commit"
-      ],
-      "bestFor": [
-        "A behavior used to work and now fails.",
-        "There is a known good point, release, commit, or date.",
-        "A reproduction can distinguish good from bad behavior."
-      ],
-      "avoidWhen": [
-        "There is no known-good reference or reproduction.",
-        "The bug is new behavior without a past working state.",
-        "Bisecting would require destructive git operations or large environment changes."
-      ],
-      "defaultObjective": "Identify and repair the change that introduced the regression.",
-      "defaultCheck": "Run the same reproduction against known-good, known-bad, and fixed states.",
-      "maxIterations": 4,
-      "stopConditions": [
-        "The culprit change is identified and the current tree passes the reproduction.",
-        "No safe known-good or known-bad point can be checked.",
-        "Bisecting requires destructive git operations or unavailable dependencies."
-      ],
-      "approvalGates": [
-        "destructive git operations",
-        "history rewrites",
-        "checking out dirty worktrees",
-        "production data access"
-      ],
-      "questions": [
-        "When did the behavior last work?",
-        "What reproduction distinguishes good from bad?",
-        "Which commit, release, or branch is known good?"
-      ],
-      "body": "Define the reproduction, identify known-good and known-bad states, inspect or bisect the change range without disturbing unrelated work, isolate the culprit change, patch the smallest current-code cause, then verify the reproduction against the fixed state and relevant regression checks.",
-      "progressSignals": {
-        "keywords": [
-          "bisect",
-          "regression",
-          "used to work",
-          "known good",
-          "known bad",
-          "introduced",
-          "culprit",
-          "started after"
-        ]
-      },
-      "requiredSignals": [
-        "known-good reference",
-        "known-bad reference",
-        "reproduction that distinguishes behavior"
-      ],
-      "goodExamples": [
-        "find which commit broke checkout redirect",
-        "bisect regression after last release",
-        "this worked yesterday and now fails"
-      ],
-      "badExamples": [
-        "new feature bug with no past working state",
-        "broad refactor cleanup",
-        "failing CI with no known-good point"
-      ],
-      "exampleChecks": [
-        "Run the reproduction on known-good and known-bad states",
-        "Inspect or bisect the candidate change range",
-        "Run the reproduction and narrow regression check after the fix"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "customer bug with known repro",
-          "preferLoopId": "ticket-to-verified-fix",
-          "reason": "A normal bug with no known-good comparison should use ticket-to-verified-fix."
-        },
-        {
-          "query": "refactor without behavior change",
-          "preferLoopId": "refactor-containment",
-          "reason": "Behavior-preserving cleanup is not a regression investigation."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful when a known-good reference and focused reproduction make the change range inspectable.",
-        "bestWhen": [
-          "The team can name a last-known-good state.",
-          "The same reproduction can be run across states.",
-          "The worktree can be protected from unrelated dirty changes."
-        ],
-        "failsWhen": [
-          "There is no reliable reproduction.",
-          "The known-good state cannot run in the current environment.",
-          "The investigation would require destructive git operations."
-        ],
-        "requiredCheck": "Run the same reproduction against known-good, known-bad, and fixed states or explain the blocker."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this when something used to work and you need to find the change that broke it.",
-        "useWhen": "Pick this when you can name a last-good state and run a reproduction that separates good from bad.",
-        "starterRequest": "Find which recent change broke checkout redirect and repair the current code.",
-        "firstStep": "Write down the known-good state, known-bad state, and exact reproduction before changing code.",
-        "proofTip": "The strongest proof is the same repro failing before the culprit fix and passing after.",
-        "notFor": "Do not use it for a brand-new bug with no known working baseline."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "deployment-preview-repair",
-      "title": "Deployment preview repair",
-      "category": "operations",
-      "summary": "Repair a failed preview, deployment, or hosted build using deploy logs and local reproduction where possible.",
-      "aliases": [
-        "deployment",
-        "deploy",
-        "preview",
-        "vercel",
-        "render",
-        "netlify",
-        "hosted build",
-        "production build"
-      ],
-      "bestFor": [
-        "A preview, deploy, or hosted build failed.",
-        "Build logs, platform output, or environment mismatch evidence is available.",
-        "The goal is to make the deployed artifact build or boot safely."
-      ],
-      "avoidWhen": [
-        "The failure is only a local test with no deployment surface.",
-        "Fixing requires production secrets, billing, or DNS changes without approval.",
-        "The feature itself is incomplete."
-      ],
-      "defaultObjective": "Repair the failed deployment or preview with the smallest safe config or code change.",
-      "defaultCheck": "Run the closest local build/deploy check and verify the preview or deployment status when available.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The preview or deployment check passes.",
-        "The failure requires platform credentials, billing, DNS, secrets, or production approval.",
-        "The same deploy failure repeats without new evidence."
-      ],
-      "approvalGates": [
-        "production deploys",
-        "DNS changes",
-        "secret or environment changes",
-        "billing or plan changes",
-        "external service changes"
-      ],
-      "questions": [
-        "Which platform or preview failed?",
-        "What is the key deploy log or build error?",
-        "Can the closest build command be run locally?"
-      ],
-      "body": "Inspect deploy logs and platform settings, reproduce with the closest local build or start command when safe, fix the smallest environment, build, runtime, or config mismatch, rerun the local check, then verify the preview or deployment status if access is available.",
-      "progressSignals": {
-        "keywords": [
-          "deploy",
-          "deployment",
-          "preview",
-          "vercel",
-          "render",
-          "netlify",
-          "build logs",
-          "hosted build",
-          "production build"
-        ]
-      },
-      "requiredSignals": [
-        "deployment or preview failure",
-        "platform log or build output",
-        "local build or hosted status check"
-      ],
-      "goodExamples": [
-        "fix failed Vercel preview build",
-        "repair Render deploy boot error",
-        "make production build pass after env mismatch"
-      ],
-      "badExamples": [
-        "local unit test failed",
-        "feature is not implemented",
-        "needs DNS or billing change without approval"
-      ],
-      "exampleChecks": [
-        "Run the closest local build command",
-        "Inspect the deploy log after the fix",
-        "Verify preview status or hosted smoke when access exists"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "npm publish package",
-          "preferLoopId": "release-readiness",
-          "reason": "Package publishing is release readiness, not hosted preview repair."
-        },
-        {
-          "query": "local build failed",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "A local deterministic build failure without deployment context fits failing CI repair."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful when deploy logs are available and the closest local build check can be run.",
-        "bestWhen": [
-          "The platform failure output is available.",
-          "The repo has a local build or boot command that approximates deployment.",
-          "The fix does not require secrets, DNS, billing, or production writes."
-        ],
-        "failsWhen": [
-          "The platform blocks logs or requires unavailable credentials.",
-          "The failure depends on production-only state.",
-          "The required fix is a platform setting outside code without approval."
-        ],
-        "requiredCheck": "Run the closest local build/deploy check and verify hosted preview status when available."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this when a preview or deployment is red and the fix may be code, config, or environment drift.",
-        "useWhen": "Pick this when Vercel, Render, Netlify, or another host fails to build or boot the app.",
-        "starterRequest": "Fix the failed Vercel preview build using the deploy log and verify the closest local build.",
-        "firstStep": "Collect the platform, failing URL or run, key log lines, and local build command.",
-        "proofTip": "Local build passing is useful, but hosted status or preview smoke is the stronger proof.",
-        "notFor": "Do not use it for deploys that require secret, DNS, billing, or production changes before approval."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "runtime-error-triage",
-      "title": "Runtime error triage",
-      "category": "engineering",
-      "summary": "Diagnose a runtime crash or console/log error, patch the failing path, and prove the error no longer appears.",
-      "aliases": [
-        "runtime error",
-        "crash",
-        "exception",
-        "stack trace",
-        "console error",
-        "sentry",
-        "log error",
-        "500"
-      ],
-      "bestFor": [
-        "A user action or runtime path throws an error.",
-        "Stack trace, logs, console output, or error monitoring evidence exists.",
-        "The failing path can be reproduced or simulated safely."
-      ],
-      "avoidWhen": [
-        "The only signal is a compile-time or lint error.",
-        "The error depends on production-only data that cannot be safely inspected.",
-        "The requested work is broad observability or logging setup."
-      ],
-      "defaultObjective": "Fix the runtime error without masking the underlying failure.",
-      "defaultCheck": "Reproduce the failing path, verify the error disappears, and run the nearest regression check.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The runtime path no longer throws and the regression check passes.",
-        "The error cannot be reproduced or safely simulated.",
-        "The next step requires production data, credentials, or external access approval."
-      ],
-      "approvalGates": [
-        "production data access",
-        "credential changes",
-        "external service writes",
-        "deploys",
-        "broad logging changes"
-      ],
-      "questions": [
-        "What action or route triggers the error?",
-        "What are the key stack trace, log, or console lines?",
-        "What local command or manual path can reproduce it?"
-      ],
-      "body": "Capture the error evidence, map the stack or log to the smallest failing code path, reproduce or safely simulate the runtime path, patch the root cause without broad catch-all masking, then verify the error is gone and the nearest behavior check still passes.",
-      "progressSignals": {
-        "keywords": [
-          "runtime error",
-          "crash",
-          "exception",
-          "stack trace",
-          "console error",
-          "sentry",
-          "logs",
-          "500",
-          "throws"
-        ]
-      },
-      "requiredSignals": [
-        "runtime error evidence",
-        "triggering path or action",
-        "reproduction or safe simulation"
-      ],
-      "goodExamples": [
-        "fix console error when opening checkout",
-        "repair 500 on customer route",
-        "triage Sentry stack trace for dashboard crash"
-      ],
-      "badExamples": [
-        "TypeScript compile error",
-        "lint failure",
-        "add broad catch block to hide error"
-      ],
-      "exampleChecks": [
-        "Reproduce the triggering path before and after the fix",
-        "Run the nearest regression or smoke check",
-        "Confirm the same error no longer appears in logs or console"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "typecheck failed",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "Compile-time failures should use failing CI repair."
-        },
-        {
-          "query": "bug report with no logs",
-          "preferLoopId": "ticket-to-verified-fix",
-          "reason": "A normal behavior bug without runtime evidence fits ticket-to-verified-fix."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when a stack trace, log, route, or user action points to a concrete runtime path.",
-        "bestWhen": [
-          "The triggering route, action, or job is known.",
-          "Error evidence maps to code.",
-          "The path can be reproduced or safely simulated."
-        ],
-        "failsWhen": [
-          "The error only appears in production with inaccessible data.",
-          "The stack trace is missing and no trigger is known.",
-          "The proposed fix masks the error without proving behavior."
-        ],
-        "requiredCheck": "Reproduce the failing path, verify the error disappears, and run the nearest regression check."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this when the app crashes or logs a runtime error during a real action.",
-        "useWhen": "Pick this when you have a stack trace, console error, server log, Sentry issue, or 500 response.",
-        "starterRequest": "Fix the dashboard runtime error from this stack trace and prove the page no longer crashes.",
-        "firstStep": "Paste the triggering action, route, stack trace or log lines, and the closest local reproduction path.",
-        "proofTip": "Do not stop at adding a catch block; prove the original action works without the same error.",
-        "notFor": "Do not use it for build, lint, or type errors that happen before runtime."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "api-contract-drift",
-      "title": "API contract drift",
-      "category": "engineering",
-      "summary": "Realign frontend, backend, schema, or client expectations when an API contract has drifted.",
-      "aliases": [
-        "api contract",
-        "contract drift",
-        "schema mismatch",
-        "frontend backend mismatch",
-        "request response",
-        "endpoint mismatch",
-        "type drift"
-      ],
-      "bestFor": [
-        "A caller and provider disagree about request shape, response shape, status codes, or types.",
-        "The break crosses a frontend/backend, client/server, SDK, or schema boundary.",
-        "Contract proof can be added through tests, type checks, or route smoke checks."
-      ],
-      "avoidWhen": [
-        "Only docs are stale while code still agrees.",
-        "The product contract is undecided.",
-        "The mismatch requires a breaking API change without approval."
-      ],
-      "defaultObjective": "Align the API contract across caller, provider, and tests without unrelated rewrites.",
-      "defaultCheck": "Run the route/client contract test, type check, or focused smoke covering the request and response.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "Caller and provider agree and the contract check passes.",
-        "The desired API behavior needs product or versioning approval.",
-        "The next step requires production data or external service writes."
-      ],
-      "approvalGates": [
-        "breaking API changes",
-        "schema migrations",
-        "production data writes",
-        "external service contract changes",
-        "public API documentation promises"
-      ],
-      "questions": [
-        "Which caller and endpoint disagree?",
-        "What request, response, status, or type shape is expected?",
-        "What test or smoke proves both sides agree?"
-      ],
-      "body": "Inspect the caller, provider, shared types or schema, and failing evidence; decide the intended contract; update the smallest side or shared contract needed; add or run a focused contract check; then verify the user-facing path that depends on the contract.",
-      "progressSignals": {
-        "keywords": [
-          "api contract",
-          "contract drift",
-          "schema mismatch",
-          "frontend backend",
-          "request",
-          "response",
-          "endpoint",
-          "type drift",
-          "status code"
-        ]
-      },
-      "requiredSignals": [
-        "caller/provider mismatch",
-        "expected request or response shape",
-        "contract or smoke check"
-      ],
-      "goodExamples": [
-        "fix frontend backend response mismatch",
-        "align API route schema with client types",
-        "repair endpoint status code contract drift"
-      ],
-      "badExamples": [
-        "stale API docs only",
-        "product contract not decided",
-        "database migration with no API mismatch"
-      ],
-      "exampleChecks": [
-        "Run the focused API contract test",
-        "Run type-check covering shared types",
-        "Run the user flow or route smoke that crosses the boundary"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "stale API documentation",
-          "preferLoopId": "docs-sweep",
-          "reason": "Docs-only drift should use docs sweep."
-        },
-        {
-          "query": "schema migration safety",
-          "preferLoopId": "security-hardening",
-          "reason": "Data or migration risk needs a different approval-heavy loop until migration safety exists."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful when both sides of the boundary are inspectable and the desired contract can be tested.",
-        "bestWhen": [
-          "The mismatched caller and provider are known.",
-          "Expected request and response shapes can be stated.",
-          "A focused type, route, or smoke check can exercise the boundary."
-        ],
-        "failsWhen": [
-          "The intended contract is still a product decision.",
-          "The fix requires a breaking public API change without approval.",
-          "Only documentation is stale while code still agrees."
-        ],
-        "requiredCheck": "Run the route/client contract test, type check, or focused smoke covering request and response."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this when two parts of the system disagree about what an API sends or returns.",
-        "useWhen": "Pick this when a frontend, backend, client, route, schema, or shared type no longer matches the other side.",
-        "starterRequest": "Align the checkout API response with the frontend client and add a contract check.",
-        "firstStep": "Name the caller, provider, current shape, expected shape, and failing evidence.",
-        "proofTip": "Prove both sides agree with a focused contract test, type check, or route smoke.",
-        "notFor": "Do not use it for stale API docs only or undecided product behavior."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "docs-sweep",
-      "title": "Documentation sweep",
-      "category": "content",
-      "summary": "Find and fix stale setup, API, command, or workflow documentation.",
-      "aliases": [
-        "docs",
-        "documentation",
-        "readme",
-        "guide",
-        "instructions",
-        "stale docs"
-      ],
-      "bestFor": [
-        "Docs may not match the current implementation.",
-        "Install, usage, or release steps need verification.",
-        "The work can be scoped to a small doc surface."
-      ],
-      "avoidWhen": [
-        "The implementation itself is still changing rapidly.",
-        "The requested output is marketing copy with no implementation reference."
-      ],
-      "defaultObjective": "Update stale documentation for the current codebase.",
-      "defaultCheck": "Verify changed commands, links, examples, and referenced file paths.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "No material mismatch remains in the selected scope.",
-        "Verification is blocked by missing access or external services.",
-        "The iteration budget is reached."
-      ],
-      "approvalGates": [
-        "publishing docs externally",
-        "deleting existing docs",
-        "changing public API promises"
-      ],
-      "questions": [
-        "Which docs or workflow feel stale?",
-        "What command or behavior should the docs match?",
-        "Is this for users, maintainers, or reviewers?"
-      ],
-      "body": "Compare the selected docs to the actual code and package behavior, update the highest-impact mismatch, verify examples or links where practical, then rescan for the next mismatch.",
-      "progressSignals": {
-        "keywords": [
-          "docs",
-          "readme",
-          "install",
-          "example",
-          "guide",
-          "stale",
-          "copy",
-          "release notes"
-        ]
-      },
-      "requiredSignals": [
-        "specific docs surface",
-        "implementation or command to compare against",
-        "reader audience"
-      ],
-      "goodExamples": [
-        "update stale README install steps",
-        "verify examples after CLI changes",
-        "fix docs for host-specific setup"
-      ],
-      "badExamples": [
-        "write marketing copy from scratch",
-        "implementation is not settled",
-        "fix a runtime bug"
-      ],
-      "exampleChecks": [
-        "Run documented commands where practical",
-        "Check links and referenced paths",
-        "Compare docs against current CLI help"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "first setup fails",
-          "preferLoopId": "fresh-setup",
-          "reason": "Clean setup validates the full first-run path before docs-only cleanup."
-        },
-        {
-          "query": "release notes and publish",
-          "preferLoopId": "release-readiness",
-          "reason": "Release work includes docs plus package and install proof."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when docs can be compared against commands, files, or implementation behavior.",
-        "bestWhen": [
-          "A specific documentation surface is in scope.",
-          "Commands, links, examples, or file paths can be verified.",
-          "The intended reader or setup path is clear."
-        ],
-        "failsWhen": [
-          "There is no implementation or command source of truth.",
-          "The docs require policy, marketing, or positioning decisions.",
-          "External services block verification."
-        ],
-        "requiredCheck": "Verify changed commands, links, examples, referenced paths, and any documented setup path."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to make stale docs match how the project actually works now.",
-        "useWhen": "Pick this when install steps, commands, examples, or screenshots may be out of date.",
-        "starterRequest": "Audit the setup docs against the current package commands and update stale instructions.",
-        "firstStep": "Name the docs path and the source of truth, such as package scripts, CLI output, or working code.",
-        "proofTip": "Run or manually verify the documented command path instead of only proofreading text.",
-        "notFor": "Do not use it for open-ended content strategy or documentation that has no implementation source of truth."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "review-repair",
-      "title": "Review repair",
-      "category": "operations",
-      "summary": "Address blocking review findings until the diff is ready to ship.",
-      "aliases": [
-        "review",
-        "code review",
-        "pr comments",
-        "feedback",
-        "hardening",
-        "readiness"
-      ],
-      "bestFor": [
-        "There is a diff, PR, or reviewer feedback to address.",
-        "Findings can be ordered by severity.",
-        "Relevant checks can be rerun after each repair."
-      ],
-      "avoidWhen": [
-        "There is no concrete diff or finding.",
-        "The requested change is a redesign rather than repair."
-      ],
-      "defaultObjective": "Fix blocking review findings and prove the diff is ready for review.",
-      "defaultCheck": "Run the narrowest checks covering the repaired findings.",
-      "maxIterations": 4,
-      "stopConditions": [
-        "Only accepted low-risk findings remain.",
-        "Verification is blocked.",
-        "A finding requires product or security approval."
-      ],
-      "approvalGates": [
-        "scope expansion",
-        "security-sensitive changes",
-        "destructive git operations",
-        "deploys"
-      ],
-      "questions": [
-        "Where is the diff or reviewer feedback?",
-        "Which finding blocks shipping?",
-        "What check should prove the repair?"
-      ],
-      "body": "Review the diff for correctness, tests, security, UX, and maintainability risks; fix the highest-severity actionable finding; rerun relevant checks; repeat until no blocking findings remain.",
-      "progressSignals": {
-        "keywords": [
-          "review",
-          "pr",
-          "pull request",
-          "feedback",
-          "comment",
-          "finding",
-          "blocking"
-        ]
-      },
-      "requiredSignals": [
-        "diff or PR exists",
-        "blocking review finding",
-        "check covering the finding"
-      ],
-      "goodExamples": [
-        "address blocking PR feedback",
-        "fix reviewer finding and rerun checks",
-        "repair code review comments before merge"
-      ],
-      "badExamples": [
-        "no concrete diff",
-        "new feature design",
-        "open-ended polish"
-      ],
-      "exampleChecks": [
-        "Run the tests covering the repaired finding",
-        "Re-run lint/type-check for touched files",
-        "Confirm only accepted low-risk findings remain"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "evaluate product flow",
-          "preferLoopId": "product-evaluation",
-          "reason": "Scenario evaluation starts with user flows rather than review comments."
-        },
-        {
-          "query": "security finding",
-          "preferLoopId": "security-hardening",
-          "reason": "Security findings need explicit trust-boundary and approval gates."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful but still human-dependent because review severity and acceptance criteria vary by team.",
-        "bestWhen": [
-          "There is an existing diff, PR, or review note.",
-          "Blocking findings are concrete and actionable.",
-          "Relevant checks can cover each repaired finding."
-        ],
-        "failsWhen": [
-          "Review comments are subjective or contradictory.",
-          "The requested repair expands into product redesign.",
-          "No reviewer or check can confirm the fix."
-        ],
-        "requiredCheck": "Run the narrowest checks covering the repaired findings and record any accepted residual risk."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to resolve concrete review comments without widening the diff.",
-        "useWhen": "Pick this when a reviewer gave actionable findings and you need a clean follow-up pass.",
-        "starterRequest": "Address the blocking review comments and rerun the checks tied to the changed files.",
-        "firstStep": "Paste the review findings, current diff scope, and the check reviewers expect to pass.",
-        "proofTip": "Close each blocking comment with a targeted change and rerun the nearest relevant check.",
-        "notFor": "Do not use it before there are real review findings or when the next step is a product decision."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "release-readiness",
-      "title": "Release readiness",
-      "category": "operations",
-      "summary": "Prepare a package, app, or feature for a public release with evidence.",
-      "aliases": [
-        "release",
-        "publish",
-        "npm",
-        "tag",
-        "changelog",
-        "ship",
-        "launch"
-      ],
-      "bestFor": [
-        "The feature is implemented and needs final packaging.",
-        "Release notes, versioning, and install checks matter.",
-        "The user needs a clear go/no-go answer."
-      ],
-      "avoidWhen": [
-        "Core implementation is still incomplete.",
-        "Publishing requires credentials or external approval not yet granted."
-      ],
-      "defaultObjective": "Prepare the current change for release and prove the public install or usage path works.",
-      "defaultCheck": "Run package checks, dry-run publish or build, and a fresh install or production smoke.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "Release verification passes.",
-        "Publishing needs explicit approval.",
-        "A blocking package, build, or deployment failure remains."
-      ],
-      "approvalGates": [
-        "npm publish",
-        "GitHub release creation",
-        "production deploy",
-        "version tag push"
-      ],
-      "questions": [
-        "What artifact is being released?",
-        "What install or usage path must work for a new user?",
-        "Do you want publish/deploy actions performed or only prepared?"
-      ],
-      "body": "Check versioning and public docs, run the package or app verification gate, dry-run the release path, perform approved publishing steps, then verify from a fresh environment or production URL.",
-      "progressSignals": {
-        "keywords": [
-          "release",
-          "publish",
-          "npm",
-          "tag",
-          "version",
-          "changelog",
-          "deploy",
-          "production",
-          "launch"
-        ]
-      },
-      "requiredSignals": [
-        "artifact to release",
-        "version or changelog impact",
-        "fresh install or production smoke"
-      ],
-      "goodExamples": [
-        "publish npm package",
-        "prepare 0.3.1 release",
-        "verify latest npx install works"
-      ],
-      "badExamples": [
-        "core feature is still incomplete",
-        "dependency upgrade compatibility only",
-        "publishing needs missing OTP approval"
-      ],
-      "exampleChecks": [
-        "Run npm run check",
-        "Run npm pack --dry-run or build dry-run",
-        "Verify from a fresh install or public URL"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "upgrade dependency",
-          "preferLoopId": "dependency-upgrade",
-          "reason": "Dependency compatibility should be proven before release readiness."
-        },
-        {
-          "query": "fix failing test",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "A red check needs repair before release verification."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter for package or app releases when the publish/build path can be dry-run and smoked.",
-        "bestWhen": [
-          "Versioning, changelog, and publish target are known.",
-          "Package checks, build checks, or dry-run commands exist.",
-          "A fresh install or production smoke can verify the public path."
-        ],
-        "failsWhen": [
-          "Publishing requires credentials, OTP, or approval that is not available.",
-          "Release criteria are not defined.",
-          "The target registry or deployment system is unavailable."
-        ],
-        "requiredCheck": "Run package checks, dry-run publish or build, and a fresh install or production smoke where practical."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this before publishing or shipping so the public install path is verified.",
-        "useWhen": "Pick this when the code is nearly ready and the risk is packaging, versioning, or release drift.",
-        "starterRequest": "Prepare the npm package release and prove the packed artifact contains the right files.",
-        "firstStep": "Name the target version, release command, package manager, and required prepublish checks.",
-        "proofTip": "Run the same check that publish or deploy will run, plus a dry-run pack or install path when possible.",
-        "notFor": "Do not use it while core implementation work is still unclear or failing unrelated tests."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "fresh-setup",
-      "title": "Fresh setup",
-      "category": "engineering",
-      "summary": "Validate a clean checkout or clean project setup and repair hidden assumptions.",
-      "aliases": [
-        "setup",
-        "install",
-        "onboarding",
-        "clean checkout",
-        "bootstrap",
-        "getting started"
-      ],
-      "bestFor": [
-        "A new user or agent must install and run the project.",
-        "Setup docs may hide missing prerequisites.",
-        "The work should expose first-run failures."
-      ],
-      "avoidWhen": [
-        "The environment requires private credentials that cannot be mocked.",
-        "The goal is feature work unrelated to setup."
-      ],
-      "defaultObjective": "Prove a fresh project setup works from the documented instructions.",
-      "defaultCheck": "Run the documented install and first verification command from a clean directory.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "Fresh setup succeeds.",
-        "A required private dependency or credential blocks verification.",
-        "The same setup failure repeats after a documented repair."
-      ],
-      "approvalGates": [
-        "installing global tools",
-        "writing outside the project",
-        "changing secrets",
-        "deleting user files"
-      ],
-      "questions": [
-        "Which setup path should a new user follow?",
-        "What command proves setup is complete?",
-        "Can private services be mocked or skipped?"
-      ],
-      "body": "Start from a clean directory, follow the documented setup, record the first failure, fix the smallest missing assumption in docs or code, then retry cleanly.",
-      "progressSignals": {
-        "keywords": [
-          "setup",
-          "install",
-          "bootstrap",
-          "clean",
-          "first run",
-          "onboarding",
-          "getting started"
-        ]
-      },
-      "requiredSignals": [
-        "clean environment",
-        "documented setup path",
-        "first verification command"
-      ],
-      "goodExamples": [
-        "fix stale installed skill copies",
-        "validate clean checkout setup",
-        "prove npx install works in a temp project"
-      ],
-      "badExamples": [
-        "single failing unit test",
-        "published release checklist",
-        "feature bug with known repro"
-      ],
-      "exampleChecks": [
-        "Run setup from a clean directory",
-        "Run the documented first verification command",
-        "Retry after fixing the smallest missing assumption"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "publish npm package",
-          "preferLoopId": "release-readiness",
-          "reason": "Publishing includes fresh install proof plus release approval gates."
-        },
-        {
-          "query": "stale docs only",
-          "preferLoopId": "docs-sweep",
-          "reason": "Docs-only drift does not require a clean setup loop."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter for finding hidden setup assumptions from a clean environment.",
-        "bestWhen": [
-          "Setup instructions already exist.",
-          "A clean directory or environment can be used.",
-          "The first verification command is documented."
-        ],
-        "failsWhen": [
-          "Private credentials or dependencies are required but unavailable.",
-          "The setup path depends on undocumented manual account state.",
-          "The goal is broad onboarding redesign rather than setup verification."
-        ],
-        "requiredCheck": "Run the documented install path and first verification command from a clean directory."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to prove a new user can follow the setup instructions from scratch.",
-        "useWhen": "Pick this when install, onboarding, or local setup might rely on hidden machine state.",
-        "starterRequest": "Follow the README setup in a clean directory and fix any missing assumptions.",
-        "firstStep": "Create or describe a clean environment, then follow the public docs exactly as written.",
-        "proofTip": "Retry from a fresh state after edits so you know the setup path works without local leftovers.",
-        "notFor": "Do not use it for one failing test inside an already configured development environment."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "test-coverage-gap",
-      "title": "Test coverage gap",
-      "category": "evaluation",
-      "summary": "Add focused tests around risky behavior without broad test churn.",
-      "aliases": [
-        "coverage",
-        "tests",
-        "regression test",
-        "missing test",
-        "test gap"
-      ],
-      "bestFor": [
-        "A behavior is important but poorly covered.",
-        "A recent fix needs regression coverage.",
-        "The target test layer is known."
-      ],
-      "avoidWhen": [
-        "The desired behavior is not defined.",
-        "The test suite is too unstable to trust."
-      ],
-      "defaultObjective": "Add focused coverage for the risky behavior without unrelated rewrites.",
-      "defaultCheck": "Run the new or changed tests and the narrowest related suite.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The target behavior is covered and checks pass.",
-        "The behavior needs product clarification.",
-        "The same test infrastructure failure repeats."
-      ],
-      "approvalGates": [
-        "large fixture rewrites",
-        "deleting existing tests",
-        "changing product behavior only to satisfy tests"
-      ],
-      "questions": [
-        "Which behavior is under-tested?",
-        "Which test layer should cover it?",
-        "What failure would the test catch?"
-      ],
-      "body": "Identify the smallest behavior contract, add a focused test that would fail without the intended behavior, run the narrow test, then broaden only if the change touches shared behavior.",
-      "progressSignals": {
-        "keywords": [
-          "coverage",
-          "test",
-          "regression",
-          "missing test",
-          "untested",
-          "spec"
-        ]
-      },
-      "requiredSignals": [
-        "under-tested behavior",
-        "target test layer",
-        "failure the test should catch"
-      ],
-      "goodExamples": [
-        "add regression coverage for checkout edge case",
-        "cover missing auth validation test",
-        "add focused test before refactor"
-      ],
-      "badExamples": [
-        "unknown desired behavior",
-        "unstable whole suite",
-        "fix failing CI without a coverage gap"
-      ],
-      "exampleChecks": [
-        "Run the new focused test",
-        "Run the narrow related suite",
-        "Confirm the test would fail without the behavior"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "fix failing ci",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "Repair the failing check first unless the missing test is the blocker."
-        },
-        {
-          "query": "evaluate full product flow",
-          "preferLoopId": "product-evaluation",
-          "reason": "Scenario evaluation is broader than adding focused regression tests."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when the risky behavior can be described as a small testable contract.",
-        "bestWhen": [
-          "A specific behavior lacks coverage.",
-          "A focused test can fail before the intended fix.",
-          "The surrounding test framework is already available."
-        ],
-        "failsWhen": [
-          "The behavior still needs product clarification.",
-          "The test requires brittle snapshots or broad end-to-end setup.",
-          "The change would require rewriting the test architecture."
-        ],
-        "requiredCheck": "Run the new or changed tests plus the narrowest related suite."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to add focused tests for behavior that is real but under-protected.",
-        "useWhen": "Pick this when the code may work but an important edge case lacks regression coverage.",
-        "starterRequest": "Add regression coverage for the checkout edge case and run the focused test command.",
-        "firstStep": "Name the behavior, existing test area, and the smallest case that should fail without coverage.",
-        "proofTip": "Prove the test is meaningful by targeting the behavior, not just increasing coverage numbers.",
-        "notFor": "Do not use it for code cleanup, performance work, or bugs with no clear expected behavior."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "ux-polish",
-      "title": "UX polish",
-      "category": "product",
-      "summary": "Improve a specific user flow for clarity, responsiveness, and accessibility.",
-      "aliases": [
-        "ux",
-        "ui",
-        "polish",
-        "copy",
-        "mobile",
-        "accessibility",
-        "flow"
-      ],
-      "bestFor": [
-        "The screen exists but users may not understand what to do.",
-        "A specific page or flow needs clearer hierarchy.",
-        "Responsiveness or accessibility can be checked."
-      ],
-      "avoidWhen": [
-        "The product goal is not defined.",
-        "The request is purely decorative without a user action."
-      ],
-      "defaultObjective": "Make the selected flow easier to understand and complete without adding unnecessary scope.",
-      "defaultCheck": "Run the relevant UI smoke test or manually verify desktop and mobile states.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The primary user action is clear and verified.",
-        "Further changes are subjective without user feedback.",
-        "The next improvement requires a product decision."
-      ],
-      "approvalGates": [
-        "major layout rewrites",
-        "brand direction changes",
-        "removing existing product functionality"
-      ],
-      "questions": [
-        "What is the one user action this flow must make easier?",
-        "Which screen or viewport is confusing?",
-        "How should we verify the improvement?"
-      ],
-      "body": "Identify the primary user action, remove or rewrite confusing UI, verify key states and responsive behavior, then stop when the flow is understandable without extra explanation.",
-      "progressSignals": {
-        "keywords": [
-          "ux",
-          "ui",
-          "copy",
-          "mobile",
-          "responsive",
-          "accessibility",
-          "confusing",
-          "page"
-        ]
-      },
-      "requiredSignals": [
-        "specific screen or flow",
-        "primary user action",
-        "desktop/mobile or accessibility check"
-      ],
-      "goodExamples": [
-        "make the generated prompt easier to find",
-        "improve mobile clarity for a form flow",
-        "reduce confusing copy around a CTA"
-      ],
-      "badExamples": [
-        "pure decoration",
-        "unclear product goal",
-        "add analytics dashboard"
-      ],
-      "exampleChecks": [
-        "Manually verify desktop and mobile states",
-        "Check keyboard focus and visible next action",
-        "Run the relevant UI smoke test"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "quality scenarios",
-          "preferLoopId": "product-evaluation",
-          "reason": "Scenario pass/fail work is broader than UI polish."
-        },
-        {
-          "query": "performance slow page",
-          "preferLoopId": "performance-measurement",
-          "reason": "Speed work needs baseline and remeasurement."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful but subjective unless the primary user action and verification path are explicit.",
-        "bestWhen": [
-          "One user flow and one primary action are in scope.",
-          "Confusing copy, layout, states, or responsiveness can be observed.",
-          "Desktop and mobile checks can be performed."
-        ],
-        "failsWhen": [
-          "The request is open-ended aesthetic preference without a user task.",
-          "The page needs product positioning decisions first.",
-          "No manual or automated UI verification path exists."
-        ],
-        "requiredCheck": "Run the relevant UI smoke test or manually verify the primary flow across desktop and mobile states."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to make one user flow clearer, more usable, and easier to trust.",
-        "useWhen": "Pick this when users can complete the task but the screen is confusing, cramped, or unclear.",
-        "starterRequest": "Make the onboarding flow easier to understand on mobile without changing the core feature.",
-        "firstStep": "Name the screen, target user, primary action, and the confusion you want removed.",
-        "proofTip": "Check desktop and mobile screenshots for hierarchy, spacing, empty states, and text fit.",
-        "notFor": "Do not use it when the underlying product decision or data model still needs to be designed."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "performance-measurement",
-      "title": "Performance measurement",
-      "category": "engineering",
-      "summary": "Improve speed, memory, bundle size, or latency using before-and-after evidence.",
-      "aliases": [
-        "performance",
-        "latency",
-        "speed",
-        "slow",
-        "bundle",
-        "memory",
-        "benchmark"
-      ],
-      "bestFor": [
-        "There is a measurable target or known slow path.",
-        "A baseline can be captured before changes.",
-        "Correctness checks can run after optimization."
-      ],
-      "avoidWhen": [
-        "No reliable measurement exists.",
-        "The proposed change sacrifices correctness or UX without proof."
-      ],
-      "defaultObjective": "Improve the measured bottleneck while preserving behavior.",
-      "defaultCheck": "Record a baseline, rerun the same measurement, and run the relevant correctness check.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The target threshold is met.",
-        "Measurement is unreliable.",
-        "Changes stop producing meaningful improvement."
-      ],
-      "approvalGates": [
-        "architecture rewrites",
-        "caching that changes freshness semantics",
-        "infrastructure changes"
-      ],
-      "questions": [
-        "What metric should improve?",
-        "How do we measure the baseline?",
-        "What correctness check must still pass?"
-      ],
-      "body": "Capture a baseline, make one focused optimization, remeasure under the same conditions, keep only proven wins, then target the next bottleneck if another pass is justified.",
-      "progressSignals": {
-        "keywords": [
-          "performance",
-          "slow",
-          "latency",
-          "speed",
-          "bundle",
-          "memory",
-          "benchmark",
-          "optimize"
-        ]
-      },
-      "requiredSignals": [
-        "measurable bottleneck",
-        "baseline method",
-        "correctness check"
-      ],
-      "goodExamples": [
-        "reduce bundle size with before and after proof",
-        "measure slow dashboard route",
-        "improve API latency without changing behavior"
-      ],
-      "badExamples": [
-        "no reliable metric",
-        "subjective UI polish",
-        "architecture rewrite with no benchmark"
-      ],
-      "exampleChecks": [
-        "Record a baseline",
-        "Rerun the same measurement",
-        "Run the relevant correctness test"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "clean up architecture",
-          "preferLoopId": "refactor-containment",
-          "reason": "Structural cleanup needs behavior-preserving checks more than performance metrics."
-        },
-        {
-          "query": "mobile layout confusing",
-          "preferLoopId": "ux-polish",
-          "reason": "Clarity and responsiveness are UX polish unless speed is measured."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter only when baseline and comparison measurements are repeatable.",
-        "bestWhen": [
-          "A specific bottleneck or metric is named.",
-          "A baseline can be captured before edits.",
-          "The same measurement can be rerun after each change."
-        ],
-        "failsWhen": [
-          "The measurement is noisy or not reproducible.",
-          "The desired improvement threshold is undefined.",
-          "Correctness checks are missing after optimization."
-        ],
-        "requiredCheck": "Record a baseline, rerun the same measurement, and run the relevant correctness check."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to improve speed only after measuring what is slow.",
-        "useWhen": "Pick this when you can capture a baseline and compare the same metric after one focused change.",
-        "starterRequest": "Measure the slow dashboard load, make one focused improvement, and compare before/after results.",
-        "firstStep": "Record the baseline command, page, metric, input size, and environment before editing.",
-        "proofTip": "Keep only changes that improve the measured metric without breaking functional checks.",
-        "notFor": "Do not use it for speculative optimization or broad rewrites without a repeatable measurement."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "dependency-upgrade",
-      "title": "Dependency upgrade",
-      "category": "engineering",
-      "summary": "Upgrade one dependency or toolchain surface with compatibility proof.",
-      "aliases": [
-        "upgrade",
-        "dependency",
-        "package",
-        "version",
-        "migration",
-        "breaking change"
-      ],
-      "bestFor": [
-        "One dependency or small dependency group needs upgrading.",
-        "Release notes or migration notes are known.",
-        "Compatibility can be verified with existing checks."
-      ],
-      "avoidWhen": [
-        "The upgrade spans many unrelated packages.",
-        "The package is security-sensitive and lacks a rollback plan."
-      ],
-      "defaultObjective": "Upgrade the selected dependency with the smallest compatibility patch.",
-      "defaultCheck": "Run install, type-check, tests, and the narrow feature smoke covering the dependency.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The upgrade passes compatibility checks.",
-        "A breaking change requires design approval.",
-        "The dependency introduces unacceptable risk."
-      ],
-      "approvalGates": [
-        "major version upgrades",
-        "lockfile-wide churn",
-        "security-sensitive dependencies",
-        "production deploys"
-      ],
-      "questions": [
-        "Which dependency should be upgraded?",
-        "Is this a patch, minor, or major upgrade?",
-        "What feature or check proves compatibility?"
-      ],
-      "body": "Upgrade the smallest dependency surface, inspect migration notes when needed, repair compatibility issues, run focused checks, and stop before broad lockfile churn.",
-      "progressSignals": {
-        "keywords": [
-          "upgrade",
-          "dependency",
-          "package",
-          "npm",
-          "version",
-          "migration",
-          "lockfile"
-        ]
-      },
-      "requiredSignals": [
-        "specific dependency",
-        "version target",
-        "compatibility check"
-      ],
-      "goodExamples": [
-        "upgrade Next.js minor version",
-        "update one npm package with tests",
-        "apply migration notes for a toolchain update"
-      ],
-      "badExamples": [
-        "publish current package",
-        "broad lockfile churn",
-        "security-sensitive package without rollback"
-      ],
-      "exampleChecks": [
-        "Run install",
-        "Run type-check and tests",
-        "Run the narrow feature smoke using the dependency"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "publish npm package",
-          "preferLoopId": "release-readiness",
-          "reason": "Publishing current code is release readiness, not dependency upgrade."
-        },
-        {
-          "query": "security vulnerability",
-          "preferLoopId": "security-hardening",
-          "reason": "Security-sensitive upgrades need risk and approval handling."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter for scoped dependency upgrades with focused compatibility checks.",
-        "bestWhen": [
-          "The dependency and desired version range are known.",
-          "Migration notes or release notes can be inspected when needed.",
-          "Install, type-check, tests, or feature smoke checks exist."
-        ],
-        "failsWhen": [
-          "The upgrade causes broad lockfile churn outside the selected surface.",
-          "Breaking changes require design or product approval.",
-          "The dependency is security-sensitive and needs policy review first."
-        ],
-        "requiredCheck": "Run install, type-check, tests, and the narrow feature smoke covering the dependency."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to upgrade one dependency while containing compatibility risk.",
-        "useWhen": "Pick this when a package needs a version bump and you can run focused compatibility checks.",
-        "starterRequest": "Upgrade React and fix only the compatibility issues needed for tests to pass.",
-        "firstStep": "Name the package, target version, lockfile state, migration notes, and affected checks.",
-        "proofTip": "Run the package manager check, type/build check, and focused behavior tests after the bump.",
-        "notFor": "Do not use it for sweeping dependency refreshes where many packages change for unrelated reasons."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "security-hardening",
-      "title": "Security hardening",
-      "category": "security",
-      "summary": "Reduce a concrete security risk with scoped evidence and approval gates.",
-      "aliases": [
-        "security",
-        "vulnerability",
-        "secret",
-        "auth",
-        "authorization",
-        "xss",
-        "csrf"
-      ],
-      "bestFor": [
-        "A specific security concern or finding exists.",
-        "The affected boundary can be scoped.",
-        "A test, review, or config check can prove the fix."
-      ],
-      "avoidWhen": [
-        "The request is a broad audit with no target.",
-        "The fix would require secret rotation or production changes without approval."
-      ],
-      "defaultObjective": "Fix the concrete security risk without unrelated refactors.",
-      "defaultCheck": "Run the relevant security, auth, validation, or regression check.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The security finding is addressed with evidence.",
-        "The next step requires credentials, production access, or policy approval.",
-        "The risk cannot be reproduced from available context."
-      ],
-      "approvalGates": [
-        "secret rotation",
-        "permission changes",
-        "production data access",
-        "external disclosure",
-        "deploys"
-      ],
-      "questions": [
-        "What specific risk or finding should be fixed?",
-        "Where is the trust boundary?",
-        "What check or review proves the risk is reduced?"
-      ],
-      "body": "Scope the trust boundary, reproduce or reason about the risk, patch the smallest risky path, add validation or regression coverage when practical, and document residual risk.",
-      "progressSignals": {
-        "keywords": [
-          "security",
-          "vulnerability",
-          "secret",
-          "auth",
-          "authorization",
-          "xss",
-          "csrf",
-          "permission"
-        ]
-      },
-      "requiredSignals": [
-        "specific risk or finding",
-        "trust boundary",
-        "security or regression proof"
-      ],
-      "goodExamples": [
-        "fix authorization bypass",
-        "sanitize unsafe user input",
-        "remove exposed secret from config path"
-      ],
-      "badExamples": [
-        "broad audit with no target",
-        "secret rotation without approval",
-        "generic code cleanup"
-      ],
-      "exampleChecks": [
-        "Run relevant auth or validation tests",
-        "Review the affected trust boundary",
-        "Document residual risk"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "review PR comments",
-          "preferLoopId": "review-repair",
-          "reason": "General review comments use review repair unless the finding is security-specific."
-        },
-        {
-          "query": "upgrade vulnerable dependency",
-          "preferLoopId": "dependency-upgrade",
-          "reason": "A dependency-only compatibility patch may fit dependency upgrade with security gates."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when the trust boundary and concrete risk are known.",
-        "bestWhen": [
-          "A specific input, auth, permission, data exposure, or dependency risk is identified.",
-          "The risky path can be patched without unrelated refactors.",
-          "A security, validation, auth, or regression check can cover the change."
-        ],
-        "failsWhen": [
-          "The risk is only a vague concern without an attack path.",
-          "The fix needs credentials, production access, or policy approval.",
-          "The mitigation would change product behavior without approval."
-        ],
-        "requiredCheck": "Run the relevant security, auth, validation, or regression check and document residual risk."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to reduce one concrete security risk with a focused fix and proof.",
-        "useWhen": "Pick this when there is a specific unsafe input, auth boundary, secret, or exposure to harden.",
-        "starterRequest": "Sanitize the unsafe user input before saving it and add a regression check.",
-        "firstStep": "Name the asset, attacker-controlled input, trust boundary, and required security behavior.",
-        "proofTip": "Run the exploit-oriented regression check plus the nearest normal behavior check.",
-        "notFor": "Do not use it for broad security audits with no specific finding or threat scenario."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "refactor-containment",
-      "title": "Refactor containment",
-      "category": "engineering",
-      "summary": "Refactor a narrow area while proving behavior stays the same.",
-      "aliases": [
-        "refactor",
-        "cleanup",
-        "simplify",
-        "architecture",
-        "duplication",
-        "maintainability"
-      ],
-      "bestFor": [
-        "The behavior should stay the same.",
-        "The scope can be limited to one module or boundary.",
-        "Tests or snapshots can prove no regression."
-      ],
-      "avoidWhen": [
-        "The refactor is mixed with feature work.",
-        "There is no behavior-preserving verification path."
-      ],
-      "defaultObjective": "Improve the selected code structure without changing behavior.",
-      "defaultCheck": "Run the narrowest tests or build checks covering the refactored boundary.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "Behavior-preserving checks pass.",
-        "The refactor starts expanding beyond the selected boundary.",
-        "Verification is insufficient to prove safety."
-      ],
-      "approvalGates": [
-        "public API renames",
-        "database schema changes",
-        "large file moves",
-        "broad architectural rewrites"
-      ],
-      "questions": [
-        "Which module or boundary should be improved?",
-        "What behavior must not change?",
-        "Which checks prove safety?"
-      ],
-      "body": "Define the behavior-preserving boundary, make one structural improvement, rerun focused checks, and stop before the refactor expands into feature work.",
-      "progressSignals": {
-        "keywords": [
-          "refactor",
-          "cleanup",
-          "simplify",
-          "duplication",
-          "architecture",
-          "maintainability"
-        ]
-      },
-      "requiredSignals": [
-        "narrow module boundary",
-        "behavior must stay the same",
-        "behavior-preserving check"
-      ],
-      "goodExamples": [
-        "simplify duplicated parser logic",
-        "extract helper inside one module",
-        "clean up one boundary without feature changes"
-      ],
-      "badExamples": [
-        "feature work mixed with cleanup",
-        "public API rename without approval",
-        "no tests for behavior"
-      ],
-      "exampleChecks": [
-        "Run focused tests for the boundary",
-        "Run type-check or build for touched files",
-        "Confirm public behavior is unchanged"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "improve agent skill instructions",
-          "preferLoopId": "skill-instruction-hardening",
-          "reason": "Skill instruction changes need routing and scenario checks."
-        },
-        {
-          "query": "performance bottleneck",
-          "preferLoopId": "performance-measurement",
-          "reason": "Performance work needs baseline measurement and proof."
-        }
-      ],
-      "reliability": {
-        "status": "tested",
-        "summary": "Reliable as a starter when the refactor boundary is explicit and behavior must not change.",
-        "bestWhen": [
-          "One code boundary or module is selected.",
-          "Behavior-preserving checks exist.",
-          "The goal is clarity, duplication reduction, or contained structure improvement."
-        ],
-        "failsWhen": [
-          "The refactor starts expanding into feature work.",
-          "Tests do not cover the selected boundary.",
-          "The desired architecture is still undecided."
-        ],
-        "requiredCheck": "Run the narrowest tests or build checks covering the refactored boundary."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to clean up code while protecting behavior from accidental change.",
-        "useWhen": "Pick this when the goal is internal structure and the current behavior should stay the same.",
-        "starterRequest": "Refactor the checkout module without changing behavior and rerun the existing checks.",
-        "firstStep": "Name the module, current behavior to preserve, and the tests or manual checks that protect it.",
-        "proofTip": "Run the before/after checks and keep unrelated behavior or API changes out of the diff.",
-        "notFor": "Do not use it when the real goal is a feature change, a bug fix, or a dependency upgrade."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "product-evaluation",
-      "title": "Product evaluation",
-      "category": "evaluation",
-      "summary": "Run realistic scenarios, repair misses, and prove the flow meets a quality bar.",
-      "aliases": [
-        "evaluation",
-        "eval",
-        "scenario",
-        "quality",
-        "acceptance",
-        "manual qa"
-      ],
-      "bestFor": [
-        "A feature works but quality is uncertain.",
-        "Realistic scenarios can be defined.",
-        "Pass/fail criteria can be written before fixes."
-      ],
-      "avoidWhen": [
-        "The product goal is still unknown.",
-        "The scenario needs unavailable users or production data."
-      ],
-      "defaultObjective": "Prove the core user flow across realistic scenarios.",
-      "defaultCheck": "Run the defined scenarios and record pass/fail evidence.",
-      "maxIterations": 4,
-      "stopConditions": [
-        "All scenarios pass.",
-        "The quality bar needs human judgment.",
-        "Repeated failures indicate the product needs redesign."
-      ],
-      "approvalGates": [
-        "changing product requirements",
-        "using real customer data",
-        "external user messaging",
-        "deploys"
-      ],
-      "questions": [
-        "Which user flow should be evaluated?",
-        "What scenarios represent real use?",
-        "What pass/fail criteria matter?"
-      ],
-      "body": "Define realistic scenarios and criteria, run them consistently, fix underlying causes of failures, rerun affected scenarios, and periodically rerun the full set.",
-      "progressSignals": {
-        "keywords": [
-          "evaluation",
-          "eval",
-          "scenario",
-          "quality",
-          "qa",
-          "acceptance",
-          "user flow"
-        ]
-      },
-      "requiredSignals": [
-        "user flow to evaluate",
-        "realistic scenarios",
-        "pass/fail criteria"
-      ],
-      "goodExamples": [
-        "evaluate Loop It recommendation quality",
-        "run realistic onboarding scenarios",
-        "prove checkout flow meets acceptance criteria"
-      ],
-      "badExamples": [
-        "single broken command",
-        "pure copy polish",
-        "undefined product goal"
-      ],
-      "exampleChecks": [
-        "Run the defined scenarios",
-        "Record pass/fail evidence",
-        "Rerun affected and full scenario sets after fixes"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "make CTA clearer",
-          "preferLoopId": "ux-polish",
-          "reason": "One-screen clarity work is UX polish unless scenario coverage is the goal."
-        },
-        {
-          "query": "failing CI",
-          "preferLoopId": "failing-ci-repair",
-          "reason": "A red check should be repaired before broader product evaluation."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful for structured evaluation, but reliability depends on scenario quality and human judgment.",
-        "bestWhen": [
-          "Realistic scenarios and pass/fail criteria can be written.",
-          "The core user flow can be exercised consistently.",
-          "Failures can be tied back to fixable causes."
-        ],
-        "failsWhen": [
-          "Success criteria are vague or purely taste-based.",
-          "The user population or core job is not defined.",
-          "Evaluation data cannot be captured consistently."
-        ],
-        "requiredCheck": "Run the defined scenarios consistently and record pass/fail evidence with fixes for concrete failures."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to judge whether an AI/product behavior works across realistic scenarios.",
-        "useWhen": "Pick this when quality depends on examples, criteria, and repeatable scenario checks.",
-        "starterRequest": "Evaluate Loop It recommendation quality across realistic user goals and fix clear misses.",
-        "firstStep": "Define the scenarios, expected outcomes, acceptance criteria, and full-check command.",
-        "proofTip": "Rerun affected scenarios after each fix, then run the full evaluation set before stopping.",
-        "notFor": "Do not use it for a single bug, styling issue, or implementation task with a normal unit test."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "skill-instruction-hardening",
-      "title": "Skill instruction hardening",
-      "category": "operations",
-      "summary": "Improve an Agent Skill, prompt, or loop library so routing, examples, and verifier behavior are clearer.",
-      "aliases": [
-        "skill",
-        "agent skill",
-        "SKILL.md",
-        "instructions",
-        "prompt",
-        "routing",
-        "library",
-        "selector"
-      ],
-      "bestFor": [
-        "A skill or prompt exists but agents misroute or miss important constraints.",
-        "The loop library needs examples, scenario coverage, or clearer selection rules.",
-        "The change can be verified with selector tests, smoke checks, or prompt-quality scenarios."
-      ],
-      "avoidWhen": [
-        "The request is only page copy or visual polish.",
-        "The skill behavior cannot be checked with examples or usage scenarios."
-      ],
-      "defaultObjective": "Improve the selected skill instructions and library routing without adding unnecessary scope.",
-      "defaultCheck": "Run selector scenario checks, package smoke checks, and a focused manual prompt-quality review.",
-      "maxIterations": 3,
-      "stopConditions": [
-        "The target scenarios route to the intended loop or instruction path.",
-        "The skill metadata, examples, and tests agree.",
-        "Further improvement needs real user feedback or host-specific behavior not available locally."
-      ],
-      "approvalGates": [
-        "changing public skill invocation contracts",
-        "publishing a package release",
-        "removing existing loops",
-        "host-specific behavior claims without verification"
-      ],
-      "questions": [
-        "Which skill behavior or route is currently wrong?",
-        "What example prompt should succeed after the change?",
-        "What test or manual scenario proves the skill improved?"
-      ],
-      "body": "Identify the misroute or unclear instruction, add concrete examples and routing signals, update the selector or skill text, run scenario checks, and keep only changes that improve observable behavior.",
-      "progressSignals": {
-        "keywords": [
-          "skill",
-          "SKILL.md",
-          "prompt",
-          "instructions",
-          "routing",
-          "selector",
-          "library",
-          "examples",
-          "agent behavior"
-        ]
-      },
-      "requiredSignals": [
-        "target skill or prompt",
-        "example scenario",
-        "selector or prompt-quality check"
-      ],
-      "goodExamples": [
-        "improve Loop It skill routing and examples",
-        "make SKILL.md instructions clearer",
-        "add library examples so recommendations are testable"
-      ],
-      "badExamples": [
-        "pure visual page polish",
-        "publish current package",
-        "broad marketplace strategy"
-      ],
-      "exampleChecks": [
-        "Run selector scenario checks",
-        "Run npm run check",
-        "Manually inspect generated prompt quality for target examples"
-      ],
-      "commonMisroutes": [
-        {
-          "query": "refactor code structure",
-          "preferLoopId": "refactor-containment",
-          "reason": "Code-only cleanup should use refactor containment."
-        },
-        {
-          "query": "product page clarity",
-          "preferLoopId": "ux-polish",
-          "reason": "One-screen clarity belongs to UX polish unless skill routing is changing."
-        }
-      ],
-      "reliability": {
-        "status": "experimental",
-        "summary": "Useful for improving routing and instructions, but needs scenario evals before it can be called proven.",
-        "bestWhen": [
-          "A misroute, unclear instruction, or weak example is known.",
-          "Selector scenarios can prove the intended routing behavior.",
-          "The scope is the skill text, metadata, library, or verifier behavior."
-        ],
-        "failsWhen": [
-          "The desired agent behavior is not specified with examples.",
-          "The fix adds broad prompt surface without new evaluation coverage.",
-          "No scenario checks exist to catch regressions."
-        ],
-        "requiredCheck": "Run selector scenario checks, package smoke checks, and a focused manual prompt-quality review."
-      },
-      "userGuide": {
-        "plainLanguage": "Use this to improve a skill so agents choose better actions and avoid bad routes.",
-        "useWhen": "Pick this when instructions, examples, routing, or guardrails are causing wrong agent behavior.",
-        "starterRequest": "Improve Loop It skill routing and examples, then prove the selector scenarios still pass.",
-        "firstStep": "Describe the misroute or weak behavior, then add an example or scenario that should catch it.",
-        "proofTip": "Run selector scenario checks and smoke tests so the instruction change is not just vibes.",
-        "notFor": "Do not use it for general prompt polishing that has no observable routing or behavior check."
-      },
-      "loopType": "goal-based"
-    },
-    {
-      "id": "codebase-intake-to-running-loop",
-      "title": "Codebase intake to running loop",
-      "category": "operations",
-      "summary": "Inspect a repository request, choose the highest-confidence loop, and run one bounded verifier-gated loop.",
-      "aliases": [
-        "intake",
-        "codebase intake",
-        "inspect repo",
-        "inspect codebase",
-        "find next issue",
-        "what next",
-        "run the right loop",
-        "improve this repo",
-        "improve this codebase",
-        "auto route"
-      ],
-      "bestFor": [
-        "The user wants Loop It to decide what loop to run from a broad repo request.",
-        "The repository needs inspection before the right verifier or loop is obvious.",
-        "The goal is to stop back-and-forth by turning vague work into one bounded loop."
-      ],
-      "avoidWhen": [
-        "The user already provided a specific failing command and failure output.",
-        "The user asks for a known loop directly.",
-        "The request would require unsafe, production, credential, billing, or external-message actions."
-      ],
-      "defaultObjective": "Inspect the repository, recommend the highest-confidence Loop It loop, and run one bounded pass with proof.",
-      "defaultCheck": "Run the inferred verifier or ask for one if no safe project-specific check can be found.",
-      "maxIterations": 2,
-      "stopConditions": [
-        "A specific loop has been selected and run to a verifier result.",
-        "No safe verifier can be inferred and one targeted question has been asked.",
-        "The next action requires approval, secrets, production access, or destructive operations."
+        "Stop when the answer cites the relevant files and names any uncertainty.",
+        "Stop before editing files unless the user explicitly asks for changes."
       ],
       "approvalGates": [
         "production writes",
@@ -2180,11 +40,528 @@
         "irreversible data changes"
       ],
       "questions": [
-        "What user-visible outcome should improve?",
-        "What command or manual check should reject bad work?",
-        "Should Loop It pick the highest-confidence issue or focus on a known area?"
+        "Which flow, command, route, or component should be explained?"
       ],
-      "body": "Inspect the repository metadata, active .loop-it state, package scripts, CI files, README, and the user request; choose the highest-confidence bundled loop; name the verifier; run one bounded loop in Run The Loop mode; update evidence; stop with proof, a blocker, or one targeted question.",
+      "body": "DISCOVER the relevant files, TRACE the runtime path, ANSWER with file evidence, and STOP without edits unless the user explicitly requests implementation.",
+      "progressSignals": {
+        "keywords": [
+          "explain",
+          "walkthrough",
+          "how does",
+          "code path",
+          "architecture",
+          "read only",
+          "no edits"
+        ]
+      },
+      "requiredSignals": [
+        "repo question",
+        "specific code path or behavior",
+        "answer is useful without changing files"
+      ],
+      "goodExamples": [
+        "explain how checkout auth flow works without editing code",
+        "show me where package publish validation happens",
+        "what files control Loop It recommendation scoring"
+      ],
+      "badExamples": [
+        "fix failing CI typecheck job",
+        "publish npm package after final release checks",
+        "run production smoke every morning and report failures"
+      ],
+      "exampleChecks": [
+        "Cite the files inspected",
+        "Run a read-only command only when it clarifies the answer",
+        "Call out unknowns instead of guessing"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing CI",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "A failing check needs a goal-based repair loop, not an explanation turn."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable for understanding work because it avoids edit loops and requires file evidence.",
+        "bestWhen": [
+          "The question names a flow, command, module, or behavior.",
+          "The user wants understanding before implementation."
+        ],
+        "failsWhen": [
+          "The user expects code changes.",
+          "The relevant behavior cannot be found locally."
+        ],
+        "requiredCheck": "Cite the files inspected and run the narrowest read-only command if one is available."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when you want the agent to explain code, not change it.",
+        "useWhen": "Pick this for one focused codebase question that should end with an evidence-backed answer.",
+        "starterRequest": "Explain how checkout auth flow works without editing code.",
+        "firstStep": "Find the files that own the flow and trace the path from entrypoint to outcome.",
+        "proofTip": "The answer should cite inspected files and separate facts from inferences.",
+        "notFor": "Not for repair, release, or scheduled automation work."
+      }
+    },
+    {
+      "id": "small-edit-verification",
+      "title": "Small edit verification",
+      "category": "engineering",
+      "loopType": "turn-based",
+      "summary": "Make one scoped edit, run the narrow proof, and stop after reporting the changed files.",
+      "aliases": [
+        "small edit",
+        "quick fix",
+        "one change",
+        "focused change",
+        "regression coverage",
+        "test coverage"
+      ],
+      "bestFor": [
+        "A small known change with a nearby check.",
+        "Adding focused test or copy coverage without a multi-pass repair loop."
+      ],
+      "avoidWhen": [
+        "The failing command is unknown.",
+        "The work requires multiple discovery passes.",
+        "The task should keep running after the turn."
+      ],
+      "defaultObjective": "Make the smallest scoped change and verify it with the narrowest relevant check.",
+      "defaultCheck": "Run the narrowest relevant test, lint, build, or manual smoke for the edited area.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after one credible edit and one verification pass.",
+        "Stop if the check needs broader product or architecture decisions."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What is the exact small change and what check should prove it?"
+      ],
+      "body": "PLAN one small edit, APPLY it, VERIFY with the closest check, REPORT changed files and residual risk, then STOP.",
+      "progressSignals": {
+        "keywords": [
+          "small edit",
+          "quick fix",
+          "one change",
+          "focused test",
+          "regression coverage",
+          "verify lint",
+          "copy edit"
+        ]
+      },
+      "requiredSignals": [
+        "known change",
+        "small scope",
+        "nearby verification path"
+      ],
+      "goodExamples": [
+        "make one small copy edit and verify lint still passes",
+        "add regression tests for an uncovered checkout edge case",
+        "fix one typo in setup docs and run markdown check"
+      ],
+      "badExamples": [
+        "fix failing CI typecheck job",
+        "inspect this repo and run the right loop",
+        "watch my PR every 10 minutes and address new review comments"
+      ],
+      "exampleChecks": [
+        "Run the edited package or file check",
+        "Show the changed files",
+        "State remaining risk if the check is manual"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "inspect this repo",
+          "preferLoopId": "codebase-intake-to-running-loop",
+          "reason": "Broad repo requests need intake before a small edit is chosen."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable for low-risk work because it caps itself to one focused turn and one proof.",
+        "bestWhen": [
+          "The expected edit is clear.",
+          "The check is nearby and cheap."
+        ],
+        "failsWhen": [
+          "The issue requires diagnosis across multiple systems.",
+          "The verifier is missing or expensive."
+        ],
+        "requiredCheck": "Run the narrowest relevant test, lint, build, or manual smoke for the edited area."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this for a small change that should finish in one pass.",
+        "useWhen": "Pick this when you already know the target and proof.",
+        "starterRequest": "Make one small copy edit and verify lint still passes.",
+        "firstStep": "Name the exact edit, then make only that edit.",
+        "proofTip": "Run the nearest check and report changed files.",
+        "notFor": "Not for multi-iteration repairs or background monitoring."
+      }
+    },
+    {
+      "id": "diff-review-pass",
+      "title": "Diff review pass",
+      "category": "operations",
+      "loopType": "turn-based",
+      "summary": "Review the current diff for regressions, missing tests, and release blockers without taking ownership of the whole feature.",
+      "aliases": [
+        "review diff",
+        "code review",
+        "review changes",
+        "pre merge review",
+        "pr review"
+      ],
+      "bestFor": [
+        "A human or agent already changed files and needs review.",
+        "Finding risks before commit, PR, or release."
+      ],
+      "avoidWhen": [
+        "There is no diff to review.",
+        "The user asks to implement the feature from scratch.",
+        "New review comments should be polled over time."
+      ],
+      "defaultObjective": "Review the current diff and report blocking issues first.",
+      "defaultCheck": "Inspect git diff and run the narrowest relevant check if it is cheap and available.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after findings, open questions, and verification notes are reported.",
+        "Stop before editing unless the user asks to fix findings."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Should the review focus on bugs, security, UX, tests, or release risk?"
+      ],
+      "body": "DISCOVER the diff, REVIEW for behavior and test risks, optionally VERIFY with a cheap check, REPORT findings first, then STOP.",
+      "progressSignals": {
+        "keywords": [
+          "review",
+          "diff",
+          "pr",
+          "pull request",
+          "pre merge",
+          "changed files",
+          "risk"
+        ]
+      },
+      "requiredSignals": [
+        "existing diff",
+        "review requested",
+        "findings-first output"
+      ],
+      "goodExamples": [
+        "review this diff for risky changes before merge",
+        "check my staged changes for missing tests",
+        "pre-merge review the Loop It runner changes"
+      ],
+      "badExamples": [
+        "address new review comments every 15 minutes",
+        "fix failing CI typecheck job",
+        "explain how checkout auth flow works without editing code"
+      ],
+      "exampleChecks": [
+        "Run git diff or git status",
+        "Run a narrow check only when useful",
+        "Report findings ordered by severity"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "address blocking pull request review comments",
+          "preferLoopId": "review-comment-resolver-routine",
+          "reason": "A stream of new review comments is proactive workflow work, not a one-shot diff review."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable when there is a concrete diff because it uses code-review output rules.",
+        "bestWhen": [
+          "There are local changed files.",
+          "The desired output is review findings, not implementation."
+        ],
+        "failsWhen": [
+          "There is no diff.",
+          "The user needs ongoing PR monitoring."
+        ],
+        "requiredCheck": "Inspect git diff and run the narrowest relevant check if it is cheap and available."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when you want a review of changes already made.",
+        "useWhen": "Pick this before merging, releasing, or asking another reviewer.",
+        "starterRequest": "Review this diff for risky changes before merge.",
+        "firstStep": "Inspect git status and the relevant diff.",
+        "proofTip": "List blocker findings first with file references.",
+        "notFor": "Not for implementing a new feature or polling PR comments."
+      }
+    },
+    {
+      "id": "error-explanation-debug",
+      "title": "Error explanation debug",
+      "category": "engineering",
+      "loopType": "turn-based",
+      "summary": "Interpret one error, stack trace, or log and choose the smallest next debugging action.",
+      "aliases": [
+        "error",
+        "stack trace",
+        "debug",
+        "log",
+        "exception",
+        "typeerror"
+      ],
+      "bestFor": [
+        "One visible error where the next action is unclear.",
+        "Explaining likely cause before choosing repair work."
+      ],
+      "avoidWhen": [
+        "The failing command and fix loop are already known.",
+        "The user needs repeated verifier passes.",
+        "The error comes from production and needs incident response."
+      ],
+      "defaultObjective": "Explain the error and identify the smallest safe next debugging or repair step.",
+      "defaultCheck": "Reproduce the error or inspect the command/log that produced it.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop when the likely cause, evidence, and next action are clear.",
+        "Stop if more logs, secrets, or production access are required."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What exact command, log, or stack trace produced the error?"
+      ],
+      "body": "READ the error, MAP it to code or configuration, EXPLAIN the likely cause, suggest or make the smallest safe next step, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "error",
+          "stack trace",
+          "typeerror",
+          "exception",
+          "log",
+          "debug",
+          "crash"
+        ]
+      },
+      "requiredSignals": [
+        "specific error output",
+        "one failing path",
+        "need cause or next action"
+      ],
+      "goodExamples": [
+        "explain this TypeError stack trace and identify the likely fix",
+        "debug this npm install error from the pasted log",
+        "why does this route crash with undefined property"
+      ],
+      "badExamples": [
+        "fix failing CI typecheck job",
+        "sanitize unsafe user input before saving it",
+        "check CI every 5 minutes until the branch is green"
+      ],
+      "exampleChecks": [
+        "Quote only the relevant error line",
+        "Trace the error to likely source files",
+        "Name the next command to prove the theory"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "failing CI typecheck job",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "A named failing check should go straight to the repair loop."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable for narrowing one visible failure before a full repair loop starts.",
+        "bestWhen": [
+          "The error text is available.",
+          "The user wants diagnosis before edits."
+        ],
+        "failsWhen": [
+          "The error requires private services or production-only context.",
+          "The failure needs a multi-pass verifier repair."
+        ],
+        "requiredCheck": "Reproduce the error or inspect the command/log that produced it."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when an error is confusing and you need the next move.",
+        "useWhen": "Pick this for one pasted error, stack trace, or log.",
+        "starterRequest": "Explain this TypeError stack trace and identify the likely fix.",
+        "firstStep": "Read the exact error and trace it to the nearest code path.",
+        "proofTip": "The answer should name the evidence and the next verifier command.",
+        "notFor": "Not for broad repairs once the failing command is already known."
+      }
+    },
+    {
+      "id": "ui-copy-clarity-pass",
+      "title": "UI copy clarity pass",
+      "category": "product",
+      "loopType": "turn-based",
+      "summary": "Improve a focused UI copy or clarity problem with a quick visual or manual verification pass.",
+      "aliases": [
+        "ui copy",
+        "clarity",
+        "wording",
+        "cta",
+        "onboarding copy",
+        "confusing copy"
+      ],
+      "bestFor": [
+        "One screen or flow has confusing labels, helper text, or CTA wording.",
+        "A small UX copy pass should not become a redesign."
+      ],
+      "avoidWhen": [
+        "The whole page needs redesign.",
+        "The issue is a failing UI test.",
+        "The work needs product research or analytics."
+      ],
+      "defaultObjective": "Make the focused UI copy easier to understand without expanding the flow.",
+      "defaultCheck": "Manually verify the affected screen at desktop and mobile widths, or run the relevant UI smoke test.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop when the primary action and next step are clear.",
+        "Stop if further changes are subjective without user feedback."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which screen and primary action should be clearer?"
+      ],
+      "body": "INSPECT the screen, EDIT only the confusing copy or labels, VERIFY the action is clear on desktop and mobile, then STOP.",
+      "progressSignals": {
+        "keywords": [
+          "copy",
+          "wording",
+          "cta",
+          "confusing",
+          "clarity",
+          "onboarding",
+          "button label"
+        ]
+      },
+      "requiredSignals": [
+        "specific screen",
+        "confusing copy or action",
+        "manual or UI smoke check"
+      ],
+      "goodExamples": [
+        "tighten confusing button copy on the onboarding screen",
+        "make the install CTA label clearer",
+        "rename the loop picker helper text so users know what to do"
+      ],
+      "badExamples": [
+        "redesign the whole page from scratch",
+        "fix failing CI typecheck job",
+        "run production smoke every morning and report failures"
+      ],
+      "exampleChecks": [
+        "Verify desktop and mobile text fit",
+        "Confirm the primary action is visible",
+        "Run a UI smoke test if one exists"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "whole page redesign",
+          "preferLoopId": "ticket-to-verified-fix",
+          "reason": "A broad product change needs a concrete goal and verifier before copy polish."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable for tiny clarity fixes because it resists turning copy work into a redesign.",
+        "bestWhen": [
+          "The confusing UI element is named.",
+          "The desired user action is known."
+        ],
+        "failsWhen": [
+          "The product goal is undecided.",
+          "The requested change is broad visual redesign."
+        ],
+        "requiredCheck": "Manually verify the affected screen at desktop and mobile widths, or run the relevant UI smoke test."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this for one confusing piece of interface copy.",
+        "useWhen": "Pick this when labels or helper text make the next action unclear.",
+        "starterRequest": "Tighten confusing button copy on the onboarding screen.",
+        "firstStep": "Find the UI element and identify the user action it should support.",
+        "proofTip": "Verify the edited text fits and the next action is clear.",
+        "notFor": "Not for full-page redesigns or multi-screen UX work."
+      }
+    },
+    {
+      "id": "codebase-intake-to-running-loop",
+      "title": "Codebase intake to running loop",
+      "category": "operations",
+      "loopType": "goal-based",
+      "summary": "Inspect a repository request, choose the highest-confidence loop, and run one bounded verifier-gated loop.",
+      "aliases": [
+        "intake",
+        "codebase intake",
+        "inspect repo",
+        "inspect codebase",
+        "find next issue",
+        "what next",
+        "run the right loop",
+        "improve this repo",
+        "auto route"
+      ],
+      "bestFor": [
+        "Broad repo requests where the concrete loop is not obvious yet.",
+        "Turning a vague instruction into one runnable loop with a verifier."
+      ],
+      "avoidWhen": [
+        "The user already selected a loop.",
+        "The failing command is known and should be run immediately.",
+        "The task is only a code explanation."
+      ],
+      "defaultObjective": "Inspect this repo, recommend the highest-confidence loop, and run it with proof.",
+      "defaultCheck": "Run the inferred verifier or ask for one if no safe project-specific check can be found.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Stop when one concrete loop has run to proof or a clear blocker.",
+        "Stop if no safe verifier can be inferred.",
+        "Stop when the next action needs user approval."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What outcome should be true when the agent is done?",
+        "Which command proves the result if one exists?"
+      ],
+      "body": "DISCOVER repo signals, SELECT the strongest loop, PLAN the verifier, EXECUTE one bounded run, VERIFY, and REPORT proof or blocker.",
       "progressSignals": {
         "keywords": [
           "intake",
@@ -2211,9 +588,8 @@
       ],
       "badExamples": [
         "fix failing CI with logs",
-        "publish npm package",
-        "sanitize auth bypass",
-        "update stale README install command"
+        "publish npm package after final release checks",
+        "sanitize auth bypass"
       ],
       "exampleChecks": [
         "Infer and run npm run check, npm test, lint, typecheck, or build when available",
@@ -2222,45 +598,1513 @@
       ],
       "commonMisroutes": [
         {
-          "query": "fix failing ci",
+          "query": "explain how checkout auth flow works without editing code",
+          "preferLoopId": "code-path-explanation",
+          "reason": "Read-only explanation should stay turn-based."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable for starting work because it forces one selected loop and one verifier before execution.",
+        "bestWhen": [
+          "The request is broad but repo-local.",
+          "The repo has package scripts or obvious checks."
+        ],
+        "failsWhen": [
+          "The repo has no safe verifier.",
+          "The task depends on external systems or product decisions."
+        ],
+        "requiredCheck": "Run the inferred verifier or ask for one if no safe project-specific check can be found."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when you want Loop It to inspect the repo and pick the safest loop.",
+        "useWhen": "Pick this when the user asks what to tackle or says to improve the repo broadly.",
+        "starterRequest": "Inspect this repo and run the right loop.",
+        "firstStep": "Inspect package scripts, current progress, and obvious failure signals.",
+        "proofTip": "The run should report the selected loop, verifier, changed files, and blocker if any.",
+        "notFor": "Not for a known failing command or a read-only explanation."
+      }
+    },
+    {
+      "id": "failing-ci-repair",
+      "title": "Failing CI repair",
+      "category": "engineering",
+      "loopType": "goal-based",
+      "summary": "Repair a failing build, lint, type-check, or test job with the smallest verified change.",
+      "aliases": [
+        "ci",
+        "build failed",
+        "checks failed",
+        "lint failed",
+        "typecheck failed",
+        "test failed",
+        "red check"
+      ],
+      "bestFor": [
+        "One failing command or CI job with output.",
+        "Smallest safe change to make the check green."
+      ],
+      "avoidWhen": [
+        "No failing command exists.",
+        "The work is a broad feature request.",
+        "The task is only code explanation."
+      ],
+      "defaultObjective": "Fix the failing check with the smallest safe change.",
+      "defaultCheck": "Run the failing command locally or the closest available equivalent.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Stop when the failing check exits 0.",
+        "Stop if the same failure repeats twice without new evidence.",
+        "Stop if the check requires unavailable services or approvals."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What exact command or CI job is failing?",
+        "Can you provide the failure output?"
+      ],
+      "body": "DISCOVER the failure, PLAN the smallest credible repair, EXECUTE the patch, VERIFY the failing command, ITERATE until green or blocked.",
+      "progressSignals": {
+        "keywords": [
+          "ci",
+          "build",
+          "lint",
+          "eslint",
+          "typecheck",
+          "tsc",
+          "test failed",
+          "red check",
+          "workflow"
+        ]
+      },
+      "requiredSignals": [
+        "specific failing command or CI job",
+        "failure output",
+        "green check is the goal"
+      ],
+      "goodExamples": [
+        "fix failing CI typecheck job",
+        "fix failing checkout test",
+        "repair npm run check",
+        "make lint pass after dependency update"
+      ],
+      "badExamples": [
+        "feature quality is uncertain",
+        "fresh install fails for a new user",
+        "security risk with no CI failure"
+      ],
+      "exampleChecks": [
+        "Run the failing command locally",
+        "Rerun the CI-equivalent check",
+        "Broaden to npm run check after the narrow check passes"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix bug where checkout redirects to the wrong page",
+          "preferLoopId": "ticket-to-verified-fix",
+          "reason": "A behavior bug with known repro should use ticket-to-verified-fix."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Proven local pattern for commands that can be rerun until green.",
+        "bestWhen": [
+          "There is a named failing command.",
+          "The failure reproduces locally or has logs."
+        ],
+        "failsWhen": [
+          "The check depends on secrets or production services.",
+          "The failure is flaky and needs repeated-pass proof."
+        ],
+        "requiredCheck": "Run the failing command locally or the closest available equivalent."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when a check is red and the job is to make it green.",
+        "useWhen": "Pick this for CI, lint, build, type-check, or test failures.",
+        "starterRequest": "Fix failing CI typecheck job.",
+        "firstStep": "Run the failing command or closest local equivalent.",
+        "proofTip": "The final proof is the command exiting 0.",
+        "notFor": "Not for broad product bugs or scheduled monitoring."
+      }
+    },
+    {
+      "id": "ticket-to-verified-fix",
+      "title": "Ticket to verified fix",
+      "category": "engineering",
+      "loopType": "goal-based",
+      "summary": "Turn a bug report or small defect into the smallest patch with proof.",
+      "aliases": [
+        "bug",
+        "defect",
+        "ticket",
+        "regression",
+        "customer issue",
+        "broken behavior"
+      ],
+      "bestFor": [
+        "A concrete wrong behavior and expected behavior.",
+        "A small fix that needs a reproduction or regression check."
+      ],
+      "avoidWhen": [
+        "The request is only a red CI command.",
+        "The expected behavior is unknown.",
+        "The task is a pure refactor."
+      ],
+      "defaultObjective": "Fix the reported behavior with the smallest credible patch.",
+      "defaultCheck": "Run the original reproduction and the narrowest relevant regression check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Stop when the reproduction passes.",
+        "Stop if expected behavior is unclear.",
+        "Stop if the fix requires approval-sensitive work."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What is the observed behavior?",
+        "What should happen instead?",
+        "How can we reproduce it?"
+      ],
+      "body": "DISCOVER the repro, PLAN the smallest fix, EXECUTE the patch, VERIFY the repro and nearby regression check, then REPORT proof.",
+      "progressSignals": {
+        "keywords": [
+          "bug",
+          "broken",
+          "regression",
+          "repro",
+          "reproduce",
+          "failing test",
+          "customer issue"
+        ]
+      },
+      "requiredSignals": [
+        "wrong behavior",
+        "expected behavior",
+        "reproduction or regression check"
+      ],
+      "goodExamples": [
+        "fix bug where checkout redirects to the wrong page",
+        "fix a broken checkout redirect",
+        "repair a customer-reported regression",
+        "make the repro pass with a focused patch"
+      ],
+      "badExamples": [
+        "red CI job with logs",
+        "broad refactor with no failing behavior",
+        "undefined product decision"
+      ],
+      "exampleChecks": [
+        "Run the original reproduction",
+        "Run the narrowest regression test",
+        "Run the related feature smoke"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing CI typecheck job",
           "preferLoopId": "failing-ci-repair",
-          "reason": "Known red checks should go straight to failing CI repair."
-        },
+          "reason": "A named failing check should use failing-ci-repair."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable when a bug has an observed result, expected result, and repro path.",
+        "bestWhen": [
+          "The defect is specific.",
+          "There is a reproduction or narrow test."
+        ],
+        "failsWhen": [
+          "The product decision is unresolved.",
+          "The issue is a general quality complaint."
+        ],
+        "requiredCheck": "Run the original reproduction and the narrowest relevant regression check."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this for a real bug with expected behavior.",
+        "useWhen": "Pick this when something specific is wrong and can be reproduced.",
+        "starterRequest": "Fix bug where checkout redirects to the wrong page.",
+        "firstStep": "Reproduce the bug or identify the narrowest equivalent check.",
+        "proofTip": "The final proof should show the repro or regression check passing.",
+        "notFor": "Not for vague improvements or pure CI repairs."
+      }
+    },
+    {
+      "id": "security-hardening",
+      "title": "Security hardening",
+      "category": "security",
+      "loopType": "goal-based",
+      "summary": "Reduce a concrete security risk with scoped evidence and approval gates.",
+      "aliases": [
+        "security",
+        "vulnerability",
+        "secret",
+        "auth",
+        "authorization",
+        "xss",
+        "csrf",
+        "sanitize"
+      ],
+      "bestFor": [
+        "A specific security finding or trust-boundary risk.",
+        "Input validation, auth, secret exposure, or permission hardening with tests."
+      ],
+      "avoidWhen": [
+        "The ask is a broad audit with no target.",
+        "The fix requires secret rotation or production changes without approval.",
+        "The task is just dependency monitoring."
+      ],
+      "defaultObjective": "Reduce the named security risk with the smallest scoped change.",
+      "defaultCheck": "Run the relevant security, auth, validation, or regression check.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Stop when the risk is mitigated and the regression check passes.",
+        "Stop if remediation requires credential changes or production access.",
+        "Stop if the finding cannot be reproduced or scoped."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What is the specific risk or finding?",
+        "Which trust boundary is affected?",
+        "What check proves the risk is reduced?"
+      ],
+      "body": "DISCOVER the trust boundary, PLAN the mitigation, EXECUTE the smallest safe change, VERIFY with security or regression proof, and REPORT residual risk.",
+      "progressSignals": {
+        "keywords": [
+          "security",
+          "vulnerability",
+          "secret",
+          "auth",
+          "authorization",
+          "xss",
+          "csrf",
+          "permission",
+          "sanitize"
+        ]
+      },
+      "requiredSignals": [
+        "specific risk or finding",
+        "trust boundary",
+        "security or regression proof"
+      ],
+      "goodExamples": [
+        "sanitize unsafe user input before saving it",
+        "security review finding for auth bypass",
+        "fix authorization bypass",
+        "remove exposed secret from config path"
+      ],
+      "badExamples": [
+        "broad audit with no target",
+        "secret rotation without approval",
+        "generic code cleanup"
+      ],
+      "exampleChecks": [
+        "Run relevant auth or validation tests",
+        "Review the affected trust boundary",
+        "Document residual risk"
+      ],
+      "commonMisroutes": [
         {
-          "query": "publish npm package",
-          "preferLoopId": "release-readiness",
-          "reason": "Known release work should use release readiness."
-        },
+          "query": "upgrade vulnerable dependency and prove compatibility",
+          "preferLoopId": "daily-dependency-watch",
+          "reason": "Ongoing dependency advisory checks belong to the dependency watch pattern."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable when the security risk is specific and has a regression or review check.",
+        "bestWhen": [
+          "The affected boundary is known.",
+          "The proof can run locally."
+        ],
+        "failsWhen": [
+          "The work requires secret rotation or production changes.",
+          "The finding is too broad to verify."
+        ],
+        "requiredCheck": "Run the relevant security, auth, validation, or regression check."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when the work is reducing a named security risk.",
+        "useWhen": "Pick this for auth, validation, secret, or permission fixes with proof.",
+        "starterRequest": "Sanitize unsafe user input before saving it.",
+        "firstStep": "Identify the trust boundary and the failing or missing guard.",
+        "proofTip": "Run the relevant validation, auth, or regression check and name residual risk.",
+        "notFor": "Not for broad security audits or secret rotation without approval."
+      }
+    },
+    {
+      "id": "release-readiness",
+      "title": "Release readiness",
+      "category": "operations",
+      "loopType": "goal-based",
+      "summary": "Prepare a package, app, or feature for a public release with evidence.",
+      "aliases": [
+        "release",
+        "publish",
+        "npm",
+        "tag",
+        "changelog",
+        "ship",
+        "launch",
+        "fresh install"
+      ],
+      "bestFor": [
+        "Final package, app, or feature release checks.",
+        "Dry-run packaging, install smoke, changelog, and release notes."
+      ],
+      "avoidWhen": [
+        "Core work is still incomplete.",
+        "Publishing requires missing OTP or approval.",
+        "The request is only dependency watch scheduling."
+      ],
+      "defaultObjective": "Prepare the release and prove it is ready to ship.",
+      "defaultCheck": "Run package checks, dry-run publish or build, and a fresh install or production smoke.",
+      "maxIterations": 3,
+      "stopConditions": [
+        "Stop when release checks pass and required metadata is updated.",
+        "Stop if publish, deploy, or credentials need user approval.",
+        "Stop if public verification fails after the release artifact changes."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "What version or artifact is being released?",
+        "Which public or fresh-install check proves it shipped correctly?"
+      ],
+      "body": "DISCOVER release surface, PLAN checks, EXECUTE metadata and package prep, VERIFY dry-run and fresh install, then STOP before approval-sensitive publish unless approved.",
+      "progressSignals": {
+        "keywords": [
+          "release",
+          "publish",
+          "npm",
+          "tag",
+          "version",
+          "changelog",
+          "deploy",
+          "production",
+          "launch",
+          "fresh install"
+        ]
+      },
+      "requiredSignals": [
+        "artifact to release",
+        "version or changelog impact",
+        "fresh install or production smoke"
+      ],
+      "goodExamples": [
+        "publish npm package after final release checks",
+        "publish npm package",
+        "prepare 0.3.1 release",
+        "verify latest npx install works",
+        "fix stale installed skill copies"
+      ],
+      "badExamples": [
+        "core feature is still incomplete",
+        "dependency upgrade compatibility only",
+        "publishing needs missing OTP approval"
+      ],
+      "exampleChecks": [
+        "Run npm run check",
+        "Run npm pack --dry-run or build dry-run",
+        "Verify from a fresh install or public URL"
+      ],
+      "commonMisroutes": [
         {
-          "query": "security auth bypass",
-          "preferLoopId": "security-hardening",
-          "reason": "Known security findings should use security hardening."
+          "query": "check CI every 5 minutes until the branch is green",
+          "preferLoopId": "ci-health-watch",
+          "reason": "Polling CI over time is a time-based watch, not release prep."
+        }
+      ],
+      "reliability": {
+        "status": "tested",
+        "summary": "Reliable when release work has a known artifact, version impact, and fresh install or public smoke.",
+        "bestWhen": [
+          "The artifact is ready for final checks.",
+          "A release verifier exists."
+        ],
+        "failsWhen": [
+          "The release needs OTP, deploy approval, or external account access.",
+          "Feature work is not finished."
+        ],
+        "requiredCheck": "Run package checks, dry-run publish or build, and a fresh install or production smoke."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when the code is ready and you need proof before shipping.",
+        "useWhen": "Pick this for package release, app deploy readiness, changelog, and fresh install checks.",
+        "starterRequest": "Publish npm package after final release checks.",
+        "firstStep": "List the release surface: version, docs, package contents, and verifier.",
+        "proofTip": "Show check output, dry-run package contents, and fresh install or public smoke proof.",
+        "notFor": "Not for unfinished feature work or background CI polling."
+      }
+    },
+    {
+      "id": "pr-review-watch",
+      "title": "PR review watch",
+      "category": "operations",
+      "loopType": "time-based",
+      "summary": "Poll a pull request on an interval and handle new review comments until approval or a blocker appears; requires a host scheduler/connector.",
+      "aliases": [
+        "watch pr",
+        "poll review",
+        "review comments",
+        "every 10 minutes",
+        "pr monitor"
+      ],
+      "bestFor": [
+        "A PR needs repeated checks for new comments or status changes.",
+        "The host can poll GitHub or another review system."
+      ],
+      "avoidWhen": [
+        "There is only a local diff to review once.",
+        "No connector or schedule can read the PR.",
+        "Comments require product approval."
+      ],
+      "defaultObjective": "Watch the PR for new review comments and resolve actionable ones with proof.",
+      "defaultCheck": "Every interval, fetch new review comments and CI status; stop when approved, merged, blocked, or the interval budget ends.",
+      "maxIterations": 5,
+      "stopConditions": [
+        "Stop when the PR is approved or merged.",
+        "Stop when no new comments appear for the configured interval budget.",
+        "Stop if a comment needs a product decision or unsafe action."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which PR should be watched?",
+        "What interval and max passes should the host use?",
+        "Which checks must stay green?"
+      ],
+      "body": "SCHEDULE polling in the host, OBSERVE new PR comments and checks, ACT on actionable comments, VERIFY, DECIDE whether to continue, then REPEAT until stop.",
+      "progressSignals": {
+        "keywords": [
+          "watch pr",
+          "poll",
+          "review comments",
+          "every",
+          "interval",
+          "github pr",
+          "approval"
+        ]
+      },
+      "requiredSignals": [
+        "PR identifier",
+        "polling interval",
+        "review or CI connector"
+      ],
+      "goodExamples": [
+        "watch my PR every 10 minutes and address new review comments",
+        "poll this pull request until approval or a blocker appears",
+        "check for new review comments every 15 minutes"
+      ],
+      "badExamples": [
+        "review this diff for risky changes before merge",
+        "fix failing CI typecheck job",
+        "explain how checkout auth flow works without editing code"
+      ],
+      "exampleChecks": [
+        "Fetch PR comments and CI status each pass",
+        "Run the affected verifier after edits",
+        "Record which comments were resolved or blocked"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "review this diff for risky changes before merge",
+          "preferLoopId": "diff-review-pass",
+          "reason": "A one-shot local diff review should not use a scheduled watch."
         }
       ],
       "reliability": {
         "status": "experimental",
-        "summary": "Useful as a repo-intake router, but it needs more real-project evals before being called proven.",
+        "summary": "Useful as a host pattern, but Loop It does not provide the scheduler or PR connector by itself.",
         "bestWhen": [
-          "The request is broad but the repo has scripts, CI, docs, or active loop state to inspect.",
-          "The user wants Loop It to reduce back-and-forth by picking one actionable loop.",
-          "A safe verifier can be inferred or one targeted question can unblock it."
+          "The host has GitHub access.",
+          "The PR can be polled safely."
         ],
         "failsWhen": [
-          "The repo has no trustworthy verifier and the user will not clarify success.",
-          "The request hides multiple unrelated goals.",
-          "The highest-confidence next step requires approval or production access."
+          "No connector is available.",
+          "The review comments need human product decisions."
         ],
-        "requiredCheck": "Record the selected loop, inferred verifier, first verifier result, changed files, blockers, and next action."
+        "requiredCheck": "Host must confirm each poll fetched PR state and any changed code passed the relevant verifier."
       },
       "userGuide": {
-        "plainLanguage": "Use this when you want Loop It to inspect the repo, pick the right loop, and start running it.",
-        "useWhen": "Pick this when the user asks broadly what to fix, improve, or tackle next in a codebase.",
-        "starterRequest": "Inspect this repo, recommend the highest-confidence loop, and run it with proof.",
-        "firstStep": "Read package scripts, CI config, README, active loop state, and the user request before choosing a loop.",
-        "proofTip": "The result must name the selected loop and verifier, then show a real verifier result or a blocker.",
-        "notFor": "Do not use it when the user already named a specific failing command, release task, security finding, or doc mismatch."
+        "plainLanguage": "Use this when a PR needs repeated review-comment checks.",
+        "useWhen": "Pick this only if your host can poll the PR over time.",
+        "starterRequest": "Watch my PR every 10 minutes and address new review comments.",
+        "firstStep": "Confirm the PR URL, interval, max passes, and checks to keep green.",
+        "proofTip": "Each pass should list new comments, actions taken, and verifier results.",
+        "notFor": "Not for a single local diff review."
+      }
+    },
+    {
+      "id": "ci-health-watch",
+      "title": "CI health watch",
+      "category": "operations",
+      "loopType": "time-based",
+      "summary": "Poll CI on a schedule until the branch is green, stable-failing, or blocked; requires a host scheduler/connector.",
+      "aliases": [
+        "watch ci",
+        "ci monitor",
+        "poll ci",
+        "every 5 minutes",
+        "until green"
+      ],
+      "bestFor": [
+        "CI status is still running or intermittently changing.",
+        "The next action depends on future check results."
+      ],
+      "avoidWhen": [
+        "A specific failing command is already known.",
+        "The host cannot read CI status.",
+        "The branch needs immediate local repair."
+      ],
+      "defaultObjective": "Watch CI until the branch is green or the failure is stable enough to repair.",
+      "defaultCheck": "Every interval, fetch CI status and logs; stop when green, stable-failing, or blocked.",
+      "maxIterations": 6,
+      "stopConditions": [
+        "Stop when all required checks are green.",
+        "Stop when the same failure repeats twice with stable logs.",
+        "Stop when CI cannot be read by the host."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which branch or PR should be watched?",
+        "What interval and max passes are safe?",
+        "Which CI checks are required?"
+      ],
+      "body": "SCHEDULE polling, OBSERVE CI status and logs, DECIDE whether to wait or hand off to failing-ci-repair, and REPEAT until green or stable-failing.",
+      "progressSignals": {
+        "keywords": [
+          "ci health",
+          "watch ci",
+          "poll ci",
+          "green",
+          "every 5 minutes",
+          "status checks",
+          "workflow"
+        ]
       },
-      "loopType": "goal-based"
+      "requiredSignals": [
+        "branch or PR",
+        "CI status source",
+        "interval and pass budget"
+      ],
+      "goodExamples": [
+        "check CI every 5 minutes until the branch is green",
+        "watch status checks until the deployment workflow finishes",
+        "poll CI until the same failure repeats twice"
+      ],
+      "badExamples": [
+        "fix failing CI typecheck job",
+        "publish npm package after final release checks",
+        "review this diff for risky changes before merge"
+      ],
+      "exampleChecks": [
+        "Fetch status checks each pass",
+        "Capture logs when a failure appears",
+        "Hand off to failing-ci-repair once the failure is stable"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing CI typecheck job",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "Known failures should be repaired directly instead of watched."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful for waiting on remote CI, but depends on host access to CI status.",
+        "bestWhen": [
+          "CI is pending or flaky.",
+          "The host can fetch logs and statuses."
+        ],
+        "failsWhen": [
+          "The failing command is already known.",
+          "CI access is unavailable."
+        ],
+        "requiredCheck": "Each interval must record CI status, log URL or excerpt, and next action."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when CI is still moving and needs polling.",
+        "useWhen": "Pick this when the job is to wait, observe, and react to CI status.",
+        "starterRequest": "Check CI every 5 minutes until the branch is green.",
+        "firstStep": "Confirm the branch or PR and which checks matter.",
+        "proofTip": "The log should show every poll result and why the loop stopped.",
+        "notFor": "Not for a known local failing command."
+      }
+    },
+    {
+      "id": "daily-dependency-watch",
+      "title": "Daily dependency watch",
+      "category": "operations",
+      "loopType": "time-based",
+      "summary": "Run a scheduled dependency and advisory check, then open or recommend one bounded upgrade loop when needed.",
+      "aliases": [
+        "daily dependency",
+        "dependency watch",
+        "audit schedule",
+        "vulnerability dependency",
+        "npm audit"
+      ],
+      "bestFor": [
+        "Dependency updates or advisories need regular review.",
+        "The host can run scheduled package checks."
+      ],
+      "avoidWhen": [
+        "A specific vulnerable code path needs a fix now.",
+        "The repo has no lockfile or package manager.",
+        "Bulk upgrades would be unsafe."
+      ],
+      "defaultObjective": "Check dependencies on schedule and route actionable upgrades to a bounded follow-up.",
+      "defaultCheck": "Run the package-manager audit/outdated command and the project compatibility check.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop when no actionable updates are found.",
+        "Stop after creating or recommending one bounded upgrade follow-up.",
+        "Stop if the update requires approval or major-version product risk."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which package manager and schedule should be used?",
+        "Which severity threshold should trigger a follow-up?"
+      ],
+      "body": "SCHEDULE the dependency check, OBSERVE audit/outdated output, DECIDE if one upgrade follow-up is warranted, and STOP with proof or a routed loop.",
+      "progressSignals": {
+        "keywords": [
+          "dependency",
+          "daily",
+          "audit",
+          "outdated",
+          "npm audit",
+          "advisory",
+          "upgrade"
+        ]
+      },
+      "requiredSignals": [
+        "package manager",
+        "schedule or interval",
+        "compatibility verifier"
+      ],
+      "goodExamples": [
+        "run a daily dependency update check and report advisories",
+        "schedule npm audit and route moderate advisories",
+        "check outdated dependencies every morning"
+      ],
+      "badExamples": [
+        "sanitize unsafe user input before saving it",
+        "upgrade React dependency and fix compatibility issues now",
+        "publish npm package after final release checks"
+      ],
+      "exampleChecks": [
+        "Run npm audit or equivalent",
+        "Run npm outdated or equivalent when safe",
+        "Run the project compatibility check before recommending changes"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "sanitize unsafe user input before saving it",
+          "preferLoopId": "security-hardening",
+          "reason": "Application security fixes should use the security hardening loop."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Reliable as a scheduled detection pattern; actual upgrades should be handed to a bounded repair loop.",
+        "bestWhen": [
+          "The repo has a lockfile.",
+          "A package-manager audit command exists."
+        ],
+        "failsWhen": [
+          "The host cannot schedule commands.",
+          "Upgrades require broad manual QA."
+        ],
+        "requiredCheck": "The scheduled run must record audit/outdated output and the compatibility verifier result."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this for recurring dependency checks.",
+        "useWhen": "Pick this when advisories should be checked on a schedule, not fixed ad hoc.",
+        "starterRequest": "Run a daily dependency update check and report advisories.",
+        "firstStep": "Confirm package manager, schedule, severity threshold, and compatibility check.",
+        "proofTip": "Record audit output and whether a follow-up upgrade loop was recommended.",
+        "notFor": "Not for immediate app security bugs or broad dependency rewrites."
+      }
+    },
+    {
+      "id": "docs-freshness-watch",
+      "title": "Docs freshness watch",
+      "category": "content",
+      "loopType": "time-based",
+      "summary": "Periodically check setup docs, commands, and examples for drift against the current package or product state.",
+      "aliases": [
+        "docs watch",
+        "docs freshness",
+        "stale docs",
+        "weekly docs",
+        "install command drift"
+      ],
+      "bestFor": [
+        "Docs drift recurs after releases.",
+        "Install commands or examples should be checked on a cadence."
+      ],
+      "avoidWhen": [
+        "There is one known typo to fix now.",
+        "The docs need a full rewrite.",
+        "The host cannot run scheduled checks."
+      ],
+      "defaultObjective": "Check docs freshness and fix or route one stale instruction with proof.",
+      "defaultCheck": "Run documented setup commands or the closest docs smoke from a clean checkout.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop when docs match current commands and versions.",
+        "Stop after fixing or routing one stale instruction.",
+        "Stop if validating docs requires unavailable external services."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which docs are source-of-truth?",
+        "Which commands prove freshness?",
+        "How often should the host run this?"
+      ],
+      "body": "SCHEDULE docs checks, OBSERVE command/version drift, ACT on one stale item or route a follow-up, VERIFY, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "docs",
+          "freshness",
+          "stale",
+          "readme",
+          "install command",
+          "weekly",
+          "examples"
+        ]
+      },
+      "requiredSignals": [
+        "docs path or source",
+        "expected command/version source",
+        "docs verification command"
+      ],
+      "goodExamples": [
+        "check docs once a week for stale install commands",
+        "update stale README installation docs after npx command changed",
+        "run weekly docs freshness check for setup examples"
+      ],
+      "badExamples": [
+        "make one small copy edit and verify lint still passes",
+        "publish npm package after final release checks",
+        "watch my PR every 10 minutes and address new review comments"
+      ],
+      "exampleChecks": [
+        "Run documented commands from a clean directory when possible",
+        "Compare documented version or command against package metadata",
+        "Record any stale docs and the proof after fixing"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "make one small copy edit",
+          "preferLoopId": "small-edit-verification",
+          "reason": "A one-off copy edit should stay turn-based, not scheduled."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Good for recurring drift detection; depends on the host being able to run scheduled checks.",
+        "bestWhen": [
+          "Docs contain commands or versions that can drift.",
+          "A clean setup check exists."
+        ],
+        "failsWhen": [
+          "Docs require subjective rewriting.",
+          "The host cannot schedule the watch."
+        ],
+        "requiredCheck": "Each run must record the docs checked, command output, and any changed files."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this to keep docs from drifting after releases.",
+        "useWhen": "Pick this for recurring install-command or example freshness checks.",
+        "starterRequest": "Check docs once a week for stale install commands.",
+        "firstStep": "Identify docs that drift and the command that proves them.",
+        "proofTip": "Show the documented command running or explain the exact blocker.",
+        "notFor": "Not for one tiny typo or subjective documentation rewrites."
+      }
+    },
+    {
+      "id": "production-smoke-watch",
+      "title": "Production smoke watch",
+      "category": "operations",
+      "loopType": "time-based",
+      "summary": "Run a scheduled public smoke check and report or route failures without silently changing production.",
+      "aliases": [
+        "production smoke",
+        "site watch",
+        "public smoke",
+        "uptime smoke",
+        "daily smoke"
+      ],
+      "bestFor": [
+        "A public URL or shipped flow needs periodic health checks.",
+        "Failures should route to a bounded repair loop."
+      ],
+      "avoidWhen": [
+        "The check writes production data.",
+        "No public or safe smoke path exists.",
+        "A known failing deployment needs immediate repair."
+      ],
+      "defaultObjective": "Run the public smoke on schedule and route failures to the right repair loop.",
+      "defaultCheck": "Run the safe production smoke command or browser check against the public URL.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop when the smoke passes.",
+        "Stop after routing one failure with evidence.",
+        "Stop if the smoke would write production data or need credentials."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which public URL or smoke command is safe?",
+        "What schedule should the host use?",
+        "Who should receive failures?"
+      ],
+      "body": "SCHEDULE a safe smoke, OBSERVE the public result, DECIDE pass/fail, ROUTE failures with evidence, and STOP without production writes.",
+      "progressSignals": {
+        "keywords": [
+          "production",
+          "smoke",
+          "public url",
+          "daily smoke",
+          "uptime",
+          "site health"
+        ]
+      },
+      "requiredSignals": [
+        "public URL or smoke command",
+        "safe read-only path",
+        "schedule and failure routing"
+      ],
+      "goodExamples": [
+        "run production smoke every morning and report failures",
+        "check the public Loop It page daily and route failures",
+        "watch the deployed app home page with a safe smoke"
+      ],
+      "badExamples": [
+        "fix failed Vercel preview deployment build from deploy logs",
+        "publish npm package after final release checks",
+        "sanitize unsafe user input before saving it"
+      ],
+      "exampleChecks": [
+        "Run the safe public smoke",
+        "Capture status code, screenshot, or command output",
+        "Route failures to a repair loop without changing production"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "publish npm package after final release checks",
+          "preferLoopId": "release-readiness",
+          "reason": "Final release prep is goal-based, not a recurring production watch."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful for scheduled smoke checks, but it must remain read-only unless the user approves otherwise.",
+        "bestWhen": [
+          "A safe public smoke exists.",
+          "The host can schedule and report failures."
+        ],
+        "failsWhen": [
+          "The smoke writes data or needs credentials.",
+          "Failures require manual incident decisions."
+        ],
+        "requiredCheck": "Every run must record the public URL or command, result, and routed next action."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this to check a shipped app or page on a schedule.",
+        "useWhen": "Pick this for read-only public smoke checks.",
+        "starterRequest": "Run production smoke every morning and report failures.",
+        "firstStep": "Confirm the URL or command is safe and read-only.",
+        "proofTip": "Record status, screenshot or output, and the routed follow-up if it fails.",
+        "notFor": "Not for deploys, production writes, or immediate known failures."
+      }
+    },
+    {
+      "id": "incoming-bug-triage-routine",
+      "title": "Incoming bug triage routine",
+      "category": "operations",
+      "loopType": "proactive",
+      "summary": "React to incoming bug reports, classify them, and route one actionable item to a bounded fix loop; requires an issue/support connector.",
+      "aliases": [
+        "incoming bugs",
+        "bug triage",
+        "issue triage",
+        "support triage",
+        "new bug reports"
+      ],
+      "bestFor": [
+        "New bug reports arrive in an issue tracker or support queue.",
+        "The routine should classify, deduplicate, and route work."
+      ],
+      "avoidWhen": [
+        "There is one known bug to fix now.",
+        "No queue connector is available.",
+        "The report contains sensitive customer data that cannot be processed."
+      ],
+      "defaultObjective": "Triage incoming bug reports and route the highest-confidence actionable item.",
+      "defaultCheck": "Read new queue items, classify severity and reproducibility, and create or recommend one bounded follow-up loop.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after routing one actionable item or reporting no actionable bugs.",
+        "Stop if triage needs private data access or product decisions.",
+        "Stop if duplicate detection is inconclusive."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which queue or tracker should be watched?",
+        "What severity rules should be used?",
+        "Where should routed work be recorded?"
+      ],
+      "body": "ON EVENT, OBSERVE new bug reports, CLASSIFY and deduplicate, DECIDE the next bounded loop, ROUTE it with evidence, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "incoming bug",
+          "bug triage",
+          "issue queue",
+          "support queue",
+          "new report",
+          "severity"
+        ]
+      },
+      "requiredSignals": [
+        "queue connector",
+        "triage rules",
+        "routing destination"
+      ],
+      "goodExamples": [
+        "triage incoming bug reports from the issue queue and route them",
+        "classify new support bugs and create one verified fix follow-up",
+        "process new bug reports and pick the highest severity actionable issue"
+      ],
+      "badExamples": [
+        "fix bug where checkout redirects to the wrong page",
+        "review this diff for risky changes before merge",
+        "run production smoke every morning and report failures"
+      ],
+      "exampleChecks": [
+        "Record item IDs reviewed",
+        "Classify severity and reproducibility",
+        "Route one bug to ticket-to-verified-fix or report no action"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix bug where checkout redirects to the wrong page",
+          "preferLoopId": "ticket-to-verified-fix",
+          "reason": "A known bug should be fixed directly."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful as an event-driven triage pattern, but requires a real queue connector and routing rules.",
+        "bestWhen": [
+          "Bug reports arrive in a structured queue.",
+          "Routing rules are clear."
+        ],
+        "failsWhen": [
+          "No connector is available.",
+          "Reports require human product judgment or sensitive-data handling."
+        ],
+        "requiredCheck": "The routine must record reviewed item IDs, classification, and routed loop or no-action reason."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when new bug reports should be sorted automatically.",
+        "useWhen": "Pick this only when a host can read the issue or support queue.",
+        "starterRequest": "Triage incoming bug reports from the issue queue and route them.",
+        "firstStep": "Confirm queue access, severity rules, and routing destination.",
+        "proofTip": "Show which items were reviewed and why one was routed or skipped.",
+        "notFor": "Not for fixing one already-known bug."
+      }
+    },
+    {
+      "id": "dependency-upgrade-queue-routine",
+      "title": "Dependency upgrade queue routine",
+      "category": "operations",
+      "loopType": "proactive",
+      "summary": "Process dependency update items as they appear and route safe upgrades into bounded compatibility loops.",
+      "aliases": [
+        "dependency queue",
+        "renovate queue",
+        "dependabot queue",
+        "upgrade queue",
+        "dependency pr"
+      ],
+      "bestFor": [
+        "Dependency PRs or update tickets arrive continuously.",
+        "The routine should choose one safe upgrade at a time."
+      ],
+      "avoidWhen": [
+        "There is only a scheduled audit with no queue.",
+        "The upgrade needs broad migration work.",
+        "No compatibility check is available."
+      ],
+      "defaultObjective": "Process the dependency upgrade queue and route one safe update with compatibility proof.",
+      "defaultCheck": "Inspect new dependency items and run or require the project compatibility check before routing.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after routing or closing one dependency item.",
+        "Stop if the update is major-risk or lacks a verifier.",
+        "Stop if credentials or external approval are needed."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which dependency queue should be watched?",
+        "What compatibility check proves an upgrade?",
+        "Which update classes are allowed automatically?"
+      ],
+      "body": "ON EVENT, OBSERVE dependency items, FILTER by risk, ACT on one safe item or route it, VERIFY compatibility, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "dependency queue",
+          "renovate",
+          "dependabot",
+          "upgrade pr",
+          "new dependency",
+          "compatibility"
+        ]
+      },
+      "requiredSignals": [
+        "dependency queue connector",
+        "risk policy",
+        "compatibility verifier"
+      ],
+      "goodExamples": [
+        "proactively process dependency upgrade tickets as they arrive",
+        "handle new Dependabot PRs one at a time with compatibility proof",
+        "triage Renovate queue and route safe patch upgrades"
+      ],
+      "badExamples": [
+        "run a daily dependency update check and report advisories",
+        "upgrade React dependency and fix compatibility issues now",
+        "sanitize unsafe user input before saving it"
+      ],
+      "exampleChecks": [
+        "Record dependency item reviewed",
+        "Run or name compatibility verifier",
+        "Route risky upgrades instead of silently changing them"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "run a daily dependency update check",
+          "preferLoopId": "daily-dependency-watch",
+          "reason": "Scheduled audits use the time-based dependency watch."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful for a live update queue, but not a substitute for compatibility proof.",
+        "bestWhen": [
+          "The queue is structured.",
+          "Patch/minor policy and checks are defined."
+        ],
+        "failsWhen": [
+          "The queue has only risky major upgrades.",
+          "No verifier exists."
+        ],
+        "requiredCheck": "Each processed item must include package, version, risk class, and compatibility check result."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when dependency update tickets arrive over time.",
+        "useWhen": "Pick this for Dependabot, Renovate, or upgrade queues.",
+        "starterRequest": "Proactively process dependency upgrade tickets as they arrive.",
+        "firstStep": "Confirm queue source, allowed update classes, and verifier.",
+        "proofTip": "Log the item, risk decision, and compatibility proof.",
+        "notFor": "Not for one manual upgrade or scheduled audit-only checks."
+      }
+    },
+    {
+      "id": "review-comment-resolver-routine",
+      "title": "Review comment resolver routine",
+      "category": "operations",
+      "loopType": "proactive",
+      "summary": "React to new review comments, apply safe fixes, verify, and request another review; requires PR connector access.",
+      "aliases": [
+        "resolve review comments",
+        "new review comments",
+        "review resolver",
+        "pr comments",
+        "request re-review"
+      ],
+      "bestFor": [
+        "New review comments arrive after the author has moved on.",
+        "The host can read comments and update the PR."
+      ],
+      "avoidWhen": [
+        "The user only wants a one-shot diff review.",
+        "Comments require product judgment.",
+        "No PR connector is available."
+      ],
+      "defaultObjective": "Resolve new actionable PR review comments and request re-review with proof.",
+      "defaultCheck": "Fetch new comments, apply safe fixes, run the affected verifier, and record resolved comment IDs.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after resolving the current batch or reporting blockers.",
+        "Stop if a comment needs product decision or unsafe action.",
+        "Stop if verifier fails repeatedly."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which PR should this routine watch?",
+        "What checks must run before requesting re-review?",
+        "Which comments require human approval?"
+      ],
+      "body": "ON REVIEW EVENT, OBSERVE comments, PLAN safe fixes, ACT on actionable items, VERIFY, REQUEST re-review when allowed, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "review comments",
+          "resolve comments",
+          "pr review",
+          "new comments",
+          "request review",
+          "re-review"
+        ]
+      },
+      "requiredSignals": [
+        "PR connector",
+        "new review comments",
+        "verifier before re-review"
+      ],
+      "goodExamples": [
+        "automatically resolve new PR review comments and request review",
+        "resolve new review comments on this PR with proof",
+        "handle reviewer feedback as it arrives and rerun checks"
+      ],
+      "badExamples": [
+        "review this diff for risky changes before merge",
+        "watch my PR every 10 minutes and address new review comments",
+        "fix failing CI typecheck job"
+      ],
+      "exampleChecks": [
+        "Record comment IDs handled",
+        "Run the relevant verifier",
+        "Request re-review only after checks pass and approvals allow it"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "watch my PR every 10 minutes",
+          "preferLoopId": "pr-review-watch",
+          "reason": "Interval polling belongs to the time-based PR watch."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Good for event-driven review queues when connector permissions and verifier policy are clear.",
+        "bestWhen": [
+          "Review comments are actionable and code-local.",
+          "The host can update the PR."
+        ],
+        "failsWhen": [
+          "Comments need product calls.",
+          "The host cannot request review or run checks."
+        ],
+        "requiredCheck": "The routine must record resolved comment IDs, verifier output, and re-review action or blocker."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this when review comments should be handled as they arrive.",
+        "useWhen": "Pick this for event-triggered PR feedback resolution.",
+        "starterRequest": "Automatically resolve new PR review comments and request review.",
+        "firstStep": "Confirm PR access, comment scope, and verifier required before re-review.",
+        "proofTip": "Record comment IDs, changed files, verifier output, and review request status.",
+        "notFor": "Not for one-time diff review or interval polling."
+      }
+    },
+    {
+      "id": "customer-feedback-action-routine",
+      "title": "Customer feedback action routine",
+      "category": "product",
+      "loopType": "proactive",
+      "summary": "Classify incoming customer feedback and route one actionable product or bug follow-up without sending external replies by default.",
+      "aliases": [
+        "customer feedback",
+        "feedback queue",
+        "user feedback",
+        "support feedback",
+        "feature request"
+      ],
+      "bestFor": [
+        "Feedback arrives in a queue and needs routing.",
+        "The routine should separate bug, feature, docs, and no-action items."
+      ],
+      "avoidWhen": [
+        "The user wants to send customer messages.",
+        "Feedback contains sensitive data without handling rules.",
+        "A single known bug should be fixed directly."
+      ],
+      "defaultObjective": "Turn customer feedback messages into routed fixes, tickets, or no-action decisions.",
+      "defaultCheck": "Classify new feedback items, record IDs and rationale, and route one bounded follow-up when actionable.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after classifying the current batch or routing one action.",
+        "Stop before sending external messages without approval.",
+        "Stop if feedback requires product prioritization."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which feedback source should be read?",
+        "What classification rules should be used?",
+        "Where should routed work go?"
+      ],
+      "body": "ON EVENT, OBSERVE feedback, CLASSIFY intent and risk, DECIDE route or no-action, CREATE one bounded follow-up when safe, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "customer feedback",
+          "feedback queue",
+          "feature request",
+          "support",
+          "user says",
+          "customer issue"
+        ]
+      },
+      "requiredSignals": [
+        "feedback source",
+        "classification rules",
+        "routing destination"
+      ],
+      "goodExamples": [
+        "turn customer feedback messages into fixes or tickets automatically",
+        "classify new feedback and route one actionable bug",
+        "process support feedback without sending replies"
+      ],
+      "badExamples": [
+        "fix bug where checkout redirects to the wrong page",
+        "send a customer email update",
+        "make one small copy edit and verify lint still passes"
+      ],
+      "exampleChecks": [
+        "Record feedback IDs reviewed",
+        "Classify each item",
+        "Route one follow-up or state no-action reason"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "send a customer email update",
+          "reason": "External messages require explicit approval and are not part of this default routine."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful for routing feedback, but deliberately avoids external replies and product-priority decisions.",
+        "bestWhen": [
+          "Feedback is available in a structured source.",
+          "Routing rules are clear."
+        ],
+        "failsWhen": [
+          "Feedback requires customer communication.",
+          "Sensitive data handling rules are missing."
+        ],
+        "requiredCheck": "The routine must record feedback IDs, classifications, and routed follow-up or blocker."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this to sort incoming customer feedback into action.",
+        "useWhen": "Pick this when a host can read feedback and routing rules are known.",
+        "starterRequest": "Turn customer feedback messages into fixes or tickets automatically.",
+        "firstStep": "Confirm source, classification labels, and routing destination.",
+        "proofTip": "Record item IDs, classifications, and one routed next action.",
+        "notFor": "Not for sending customer messages or deciding product roadmap priority."
+      }
+    },
+    {
+      "id": "weekly-code-health-routine",
+      "title": "Weekly code health routine",
+      "category": "engineering",
+      "loopType": "proactive",
+      "summary": "Periodically find one small code-health improvement, run the verifier, and stop before broad refactors.",
+      "aliases": [
+        "weekly code health",
+        "maintenance routine",
+        "cleanup routine",
+        "code health",
+        "tech debt"
+      ],
+      "bestFor": [
+        "A repo benefits from small recurring cleanup with proof.",
+        "The host can run on a schedule and open a bounded follow-up."
+      ],
+      "avoidWhen": [
+        "The repo has urgent failing checks.",
+        "The cleanup scope is broad or subjective.",
+        "No verifier can guard behavior."
+      ],
+      "defaultObjective": "Find and complete one small code-health improvement with proof.",
+      "defaultCheck": "Run the project check plus any narrow verifier for the touched area.",
+      "maxIterations": 1,
+      "stopConditions": [
+        "Stop after one small cleanup and passing verifier.",
+        "Stop if the improvement becomes a broad refactor.",
+        "Stop if no safe verifier exists."
+      ],
+      "approvalGates": [
+        "production writes",
+        "external messages",
+        "payments",
+        "destructive git operations",
+        "credential changes",
+        "deploys",
+        "irreversible data changes"
+      ],
+      "questions": [
+        "Which repo or area should the routine inspect?",
+        "Which checks must pass?",
+        "What changes are out of scope?"
+      ],
+      "body": "ON SCHEDULE, DISCOVER one low-risk code-health issue, ACT with a small patch, VERIFY, REPORT proof, and STOP.",
+      "progressSignals": {
+        "keywords": [
+          "weekly code health",
+          "maintenance",
+          "cleanup",
+          "tech debt",
+          "small refactor",
+          "routine"
+        ]
+      },
+      "requiredSignals": [
+        "scheduled trigger",
+        "allowed cleanup scope",
+        "project verifier"
+      ],
+      "goodExamples": [
+        "run a weekly code health routine and open small cleanup PRs",
+        "proactively find one low-risk cleanup each week",
+        "weekly maintenance routine with npm run check proof"
+      ],
+      "badExamples": [
+        "refactor checkout module without changing behavior",
+        "fix failing CI typecheck job",
+        "inspect this repo and run the right loop"
+      ],
+      "exampleChecks": [
+        "Run the project verifier",
+        "Show the one cleanup chosen and why it is low risk",
+        "Stop after one bounded change"
+      ],
+      "commonMisroutes": [
+        {
+          "query": "fix failing CI typecheck job",
+          "preferLoopId": "failing-ci-repair",
+          "reason": "Urgent failing checks should be repaired directly."
+        }
+      ],
+      "reliability": {
+        "status": "experimental",
+        "summary": "Useful for small recurring maintenance, but dangerous if allowed to become broad refactoring.",
+        "bestWhen": [
+          "Cleanup scope is narrow.",
+          "The verifier is cheap and reliable."
+        ],
+        "failsWhen": [
+          "The repo has no safe verifier.",
+          "The routine tries to batch unrelated refactors."
+        ],
+        "requiredCheck": "Every run must record the selected cleanup, changed files, and verifier output."
+      },
+      "userGuide": {
+        "plainLanguage": "Use this for small recurring maintenance, one improvement at a time.",
+        "useWhen": "Pick this when a scheduled routine should keep code health tidy.",
+        "starterRequest": "Run a weekly code health routine and open small cleanup PRs.",
+        "firstStep": "Confirm allowed scope, schedule, and project verifier.",
+        "proofTip": "Stop after one low-risk change and show verifier output.",
+        "notFor": "Not for urgent failures, broad refactors, or subjective cleanup."
+      }
     }
   ]
 }

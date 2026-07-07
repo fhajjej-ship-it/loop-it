@@ -12,7 +12,7 @@
 
 Loop it is a portable loop router, library, launcher, and Agent Skill for turning coding goals into verifier-gated loops for Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-Loop It is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. It is not a background scheduler or proactive automation platform.
+Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns. Time-based and proactive loops can run through Loop It's Codex-only `schedule`/`tick` path, but Loop It does not host a background service or external connector platform.
 
 It turns a vague instruction like "improve this repo" into a bounded run: inspect the codebase, recommend the right loop, run a verifier, make the smallest credible change, track evidence, then stop when the verifier passes or the budget is spent.
 
@@ -25,6 +25,7 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 - `skills/loop-it/references/library/loops.json`: bundled loop library.
 - `skills/loop-it/scripts/select-loop.mjs`: zero-dependency loop selector and recommender.
 - `skills/loop-it/scripts/run-loop.mjs`: repo-intake router that recommends a loop and prepares a run-mode prompt.
+- `skills/loop-it/scripts/schedule-loop.mjs`: file-based schedule registry and due-tick runner for Codex-only time-based and proactive loops.
 - `skills/loop-it/scripts/start-loop.mjs`: zero-dependency goal/verifier launcher.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
@@ -87,6 +88,8 @@ Add `--checker codex` when the run needs a second, read-only review after the ve
 
 Add `--worktree` when the run should happen away from the current checkout. Loop it creates a fresh git worktree and branch from `origin/main`, `main`, `origin/master`, `master`, or `HEAD`, then runs Codex there and records the worktree path, branch, and base ref in `.loop-it/progress.json`. Use `--worktree-base`, `--worktree-branch`, or `--worktree-dir` when you need exact control.
 
+Use `loop-it schedule` for time-based or proactive loops that should be checked again later. A schedule writes `.loop-it/schedules/<id>.json`; `loop-it tick --all --execute codex` runs due records once. The heartbeat is external: use cron, launchd, GitHub Actions, or a Codex automation/plugin wrapper to call `tick`. Loop It records locks, run counts, the next run time, and schedule proof in `.loop-it/progress.json`.
+
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
 - The goal must be concrete enough to run.
@@ -102,12 +105,12 @@ Loop It uses the common loop taxonomy so users know what kind of automation they
 
 | Type | Trigger | Stop rule | Loop It support |
 | --- | --- | --- | --- |
-| `turn-based` | User prompt | Agent decides done or asks for context | Supported as portable launch prompts and skill instructions. |
+| `turn-based` | User prompt | Agent answers, verifies once, or asks for context | Supported as one-turn launch prompts and skill instructions. |
 | `goal-based` | User prompt with verifier | Goal passes, blocker appears, or cap is reached | Primary Loop It path: `loop-it run --execute codex`. |
-| `time-based` | Interval or schedule | User cancels or external work completes | Not run by Loop It; use host `/loop` or `/schedule` when available. |
-| `proactive` | Event or schedule without human in real time | Each routed task exits on its own goal | Not run by Loop It yet; keep this outside the local runner. |
+| `time-based` | Interval or schedule | User cancels, external work completes, or the pass budget ends | Codex-only `schedule`/`tick` runner for file-based schedules; an external heartbeat must call `tick`. |
+| `proactive` | Event or schedule without human in real time | Each routed task exits on proof, route, or blocker | Codex-only `schedule`/`tick` runner when a connector or queue produces a safe command/check; external event sources stay outside Loop It. |
 
-The bundled library is currently `goal-based` because every included pattern needs a concrete finish line and verifier proof.
+The bundled library has 20 patterns: 5 `turn-based`, 5 `goal-based`, 5 `time-based`, and 5 `proactive`. Goal-based loops run immediately through `loop-it run --execute codex`. Time-based and proactive loops run only through `loop-it schedule` plus an external `tick` caller; Loop It does not poll or listen in the background by itself.
 
 Inspect the repo, choose the loop, run Codex, and keep verifying until a stop condition is reached:
 
@@ -140,6 +143,21 @@ Choose from the library:
 npx @fhajjej/loop-it@latest recommend --goal "fix failing CI"
 npx @fhajjej/loop-it@latest write --from failing-ci-repair --goal "Fix failing CI" --check "npm run check"
 ```
+
+Schedule a time-based or proactive loop for Codex:
+
+```bash
+npx @fhajjej/loop-it@latest schedule \
+  --from ci-health-watch \
+  --every 10m \
+  --goal "Watch CI and repair the failing check when it breaks" \
+  --check "npm run check" \
+  --execute codex
+
+npx @fhajjej/loop-it@latest tick --all --execute codex
+```
+
+`schedule` only accepts `time-based` and `proactive` library loops. `tick` first runs the check; if it already passes, it records proof and waits for the next interval. If the check fails, it runs the selected loop through Codex, reruns the verifier, updates the schedule record, and records proof.
 
 ## Start A Loop
 
@@ -210,30 +228,30 @@ npx @fhajjej/loop-it@latest start --from failing-ci-repair --goal "Fix failing C
 
 Library-backed loops create `.loop-it/LOOP.md` and `.loop-it/progress.json` so the agent can decide whether to continue the current loop or recommend the next one.
 
-The bundled catalog currently includes 20 local-first loops:
+The bundled catalog currently includes 20 loops, balanced across the four loop types:
 
 | Loop | Type | Category | Best for |
 | --- | --- | --- | --- |
-| `ticket-to-verified-fix` | goal-based | engineering | Turn a bug report or small defect into the smallest patch with proof. |
-| `failing-ci-repair` | goal-based | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
-| `flaky-test-stabilization` | goal-based | engineering | Stabilize an intermittent test or check by isolating nondeterminism and proving repeated passes. |
-| `regression-bisect` | goal-based | engineering | Find the change that introduced a regression, patch the cause, and verify against known good and bad behavior. |
-| `deployment-preview-repair` | goal-based | operations | Repair a failed preview, deployment, or hosted build using deploy logs and local reproduction where possible. |
-| `runtime-error-triage` | goal-based | engineering | Diagnose a runtime crash or console/log error, patch the failing path, and prove the error no longer appears. |
-| `api-contract-drift` | goal-based | engineering | Realign frontend, backend, schema, or client expectations when an API contract has drifted. |
-| `docs-sweep` | goal-based | content | Find and fix stale setup, API, command, or workflow documentation. |
-| `review-repair` | goal-based | operations | Address blocking review findings until the diff is ready to ship. |
-| `release-readiness` | goal-based | operations | Prepare a package, app, or feature for a public release with evidence. |
-| `fresh-setup` | goal-based | engineering | Validate a clean checkout or clean project setup and repair hidden assumptions. |
-| `test-coverage-gap` | goal-based | evaluation | Add focused tests around risky behavior without broad test churn. |
-| `ux-polish` | goal-based | product | Improve a specific user flow for clarity, responsiveness, and accessibility. |
-| `performance-measurement` | goal-based | engineering | Improve speed, memory, bundle size, or latency using before-and-after evidence. |
-| `dependency-upgrade` | goal-based | engineering | Upgrade one dependency or toolchain surface with compatibility proof. |
-| `security-hardening` | goal-based | security | Reduce a concrete security risk with scoped evidence and approval gates. |
-| `refactor-containment` | goal-based | engineering | Refactor a narrow area while proving behavior stays the same. |
-| `product-evaluation` | goal-based | evaluation | Run realistic scenarios, repair misses, and prove the flow meets a quality bar. |
-| `skill-instruction-hardening` | goal-based | operations | Improve Agent Skill routing, examples, and verifier behavior. |
+| `code-path-explanation` | turn-based | engineering | Answer one codebase question with file evidence and no repo edits by default. |
+| `small-edit-verification` | turn-based | engineering | Make one scoped edit, run the narrow proof, and stop. |
+| `diff-review-pass` | turn-based | operations | Review the current diff for regressions, missing tests, and release blockers. |
+| `error-explanation-debug` | turn-based | engineering | Interpret one error, stack trace, or log and choose the smallest next debugging action. |
+| `ui-copy-clarity-pass` | turn-based | product | Improve focused UI wording or action clarity without expanding scope. |
 | `codebase-intake-to-running-loop` | goal-based | operations | Inspect a repo request, choose the right loop, and run one bounded verifier-gated loop. |
+| `failing-ci-repair` | goal-based | engineering | Repair a failing build, lint, type-check, or test job with the smallest verified change. |
+| `ticket-to-verified-fix` | goal-based | engineering | Turn a bug report or small defect into the smallest patch with proof. |
+| `security-hardening` | goal-based | security | Reduce a concrete security risk with scoped evidence and approval gates. |
+| `release-readiness` | goal-based | operations | Prepare a package, app, or feature for a public release with evidence. |
+| `pr-review-watch` | time-based | operations | Poll a PR for new review comments and handle actionable feedback. |
+| `ci-health-watch` | time-based | operations | Poll CI until the branch is green, stable-failing, or blocked. |
+| `daily-dependency-watch` | time-based | operations | Run scheduled dependency and advisory checks, then route follow-up work. |
+| `docs-freshness-watch` | time-based | content | Periodically check setup docs, commands, and examples for drift. |
+| `production-smoke-watch` | time-based | operations | Run scheduled public smoke checks and route failures without production writes. |
+| `incoming-bug-triage-routine` | proactive | operations | Classify incoming bug reports and route one actionable item. |
+| `dependency-upgrade-queue-routine` | proactive | operations | Process dependency update items as they appear with compatibility proof. |
+| `review-comment-resolver-routine` | proactive | operations | React to new review comments, apply safe fixes, verify, and request re-review. |
+| `customer-feedback-action-routine` | proactive | product | Classify customer feedback and route fixes or tickets without sending external replies by default. |
+| `weekly-code-health-routine` | proactive | engineering | Find one small recurring code-health improvement and prove it. |
 
 ## Good Loop Contract
 
@@ -290,6 +308,8 @@ node ./bin/loop-it.mjs library search "release readiness"
 node ./bin/loop-it.mjs library eval
 node ./bin/loop-it.mjs recommend --goal "fix failing CI"
 node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare public release" --check "npm run check"
+node ./bin/loop-it.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex
+node ./bin/loop-it.mjs tick --all --execute codex
 ```
 
 `npm run check` verifies CLI syntax, selector syntax, skill generator syntax, loop runner syntax, loop launcher syntax, plugin metadata JSON, Codex/Claude/Cursor installs, library selection evals, loop-file creation, loop launch creation, packed-tarball execution, and package contents.
@@ -297,6 +317,8 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 `npm run smoke:run-proof` is the narrow execution proof: it starts from a failing temporary repo, selects `failing-ci-repair`, runs a fake Codex executor twice, reruns `npm test` after each pass, exercises checker pass/block behavior, proves isolated worktree execution leaves the source checkout untouched, and checks that `.loop-it/progress.json` records completed proof.
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
+
+`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, and skips locked schedules.
 
 `npm run smoke:public-codex -- --keep` is the public-package execution proof. It installs `@fhajjej/loop-it@latest` into a fresh temporary repo, runs the public `loop-it run --execute codex` path against a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. It requires local Codex CLI auth and may use a real Codex request, so it is kept out of `npm run check`.
 
@@ -310,7 +332,7 @@ npx @fhajjej/loop-it@latest install --agent all --scope project
 
 ## Version Boundaries
 
-Loop it deliberately avoids hosted accounts, ratings, background scheduling, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It compiles and runs local goal-based verifier-gated loops; host tools provide time-based or proactive heartbeats when they support one.
+Loop it deliberately avoids hosted accounts, ratings, hosted background services, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops immediately. It can also run time-based and proactive loops through Codex-only `schedule`/`tick` files, but an approved external heartbeat or connector must call `tick`; Loop It does not own external side effects.
 
 ## License
 
