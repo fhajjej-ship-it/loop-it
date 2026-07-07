@@ -14,7 +14,7 @@ It copies `skills/loop-it/` into one or more agent skill directories:
 
 ## Does it call external services?
 
-No. The installer, loop launcher, selector, and loop-file generator run locally. `loop-it schedule --heartbeat codex` writes a local Codex automation file under `~/.codex/automations/`; it does not call a hosted Loop It service.
+Mostly no. The installer, loop launcher, selector, and loop-file generator run locally. `loop-it schedule --heartbeat codex` writes a local Codex automation file under `~/.codex/automations/`; it does not call a hosted Loop It service. The optional `loop-it github pr` connector reads PR metadata through the user's authenticated `gh` CLI and writes local Loop It state; it does not send comments or change GitHub state.
 
 ## Does it send messages, deploy, or change production data?
 
@@ -47,6 +47,15 @@ The public-package proof command is `npm run smoke:public-codex -- --keep`. It i
 
 ## What is intentionally out of scope?
 
-Hosted background services, external connector platforms, dashboards, multi-agent orchestration, billing, production deploy automation, and external-message sending.
+Hosted background services, broad external connector platforms, dashboards, broad multi-agent orchestration, billing, production deploy automation, and external-message sending.
 
 Loop it does include a local Codex-only `schedule`/`tick` path for time-based and proactive loops. Add `--heartbeat codex` to create or update the local native Codex Scheduled heartbeat that calls `tick`; otherwise an approved external heartbeat such as cron, launchd, or GitHub Actions must call `tick`.
+
+It also includes a narrow read-only GitHub PR connector. Use:
+
+```bash
+node ./bin/loop-it.mjs github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
+node ./bin/loop-it.mjs schedules list
+```
+
+The connector chooses a PR review, CI health, or review-comment loop from the library and creates a local schedule. It requires `gh` auth and keeps GitHub writes behind explicit approval.

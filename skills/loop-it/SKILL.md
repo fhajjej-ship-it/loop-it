@@ -5,7 +5,7 @@ description: Write, choose, compile, launch, find, recommend, design, adapt, exp
 
 # Loop It
 
-Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, and stop when the verifier passes, a blocker is real, or approval is required.
+Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, schedule recurring checks, intake approved connector signals, and stop when the verifier passes, a blocker is real, or approval is required.
 
 Loop It's local execution path is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. The bundled library also includes turn-based, time-based, and proactive patterns. Time-based and proactive loops can run only through Loop It's Codex-only `schedule`/`tick` path. In Codex, `schedule --heartbeat codex` can create or update the local native Scheduled heartbeat that calls `tick`; outside Codex, an external heartbeat or connector must call `tick`.
 
@@ -20,6 +20,7 @@ First decide which mode the user needs. Bias toward **Run now** when the user as
 - **Design only**: produce a reusable loop prompt or project-local loop file without claiming the issue was fixed.
 - **Run now**: inspect the target codebase, select the right loop, execute bounded iterations, edit when needed, verify after each pass, record evidence, and stop on proof, repeated failure, blocker, approval need, or the iteration cap.
 - **Schedule/tick**: for time-based or proactive loops, create `.loop-it/schedules/<id>.json`; add `--heartbeat codex` when the user expects a native Codex Scheduled task to call `tick`.
+- **Connector intake**: for GitHub PR work, read PR signals with `gh`, choose a PR/CI/review loop, write `.loop-it/connectors/github/<id>.json`, and schedule a Codex tick without sending external messages.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
 
 If a prompt says "Run The Loop mode", "run the prompt", "fix the issue", or "repair", treat it as **Run now**. Do not create another loop contract as the main output.
@@ -194,12 +195,15 @@ Use schedule mode only when the user asks for a time-based or proactive loop to 
 
 ```bash
 node <skill-dir>/scripts/schedule-loop.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
+node <skill-dir>/scripts/schedule-loop.mjs list
+node <skill-dir>/scripts/schedule-loop.mjs pause --id ci-health-watch
+node <skill-dir>/scripts/schedule-loop.mjs resume --id ci-health-watch
 node <skill-dir>/scripts/schedule-loop.mjs tick --all --execute codex
 ```
 
 Schedule mode is Codex-only. `schedule` writes `.loop-it/schedules/<id>.json` with the selected time-based or proactive library loop, goal, verifier, interval, next run time, and worktree preference. With `--heartbeat codex`, it also writes or updates the local Codex automation file under `~/.codex/automations/<id>/automation.toml`, so the schedule appears in Codex Scheduled and calls `tick`. `tick` runs each due schedule once: first it runs the verifier, records proof if the verifier already passes, and only calls the run loop through Codex when the verifier fails.
 
-The heartbeat is not hosted by Loop It. A user, cron, launchd, GitHub Actions, Codex Scheduled automation, or a future plugin connector must call `tick`. Do not claim Loop It is polling, listening, or running in the background unless such a caller is actually configured or `--heartbeat codex` successfully created the local Codex automation.
+The heartbeat is not hosted by Loop It. A user, cron, launchd, GitHub Actions, Codex Scheduled automation, or a plugin connector must call `tick`. Do not claim Loop It is polling, listening, or running in the background unless such a caller is actually configured or `--heartbeat codex` successfully created the local Codex automation.
 
 For scheduled ticks:
 
@@ -208,6 +212,26 @@ For scheduled ticks:
 3. Respect lock files under `.loop-it/schedules/*.lock`; skip locked schedules instead of running twice.
 4. Record schedule evidence in `.loop-it/progress.json`.
 5. Stop or report blocked for production writes, external messages, payments, credential changes, deploys, destructive git operations, or irreversible side effects.
+
+## Connector Intake
+
+Use connector intake only when the user asks Loop It to watch or react to an approved external source. Connector intake is local and read-only by default.
+
+For GitHub pull requests, use the connector script when available:
+
+```bash
+node <skill-dir>/scripts/github-connector.mjs pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
+```
+
+The GitHub connector:
+
+1. Reads PR metadata through `gh pr view`.
+2. Selects `review-comment-resolver-routine` for `CHANGES_REQUESTED`, `ci-health-watch` for failing or blocked checks, or `pr-review-watch` for observation.
+3. Writes `.loop-it/connectors/github/<id>.json` with the snapshot, selected loop, verifier, and approval gates.
+4. Creates a time/proactive schedule with `checker: codex` by default.
+5. Never comments, pushes, requests review, merges, deploys, publishes, or changes GitHub state without explicit approval.
+
+If `gh` is unavailable or unauthenticated, report the connector blocker and provide the exact command the user can run after authentication. Do not fake connector evidence.
 
 ## Export
 

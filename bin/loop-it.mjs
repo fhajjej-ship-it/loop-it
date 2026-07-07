@@ -27,8 +27,12 @@ if (command === "install") {
   runSkillScript("run-loop.mjs", argv);
 } else if (command === "schedule") {
   runSkillScript("schedule-loop.mjs", ["schedule", ...argv]);
+} else if (command === "schedules") {
+  runSkillScript("schedule-loop.mjs", argv.length > 0 ? argv : ["list"]);
 } else if (command === "tick") {
   runSkillScript("schedule-loop.mjs", ["tick", ...argv]);
+} else if (command === "github") {
+  runSkillScript("github-connector.mjs", argv);
 } else if (command === "library") {
   runSkillScript("select-loop.mjs", argv);
 } else if (command === "recommend") {
@@ -134,6 +138,8 @@ function printUsage() {
   loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout" --execute codex
   loop-it run --goal "Fix failing CI" --check "npm run check" --execute codex --checker codex --worktree
   loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
+  loop-it schedules list
+  loop-it github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
   loop-it tick --all --execute codex
   loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
@@ -149,6 +155,8 @@ Commands:
   write     Write a verifier-gated .loop-it/LOOP.md contract.
   run       Inspect repo signals, recommend a loop, prepare a launch prompt, and optionally execute it.
   schedule  Create a Codex-only time/proactive schedule and optionally its Codex Scheduled heartbeat.
+  schedules List, pause, or resume local Loop It schedules.
+  github    Create GitHub-backed loop schedules from PR status, review, and CI signals.
   tick      Run due schedules once with Codex execution.
   start     Compile a goal, verifier, stop rules, and host launch prompt.
   new       Create a .loop-it/LOOP.md loop contract in the current directory.
