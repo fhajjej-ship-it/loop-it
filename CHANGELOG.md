@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.14
+
 ### Added
 
 - Added a Codex-only `loop-it schedule` and `loop-it tick` path for time-based and proactive loops.

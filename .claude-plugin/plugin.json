@@ -1,6 +1,6 @@
 {
   "name": "loop-it",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "description": "Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
   "author": {
     "name": "Loop it",
