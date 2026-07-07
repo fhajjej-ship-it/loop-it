@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Loop it",
     "shortDescription": "Run bounded agent loops with proof.",
-    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or prepare host contracts for turn-based, time-based, and proactive workflows. It is local runner tooling, not a background scheduler.",
+    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or run Codex-only scheduled ticks for time-based and proactive workflows. It is local runner tooling, not a hosted background service.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [

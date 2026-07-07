@@ -47,4 +47,6 @@ The public-package proof command is `npm run smoke:public-codex -- --keep`. It i
 
 ## What is intentionally out of scope?
 
-Scheduling, background automation, dashboards, multi-agent orchestration, billing, production deploy automation, and external-message sending.
+Hosted background services, external connector platforms, dashboards, multi-agent orchestration, billing, production deploy automation, and external-message sending.
+
+Loop it does include a local Codex-only `schedule`/`tick` path for time-based and proactive loops, but an approved external heartbeat such as cron, launchd, GitHub Actions, or Codex automation must call `tick`.

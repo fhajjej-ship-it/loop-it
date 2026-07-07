@@ -5,7 +5,7 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 ## Product basics
 
 - [ ] Clear name: Loop it
-- [ ] One-sentence description: Write, choose, and launch bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.
+- [ ] One-sentence description: Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.
 - [ ] Public repo: https://github.com/fhajjej-ship-it/loop-it
 - [ ] Product page: https://swarmixai.com/experiments/loop-it-poc
 - [ ] License: MIT
@@ -18,6 +18,8 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 - [ ] Fresh project install works for Cursor.
 - [ ] Fresh project `loop-it write` creates `.loop-it/LOOP.md` and `.loop-it/progress.json`.
 - [ ] Fresh project `loop-it start` creates `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
+- [ ] Fresh project `loop-it schedule` creates `.loop-it/schedules/<id>.json` for a time-based or proactive loop.
+- [ ] Fresh project `loop-it tick --all --execute codex` runs due schedules or clearly reports no due schedules.
 - [ ] Packed npm tarball execution works.
 - [ ] npm publish dry-run passes.
 
@@ -31,6 +33,6 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 
 ## Release proof
 
-- [ ] `v0.2.0` GitHub release exists.
+- [ ] Current GitHub release exists.
 - [ ] `@fhajjej/loop-it` npm package is published.
 - [ ] Product page install command matches the real public install path.

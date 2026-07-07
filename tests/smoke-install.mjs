@@ -32,6 +32,7 @@ try {
   smokeLoopStart();
   smokeLoopRun();
   smokeLoopExecute();
+  smokeScheduledRunner();
   smokePackedCli();
   console.log("Smoke install checks passed");
 } finally {
@@ -68,6 +69,7 @@ function smokeProjectInstall() {
     ".agents/skills/loop-it/scripts/create-loop.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
+    ".agents/skills/loop-it/scripts/schedule-loop.mjs",
   ]) {
     assertFile(resolve(projectDir, target));
   }
@@ -792,6 +794,199 @@ function smokeLoopExecute() {
   }
 }
 
+function smokeScheduledRunner() {
+  const projectDir = resolve(tempRoot, "loop-schedule-execute");
+  const fakeCodex = resolve(tempRoot, "fake-codex-schedule.mjs");
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(
+    resolve(projectDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "loop-schedule-execute-fixture",
+        type: "module",
+        scripts: {
+          test: "node test.mjs",
+        },
+      },
+      null,
+      2
+    )
+  );
+  writeFileSync(
+    resolve(projectDir, "test.mjs"),
+    [
+      "import assert from 'node:assert/strict';",
+      "",
+      "const total = 1 + 1;",
+      "assert.equal(total, 3);",
+      "",
+    ].join("\n")
+  );
+  writeFileSync(
+    fakeCodex,
+    [
+      "#!/usr/bin/env node",
+      "import { readFileSync, writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const testPath = resolve(process.cwd(), 'test.mjs');",
+      "const before = readFileSync(testPath, 'utf8');",
+      "writeFileSync(testPath, before.replace('assert.equal(total, 3);', 'assert.equal(total, 2);'));",
+      "",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'Fake Codex fixed scheduled failing check\\n');",
+      "}",
+      "",
+    ].join("\n")
+  );
+  chmodSync(fakeCodex, 0o755);
+
+  const notSchedulable = spawnSync(nodeBin, [
+    cliPath,
+    "schedule",
+    "--from",
+    "failing-ci-repair",
+    "--every",
+    "5m",
+    "--check",
+    "npm test",
+    "--execute",
+    "codex",
+  ], {
+    cwd: projectDir,
+    encoding: "utf8",
+  });
+  if (notSchedulable.status === 0 || !notSchedulable.stderr.includes("Scheduled execution is only for time-based or proactive loops")) {
+    fail("Expected schedule to reject goal-based loops");
+  }
+
+  const now = "2026-07-07T10:00:00.000Z";
+  const scheduled = run(nodeBin, [
+    cliPath,
+    "schedule",
+    "--from",
+    "ci-health-watch",
+    "--id",
+    "ci-watch",
+    "--every",
+    "5m",
+    "--goal",
+    "Check CI and fix the failing npm test when it breaks",
+    "--check",
+    "npm test",
+    "--execute",
+    "codex",
+    "--no-worktree",
+    "--now",
+    now,
+  ], { cwd: projectDir });
+  for (const text of ["Created schedule: ci-watch", "Loop: CI health watch (ci-health-watch)", "Execute: codex"]) {
+    if (!scheduled.stdout.includes(text)) {
+      fail(`Expected schedule output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const schedulePath = resolve(projectDir, ".loop-it", "schedules", "ci-watch.json");
+  assertFile(schedulePath);
+  const schedule = JSON.parse(readFileSync(schedulePath, "utf8"));
+  if (
+    schedule.loopId !== "ci-health-watch" ||
+    schedule.loopType !== "time-based" ||
+    schedule.execute !== "codex" ||
+    schedule.worktree !== false ||
+    schedule.nextRunAt !== now
+  ) {
+    fail("Expected schedule record to track the Codex-only time-based loop");
+  }
+
+  const ticked = run(nodeBin, [
+    cliPath,
+    "tick",
+    "--all",
+    "--execute",
+    "codex",
+    "--now",
+    now,
+    "--codex-bin",
+    fakeCodex,
+    "--codex-sandbox",
+    "none",
+    "--skip-git-repo-check",
+  ], { cwd: projectDir });
+  for (const text of [
+    "Ticking schedule: ci-watch",
+    "Scheduled check failed before Codex execution: npm test",
+    "Recommended loop: CI health watch (ci-health-watch)",
+    "Verifier passed after Codex iteration 1: npm test",
+    "Scheduled Codex run result: pass",
+  ]) {
+    if (!ticked.stdout.includes(text)) {
+      fail(`Expected tick output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  const updatedSchedule = JSON.parse(readFileSync(schedulePath, "utf8"));
+  if (
+    updatedSchedule.runCount !== 1 ||
+    updatedSchedule.lastResult !== "pass" ||
+    updatedSchedule.lastRunAt !== now ||
+    updatedSchedule.nextRunAt !== "2026-07-07T10:05:00.000Z"
+  ) {
+    fail("Expected tick to update schedule run state and next run time");
+  }
+  const testContent = readFileSync(resolve(projectDir, "test.mjs"), "utf8");
+  if (!testContent.includes("assert.equal(total, 2);")) {
+    fail("Expected scheduled fake Codex execution to update the failing test fixture");
+  }
+  const progress = JSON.parse(readFileSync(resolve(projectDir, ".loop-it", "progress.json"), "utf8"));
+  if (
+    progress.scheduleId !== "ci-watch" ||
+    progress.scheduledLoopId !== "ci-health-watch" ||
+    progress.lastResult !== "pass" ||
+    progress.proof?.selectedLoopId !== "ci-health-watch" ||
+    progress.proof?.schedule?.scheduleId !== "ci-watch" ||
+    progress.proof?.schedule?.precheckStatus !== 1
+  ) {
+    fail("Expected scheduled tick to annotate progress proof");
+  }
+
+  const locked = run(nodeBin, [
+    cliPath,
+    "schedule",
+    "--from",
+    "ci-health-watch",
+    "--id",
+    "locked-ci-watch",
+    "--every",
+    "5m",
+    "--check",
+    "npm test",
+    "--execute",
+    "codex",
+    "--no-worktree",
+    "--now",
+    now,
+  ], { cwd: projectDir });
+  if (!locked.stdout.includes("Created schedule: locked-ci-watch")) {
+    fail("Expected locked schedule fixture to be created");
+  }
+  writeFileSync(resolve(projectDir, ".loop-it", "schedules", "locked-ci-watch.lock"), "locked\n");
+  const lockedTick = run(nodeBin, [
+    cliPath,
+    "tick",
+    "--id",
+    "locked-ci-watch",
+    "--execute",
+    "codex",
+    "--now",
+    now,
+  ], { cwd: projectDir });
+  if (!lockedTick.stdout.includes("Skipping locked schedule: locked-ci-watch")) {
+    fail("Expected locked schedule to be skipped");
+  }
+}
+
 function smokePackedCli() {
   const packDir = resolve(tempRoot, "pack");
   const projectDir = resolve(tempRoot, "packed-project");
@@ -843,6 +1038,7 @@ function smokePackedCli() {
     ".agents/skills/loop-it/scripts/select-loop.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
+    ".agents/skills/loop-it/scripts/schedule-loop.mjs",
     ".loop-it/LOOP.md",
     ".loop-it/LAUNCH.md",
   ]) {
