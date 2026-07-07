@@ -42,6 +42,7 @@ const librarySection = libraryLoop
 ## Library Source
 - Loop id: ${libraryLoop.id}
 - Category: ${libraryLoop.category}
+- Loop type: ${libraryLoop.loopType ?? "goal-based"}
 - Summary: ${libraryLoop.summary}
 
 ## Recommended Questions

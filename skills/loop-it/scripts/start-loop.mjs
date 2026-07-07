@@ -79,6 +79,7 @@ function renderLoopContract(loop) {
 ## Library Source
 - Loop id: ${loop.libraryLoop.id}
 - Category: ${loop.libraryLoop.category}
+- Loop type: ${loop.libraryLoop.loopType ?? "goal-based"}
 - Summary: ${loop.libraryLoop.summary}
 `
     : "";

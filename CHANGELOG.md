@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.13
+
+### Added
+
+- Added loop taxonomy metadata so every bundled loop declares whether it is `turn-based`, `goal-based`, `time-based`, or `proactive`.
+
+### Changed
+
+- Clarified docs and plugin copy that Loop It is currently a local goal-based verifier-gated runner, not a background scheduler or proactive automation platform.
+
 ## 0.3.12
 
 ### Added

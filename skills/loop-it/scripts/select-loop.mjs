@@ -258,6 +258,7 @@ function scoreLoop(loop, tokens, rawQuery, library) {
     loop.id,
     loop.title,
     loop.category,
+    loop.loopType,
     loop.summary,
     ...(loop.aliases ?? []),
     ...(loop.bestFor ?? []),
@@ -347,6 +348,10 @@ function scoreLoop(loop, tokens, rawQuery, library) {
     if (String(loop.category).toLowerCase().includes(token)) {
       total += 2;
       reasons.add(`matched ${loop.category} category`);
+    }
+    if (String(loop.loopType ?? "").toLowerCase().includes(token)) {
+      total += 2;
+      reasons.add(`matched ${loop.loopType} loop type`);
     }
     if (corpus.includes(token)) {
       total += 1;
@@ -603,7 +608,7 @@ function printList(args) {
   }
 
   for (const loop of loops) {
-    console.log(`${loop.id}  ${loop.title}  [${loop.category}]`);
+    console.log(`${loop.id}  ${loop.title}  [${loop.category}; ${loop.loopType ?? "unclassified"}]`);
     console.log(`  ${loop.summary}`);
     if (loop.userGuide?.useWhen) {
       console.log(`  Use when: ${loop.userGuide.useWhen}`);
@@ -642,6 +647,7 @@ function printShow(args) {
   }
 
   console.log(`${loop.title} (${loop.id})`);
+  console.log(`Type: ${loop.loopType ?? "unclassified"}; Category: ${loop.category}`);
   console.log(loop.summary);
   console.log("");
   if (loop.userGuide) {

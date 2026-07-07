@@ -1,6 +1,6 @@
 interface:
   display_name: "Loop it"
-  short_description: "Find and run bounded agent loops"
+  short_description: "Find and run goal-based agent loops"
   icon_small: "./assets/loop-it-logo-black.svg"
   icon_large: "./assets/loop-it-logo-black.svg"
   brand_color: "#111111"

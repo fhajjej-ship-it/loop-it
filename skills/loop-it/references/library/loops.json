@@ -108,7 +108,8 @@
         "firstStep": "Paste the bug report, expected behavior, and the reproduction or failing test.",
         "proofTip": "Keep the proof tied to the original behavior, then add the narrowest regression check you can run.",
         "notFor": "Do not use it for vague product changes, broad refactors, or red CI logs without a product bug."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "failing-ci-repair",
@@ -229,7 +230,8 @@
         "firstStep": "Paste the failing command, the most relevant error lines, and any recent related changes.",
         "proofTip": "Rerun the exact failing command first; broaden checks only after the original failure is gone.",
         "notFor": "Do not use it for a user-facing bug report unless the CI output is the main evidence."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "flaky-test-stabilization",
@@ -342,7 +344,8 @@
         "firstStep": "Run the exact command multiple times and record the pass/fail pattern before editing.",
         "proofTip": "A single green run is not enough; repeat the target check after the fix.",
         "notFor": "Do not use it for a deterministic red check with one clear failure."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "regression-bisect",
@@ -454,7 +457,8 @@
         "firstStep": "Write down the known-good state, known-bad state, and exact reproduction before changing code.",
         "proofTip": "The strongest proof is the same repro failing before the culprit fix and passing after.",
         "notFor": "Do not use it for a brand-new bug with no known working baseline."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "deployment-preview-repair",
@@ -569,7 +573,8 @@
         "firstStep": "Collect the platform, failing URL or run, key log lines, and local build command.",
         "proofTip": "Local build passing is useful, but hosted status or preview smoke is the stronger proof.",
         "notFor": "Do not use it for deploys that require secret, DNS, billing, or production changes before approval."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "runtime-error-triage",
@@ -684,7 +689,8 @@
         "firstStep": "Paste the triggering action, route, stack trace or log lines, and the closest local reproduction path.",
         "proofTip": "Do not stop at adding a catch block; prove the original action works without the same error.",
         "notFor": "Do not use it for build, lint, or type errors that happen before runtime."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "api-contract-drift",
@@ -798,7 +804,8 @@
         "firstStep": "Name the caller, provider, current shape, expected shape, and failing evidence.",
         "proofTip": "Prove both sides agree with a focused contract test, type check, or route smoke.",
         "notFor": "Do not use it for stale API docs only or undecided product behavior."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "docs-sweep",
@@ -907,7 +914,8 @@
         "firstStep": "Name the docs path and the source of truth, such as package scripts, CLI output, or working code.",
         "proofTip": "Run or manually verify the documented command path instead of only proofreading text.",
         "notFor": "Do not use it for open-ended content strategy or documentation that has no implementation source of truth."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "review-repair",
@@ -1016,7 +1024,8 @@
         "firstStep": "Paste the review findings, current diff scope, and the check reviewers expect to pass.",
         "proofTip": "Close each blocking comment with a targeted change and rerun the nearest relevant check.",
         "notFor": "Do not use it before there are real review findings or when the next step is a product decision."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "release-readiness",
@@ -1128,7 +1137,8 @@
         "firstStep": "Name the target version, release command, package manager, and required prepublish checks.",
         "proofTip": "Run the same check that publish or deploy will run, plus a dry-run pack or install path when possible.",
         "notFor": "Do not use it while core implementation work is still unclear or failing unrelated tests."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "fresh-setup",
@@ -1237,7 +1247,8 @@
         "firstStep": "Create or describe a clean environment, then follow the public docs exactly as written.",
         "proofTip": "Retry from a fresh state after edits so you know the setup path works without local leftovers.",
         "notFor": "Do not use it for one failing test inside an already configured development environment."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "test-coverage-gap",
@@ -1343,7 +1354,8 @@
         "firstStep": "Name the behavior, existing test area, and the smallest case that should fail without coverage.",
         "proofTip": "Prove the test is meaningful by targeting the behavior, not just increasing coverage numbers.",
         "notFor": "Do not use it for code cleanup, performance work, or bugs with no clear expected behavior."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "ux-polish",
@@ -1453,7 +1465,8 @@
         "firstStep": "Name the screen, target user, primary action, and the confusion you want removed.",
         "proofTip": "Check desktop and mobile screenshots for hierarchy, spacing, empty states, and text fit.",
         "notFor": "Do not use it when the underlying product decision or data model still needs to be designed."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "performance-measurement",
@@ -1563,7 +1576,8 @@
         "firstStep": "Record the baseline command, page, metric, input size, and environment before editing.",
         "proofTip": "Keep only changes that improve the measured metric without breaking functional checks.",
         "notFor": "Do not use it for speculative optimization or broad rewrites without a repeatable measurement."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "dependency-upgrade",
@@ -1672,7 +1686,8 @@
         "firstStep": "Name the package, target version, lockfile state, migration notes, and affected checks.",
         "proofTip": "Run the package manager check, type/build check, and focused behavior tests after the bump.",
         "notFor": "Do not use it for sweeping dependency refreshes where many packages change for unrelated reasons."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "security-hardening",
@@ -1784,7 +1799,8 @@
         "firstStep": "Name the asset, attacker-controlled input, trust boundary, and required security behavior.",
         "proofTip": "Run the exploit-oriented regression check plus the nearest normal behavior check.",
         "notFor": "Do not use it for broad security audits with no specific finding or threat scenario."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "refactor-containment",
@@ -1892,7 +1908,8 @@
         "firstStep": "Name the module, current behavior to preserve, and the tests or manual checks that protect it.",
         "proofTip": "Run the before/after checks and keep unrelated behavior or API changes out of the diff.",
         "notFor": "Do not use it when the real goal is a feature change, a bug fix, or a dependency upgrade."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "product-evaluation",
@@ -2001,7 +2018,8 @@
         "firstStep": "Define the scenarios, expected outcomes, acceptance criteria, and full-check command.",
         "proofTip": "Rerun affected scenarios after each fix, then run the full evaluation set before stopping.",
         "notFor": "Do not use it for a single bug, styling issue, or implementation task with a normal unit test."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "skill-instruction-hardening",
@@ -2114,7 +2132,8 @@
         "firstStep": "Describe the misroute or weak behavior, then add an example or scenario that should catch it.",
         "proofTip": "Run selector scenario checks and smoke tests so the instruction change is not just vibes.",
         "notFor": "Do not use it for general prompt polishing that has no observable routing or behavior check."
-      }
+      },
+      "loopType": "goal-based"
     },
     {
       "id": "codebase-intake-to-running-loop",
@@ -2240,7 +2259,8 @@
         "firstStep": "Read package scripts, CI config, README, active loop state, and the user request before choosing a loop.",
         "proofTip": "The result must name the selected loop and verifier, then show a real verifier result or a blocker.",
         "notFor": "Do not use it when the user already named a specific failing command, release task, security finding, or doc mismatch."
-      }
+      },
+      "loopType": "goal-based"
     }
   ]
 }

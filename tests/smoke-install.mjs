@@ -21,6 +21,7 @@ const libraryEvalsPath = resolve(skillSource, "references", "library", "evals.js
 const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-smoke-"));
+const allowedLoopTypes = new Set(["turn-based", "goal-based", "time-based", "proactive"]);
 
 try {
   smokePackageMetadata();
@@ -96,6 +97,9 @@ function smokeLibrarySelection() {
   }
 
   for (const loop of list.loops) {
+    if (!allowedLoopTypes.has(loop.loopType)) {
+      fail(`Expected ${loop.id} to include a valid loopType`);
+    }
     for (const field of ["requiredSignals", "goodExamples", "badExamples", "exampleChecks", "commonMisroutes"]) {
       if (!Array.isArray(loop[field]) || loop[field].length === 0) {
         fail(`Expected ${loop.id} to include non-empty ${field}`);
@@ -123,7 +127,7 @@ function smokeLibrarySelection() {
     fail("Expected recommendations to include decision confidence and alternative rationale");
   }
   const showOutput = run(nodeBin, [cliPath, "library", "show", "failing-ci-repair"]).stdout;
-  for (const text of ["Plain English:", "Use when:", "Start with:", "First step:", "Proof tip:", "Not for:"]) {
+  for (const text of ["Type: goal-based", "Plain English:", "Use when:", "Start with:", "First step:", "Proof tip:", "Not for:"]) {
     if (!showOutput.includes(text)) {
       fail(`Expected library show output to include ${JSON.stringify(text)}`);
     }

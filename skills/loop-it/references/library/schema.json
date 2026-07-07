@@ -15,6 +15,7 @@
           "id",
           "title",
           "category",
+          "loopType",
           "summary",
           "aliases",
           "bestFor",
@@ -39,6 +40,10 @@
           "id": { "type": "string" },
           "title": { "type": "string" },
           "category": { "type": "string" },
+          "loopType": {
+            "type": "string",
+            "enum": ["turn-based", "goal-based", "time-based", "proactive"]
+          },
           "summary": { "type": "string" },
           "aliases": { "type": "array", "items": { "type": "string" } },
           "bestFor": { "type": "array", "items": { "type": "string" } },
