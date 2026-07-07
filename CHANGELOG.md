@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.15
+
+### Added
+
+- Added `loop-it schedule --heartbeat codex` to create or update a native Codex Scheduled heartbeat that calls `loop-it tick`.
+- Added scheduled-runner smoke coverage for the generated Codex automation file, RRULE, status, command, and persisted schedule heartbeat metadata.
+
+### Changed
+
+- Updated CLI help, README, reviewer docs, marketplace checklist, and plugin copy so time-based and proactive loops explain the real Codex Scheduled path instead of only saying an external heartbeat is required.
+
 ## 0.3.14
 
 ### Added

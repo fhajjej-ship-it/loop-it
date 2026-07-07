@@ -133,7 +133,7 @@ function printUsage() {
   loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
   loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout" --execute codex
   loop-it run --goal "Fix failing CI" --check "npm run check" --execute codex --checker codex --worktree
-  loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex
+  loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
   loop-it tick --all --execute codex
   loop-it start --goal "Fix failing checkout tests" --check "npm test -- checkout" --agent codex
   loop-it new --name "Docs sweep" --objective "Update stale docs" --check "npm test"
@@ -148,7 +148,7 @@ Commands:
   install   Copy the loop-it skill into Codex, Claude Code, and/or Cursor skill folders.
   write     Write a verifier-gated .loop-it/LOOP.md contract.
   run       Inspect repo signals, recommend a loop, prepare a launch prompt, and optionally execute it.
-  schedule  Create a Codex-only schedule for a time-based or proactive loop.
+  schedule  Create a Codex-only time/proactive schedule and optionally its Codex Scheduled heartbeat.
   tick      Run due schedules once with Codex execution.
   start     Compile a goal, verifier, stop rules, and host launch prompt.
   new       Create a .loop-it/LOOP.md loop contract in the current directory.

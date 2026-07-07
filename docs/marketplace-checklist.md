@@ -19,6 +19,7 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 - [ ] Fresh project `loop-it write` creates `.loop-it/LOOP.md` and `.loop-it/progress.json`.
 - [ ] Fresh project `loop-it start` creates `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md`.
 - [ ] Fresh project `loop-it schedule` creates `.loop-it/schedules/<id>.json` for a time-based or proactive loop.
+- [ ] Fresh project `loop-it schedule --heartbeat codex` creates or updates a Codex automation file under `~/.codex/automations/<id>/automation.toml`.
 - [ ] Fresh project `loop-it tick --all --execute codex` runs due schedules or clearly reports no due schedules.
 - [ ] Packed npm tarball execution works.
 - [ ] npm publish dry-run passes.

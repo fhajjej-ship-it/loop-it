@@ -12,7 +12,7 @@
 
 Loop it is a portable loop router, library, launcher, and Agent Skill for turning coding goals into verifier-gated loops for Codex, Claude Code, Cursor, and other tools that understand `SKILL.md`.
 
-Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns. Time-based and proactive loops can run through Loop It's Codex-only `schedule`/`tick` path, but Loop It does not host a background service or external connector platform.
+Loop It's executable runner is intentionally centered on **goal-based coding loops**: local, bounded runs where the goal, verifier, iteration cap, stop rule, and evidence are known up front. The library also includes turn-based, time-based, and proactive loop patterns. Time-based and proactive loops can run through Loop It's Codex-only `schedule`/`tick` path. Add `--heartbeat codex` to create or update the local Codex Scheduled task that calls `tick`; Loop It still does not host a cloud background service or external connector platform.
 
 It turns a vague instruction like "improve this repo" into a bounded run: inspect the codebase, recommend the right loop, run a verifier, make the smallest credible change, track evidence, then stop when the verifier passes or the budget is spent.
 
@@ -25,7 +25,7 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 - `skills/loop-it/references/library/loops.json`: bundled loop library.
 - `skills/loop-it/scripts/select-loop.mjs`: zero-dependency loop selector and recommender.
 - `skills/loop-it/scripts/run-loop.mjs`: repo-intake router that recommends a loop and prepares a run-mode prompt.
-- `skills/loop-it/scripts/schedule-loop.mjs`: file-based schedule registry and due-tick runner for Codex-only time-based and proactive loops.
+- `skills/loop-it/scripts/schedule-loop.mjs`: file-based schedule registry, Codex Scheduled heartbeat writer, and due-tick runner for Codex-only time-based and proactive loops.
 - `skills/loop-it/scripts/start-loop.mjs`: zero-dependency goal/verifier launcher.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
@@ -88,7 +88,7 @@ Add `--checker codex` when the run needs a second, read-only review after the ve
 
 Add `--worktree` when the run should happen away from the current checkout. Loop it creates a fresh git worktree and branch from `origin/main`, `main`, `origin/master`, `master`, or `HEAD`, then runs Codex there and records the worktree path, branch, and base ref in `.loop-it/progress.json`. Use `--worktree-base`, `--worktree-branch`, or `--worktree-dir` when you need exact control.
 
-Use `loop-it schedule` for time-based or proactive loops that should be checked again later. A schedule writes `.loop-it/schedules/<id>.json`; `loop-it tick --all --execute codex` runs due records once. The heartbeat is external: use cron, launchd, GitHub Actions, or a Codex automation/plugin wrapper to call `tick`. Loop It records locks, run counts, the next run time, and schedule proof in `.loop-it/progress.json`.
+Use `loop-it schedule` for time-based or proactive loops that should be checked again later. A schedule writes `.loop-it/schedules/<id>.json`; `loop-it tick --all --execute codex` runs due records once. Add `--heartbeat codex` to create or update a native Codex Scheduled task under `~/.codex/automations/` that calls `npx @fhajjej/loop-it@latest tick --all --execute codex`. Without `--heartbeat codex`, the heartbeat stays external: use cron, launchd, GitHub Actions, or another approved scheduler to call `tick`. Loop It records locks, run counts, the next run time, heartbeat metadata, and schedule proof in `.loop-it/progress.json`.
 
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
@@ -107,10 +107,10 @@ Loop It uses the common loop taxonomy so users know what kind of automation they
 | --- | --- | --- | --- |
 | `turn-based` | User prompt | Agent answers, verifies once, or asks for context | Supported as one-turn launch prompts and skill instructions. |
 | `goal-based` | User prompt with verifier | Goal passes, blocker appears, or cap is reached | Primary Loop It path: `loop-it run --execute codex`. |
-| `time-based` | Interval or schedule | User cancels, external work completes, or the pass budget ends | Codex-only `schedule`/`tick` runner for file-based schedules; an external heartbeat must call `tick`. |
-| `proactive` | Event or schedule without human in real time | Each routed task exits on proof, route, or blocker | Codex-only `schedule`/`tick` runner when a connector or queue produces a safe command/check; external event sources stay outside Loop It. |
+| `time-based` | Interval or schedule | User cancels, external work completes, or the pass budget ends | Codex-only `schedule`/`tick` runner for file-based schedules; `--heartbeat codex` can create the local Codex Scheduled heartbeat that calls `tick`. |
+| `proactive` | Event or schedule without human in real time | Each routed task exits on proof, route, or blocker | Codex-only `schedule`/`tick` runner when a connector or queue produces a safe command/check; `--heartbeat codex` covers the Codex schedule, while external event sources stay outside Loop It. |
 
-The bundled library has 20 patterns: 5 `turn-based`, 5 `goal-based`, 5 `time-based`, and 5 `proactive`. Goal-based loops run immediately through `loop-it run --execute codex`. Time-based and proactive loops run only through `loop-it schedule` plus an external `tick` caller; Loop It does not poll or listen in the background by itself.
+The bundled library has 20 patterns: 5 `turn-based`, 5 `goal-based`, 5 `time-based`, and 5 `proactive`. Goal-based loops run immediately through `loop-it run --execute codex`. Time-based and proactive loops run through `loop-it schedule` plus a heartbeat that calls `tick`; in Codex, `--heartbeat codex` creates the local native Scheduled task for that heartbeat. Loop It does not poll or listen in the background by itself.
 
 Inspect the repo, choose the loop, run Codex, and keep verifying until a stop condition is reached:
 
@@ -152,12 +152,13 @@ npx @fhajjej/loop-it@latest schedule \
   --every 10m \
   --goal "Watch CI and repair the failing check when it breaks" \
   --check "npm run check" \
-  --execute codex
+  --execute codex \
+  --heartbeat codex
 
 npx @fhajjej/loop-it@latest tick --all --execute codex
 ```
 
-`schedule` only accepts `time-based` and `proactive` library loops. `tick` first runs the check; if it already passes, it records proof and waits for the next interval. If the check fails, it runs the selected loop through Codex, reruns the verifier, updates the schedule record, and records proof.
+`schedule` only accepts `time-based` and `proactive` library loops. With `--heartbeat codex`, it also creates or updates the local Codex Scheduled automation that calls `tick` on the chosen interval. `tick` first runs the check; if it already passes, it records proof and waits for the next interval. If the check fails, it runs the selected loop through Codex, reruns the verifier, updates the schedule record, and records proof.
 
 ## Start A Loop
 
@@ -308,7 +309,7 @@ node ./bin/loop-it.mjs library search "release readiness"
 node ./bin/loop-it.mjs library eval
 node ./bin/loop-it.mjs recommend --goal "fix failing CI"
 node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare public release" --check "npm run check"
-node ./bin/loop-it.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex
+node ./bin/loop-it.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
 node ./bin/loop-it.mjs tick --all --execute codex
 ```
 
@@ -318,7 +319,7 @@ node ./bin/loop-it.mjs tick --all --execute codex
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
 
-`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, and skips locked schedules.
+`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, writes the Codex Scheduled heartbeat file, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, and skips locked schedules.
 
 `npm run smoke:public-codex -- --keep` is the public-package execution proof. It installs `@fhajjej/loop-it@latest` into a fresh temporary repo, runs the public `loop-it run --execute codex` path against a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. It requires local Codex CLI auth and may use a real Codex request, so it is kept out of `npm run check`.
 
@@ -332,7 +333,7 @@ npx @fhajjej/loop-it@latest install --agent all --scope project
 
 ## Version Boundaries
 
-Loop it deliberately avoids hosted accounts, ratings, hosted background services, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops immediately. It can also run time-based and proactive loops through Codex-only `schedule`/`tick` files, but an approved external heartbeat or connector must call `tick`; Loop It does not own external side effects.
+Loop it deliberately avoids hosted accounts, ratings, hosted background services, production automation, multi-agent orchestration, billing, dashboards, and external-message sending. It runs local goal-based verifier-gated loops immediately. It can also run time-based and proactive loops through Codex-only `schedule`/`tick` files. In Codex, `--heartbeat codex` can create the local native Scheduled task that calls `tick`; outside Codex, an approved external heartbeat or connector must call `tick`. Loop It does not own external side effects.
 
 ## License
 

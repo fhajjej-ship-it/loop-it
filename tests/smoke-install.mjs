@@ -796,6 +796,7 @@ function smokeLoopExecute() {
 
 function smokeScheduledRunner() {
   const projectDir = resolve(tempRoot, "loop-schedule-execute");
+  const codexHome = resolve(tempRoot, "codex-home");
   const fakeCodex = resolve(tempRoot, "fake-codex-schedule.mjs");
   mkdirSync(projectDir, { recursive: true });
   writeFileSync(
@@ -877,27 +878,57 @@ function smokeScheduledRunner() {
     "npm test",
     "--execute",
     "codex",
+    "--heartbeat",
+    "codex",
+    "--heartbeat-id",
+    "ci-watch-heartbeat",
+    "--heartbeat-name",
+    "Loop It smoke heartbeat",
+    "--codex-home",
+    codexHome,
     "--no-worktree",
     "--now",
     now,
   ], { cwd: projectDir });
-  for (const text of ["Created schedule: ci-watch", "Loop: CI health watch (ci-health-watch)", "Execute: codex"]) {
+  for (const text of [
+    "Created schedule: ci-watch",
+    "Loop: CI health watch (ci-health-watch)",
+    "Execute: codex",
+    "Heartbeat: Codex Scheduled task Loop It smoke heartbeat (ci-watch-heartbeat)",
+  ]) {
     if (!scheduled.stdout.includes(text)) {
       fail(`Expected schedule output to include ${JSON.stringify(text)}`);
     }
   }
 
   const schedulePath = resolve(projectDir, ".loop-it", "schedules", "ci-watch.json");
+  const automationPath = resolve(codexHome, "automations", "ci-watch-heartbeat", "automation.toml");
   assertFile(schedulePath);
+  assertFile(automationPath);
   const schedule = JSON.parse(readFileSync(schedulePath, "utf8"));
   if (
     schedule.loopId !== "ci-health-watch" ||
     schedule.loopType !== "time-based" ||
     schedule.execute !== "codex" ||
     schedule.worktree !== false ||
-    schedule.nextRunAt !== now
+    schedule.nextRunAt !== now ||
+    schedule.heartbeat?.id !== "ci-watch-heartbeat" ||
+    schedule.heartbeat?.type !== "codex"
   ) {
-    fail("Expected schedule record to track the Codex-only time-based loop");
+    fail("Expected schedule record to track the Codex-only time-based loop and heartbeat");
+  }
+  const automationToml = readFileSync(automationPath, "utf8");
+  for (const text of [
+    'id = "ci-watch-heartbeat"',
+    'name = "Loop It smoke heartbeat"',
+    'status = "ACTIVE"',
+    'rrule = "FREQ=MINUTELY;INTERVAL=5"',
+    "npx @fhajjej/loop-it@latest tick --all --execute codex",
+    projectDir,
+  ]) {
+    if (!automationToml.includes(text)) {
+      fail(`Expected Codex automation TOML to include ${JSON.stringify(text)}`);
+    }
   }
 
   const ticked = run(nodeBin, [

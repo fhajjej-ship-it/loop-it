@@ -56,6 +56,20 @@ npx @fhajjej/loop-it@latest next --cwd .
 
 Use `next` to continue an active loop or select the next loop from recorded progress.
 
+## Codex: scheduled heartbeat
+
+```bash
+npx @fhajjej/loop-it@latest schedule \
+  --from docs-freshness-watch \
+  --every 1d \
+  --goal "Check setup docs for command and version drift" \
+  --check "npm run check" \
+  --execute codex \
+  --heartbeat codex
+```
+
+This writes `.loop-it/schedules/docs-freshness-watch.json` and creates or updates the local Codex Scheduled heartbeat that calls `npx @fhajjej/loop-it@latest tick --all --execute codex`. Use `loop-it tick --all --execute codex` directly when you want to test one due pass without waiting for the scheduler.
+
 ## Codex: ticket to verified fix
 
 ```text

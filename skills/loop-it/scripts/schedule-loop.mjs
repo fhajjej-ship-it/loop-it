@@ -7,9 +7,10 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { homedir } from "node:os";
 import { findLoopById } from "./select-loop.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -57,7 +58,7 @@ function schedule(options) {
 
   const goal = stringArg(options.goal, loop.defaultObjective);
   const check = stringArg(options.check, loop.defaultCheck);
-  const record = {
+  let record = {
     version: 1,
     id,
     status: "active",
@@ -82,11 +83,19 @@ function schedule(options) {
     runCount: 0,
   };
 
+  const heartbeat = createHeartbeatIfRequested(cwd, record, options, now);
+  if (heartbeat) {
+    record = {
+      ...record,
+      heartbeat,
+    };
+  }
+
   mkdirSync(dirname(schedulePath), { recursive: true });
   writeFileSync(schedulePath, JSON.stringify(record, null, 2) + "\n");
 
   if (options.json) {
-    printJson({ ok: true, schedule: record, path: schedulePath });
+    printJson({ ok: true, schedule: record, path: schedulePath, heartbeat });
     return;
   }
 
@@ -96,6 +105,12 @@ function schedule(options) {
   console.log(`Next run: ${record.nextRunAt}`);
   console.log(`Execute: ${record.execute}`);
   console.log(`Worktree: ${record.worktree ? "enabled" : "disabled"}`);
+  if (heartbeat) {
+    console.log(`Heartbeat: Codex Scheduled task ${heartbeat.name} (${heartbeat.id})`);
+    console.log(`Automation: ${heartbeat.path}`);
+  } else {
+    console.log("Heartbeat: external; create a Codex automation, cron, launchd, or GitHub Actions job to call tick.");
+  }
 }
 
 function tick(options) {
@@ -446,11 +461,135 @@ function isDue(record, now) {
   return Number.isFinite(dueAt.getTime()) && dueAt.getTime() <= now.getTime();
 }
 
+function createHeartbeatIfRequested(cwd, record, options, now) {
+  const heartbeat = stringArg(options.heartbeat, "external");
+  if (heartbeat === "external" || heartbeat === "none") {
+    return null;
+  }
+  if (heartbeat !== "codex") {
+    fail(`Unsupported --heartbeat value: ${heartbeat}. Use codex or external.`);
+  }
+
+  const codexHome = resolve(stringArg(options["codex-home"], process.env.CODEX_HOME || resolve(homedir(), ".codex")));
+  const automationId = scheduleId(
+    options["heartbeat-id"] ?? `loop-it-${basename(cwd)}-${record.id}-heartbeat`
+  );
+  const automationName = stringArg(options["heartbeat-name"], `Loop It: ${record.loopTitle}`);
+  const automationDir = resolve(codexHome, "automations", automationId);
+  const automationPath = resolve(automationDir, "automation.toml");
+  const existing = existsSync(automationPath) ? readFileSync(automationPath, "utf8") : "";
+  const timestamp = now.getTime();
+  const createdAt = readTomlNumber(existing, "created_at") ?? timestamp;
+  const tickCommand = stringArg(
+    options["heartbeat-command"],
+    "npx @fhajjej/loop-it@latest tick --all --execute codex"
+  );
+  const automation = {
+    version: 1,
+    id: automationId,
+    kind: "cron",
+    name: automationName,
+    prompt: buildCodexHeartbeatPrompt(cwd, record, tickCommand),
+    status: normalizeAutomationStatus(options["heartbeat-status"]),
+    rrule: stringArg(options["heartbeat-rrule"], rruleFromEvery(record.every)),
+    model: stringArg(options["heartbeat-model"], "gpt-5-codex"),
+    reasoning_effort: stringArg(options["heartbeat-reasoning-effort"], "medium"),
+    execution_environment: "local",
+    cwds: [cwd],
+    created_at: createdAt,
+    updated_at: timestamp,
+  };
+
+  mkdirSync(automationDir, { recursive: true });
+  writeFileSync(automationPath, formatAutomationToml(automation));
+
+  return {
+    type: "codex",
+    id: automation.id,
+    name: automation.name,
+    status: automation.status,
+    rrule: automation.rrule,
+    path: automationPath,
+    command: tickCommand,
+  };
+}
+
+function buildCodexHeartbeatPrompt(cwd, record, tickCommand) {
+  return `Run the Loop It schedule heartbeat for this repository.
+
+Loop It schedule:
+- id: ${record.id}
+- loop: ${record.loopTitle} (${record.loopId})
+- verifier: ${record.check}
+
+Steps:
+1. Work from ${cwd}.
+2. Run \`${tickCommand}\`.
+3. Report due schedules, pass/fail/blocked state, changed files, blockers, and next run time.
+4. If no schedules are due, stop.
+5. If a due schedule passes its verifier, stop with proof.
+6. If a due schedule fails and Loop It starts a bounded Codex run, obey Loop It's approval gates and stop on proof, blocker, repeated failure, or cap.
+
+Approval gates: do not publish packages, create GitHub releases, deploy, commit, push, send external messages, change credentials, change billing/payments, run destructive git operations, or perform irreversible writes without explicit user approval.`;
+}
+
+function normalizeAutomationStatus(value) {
+  const status = stringArg(value, "ACTIVE").toUpperCase();
+  if (!["ACTIVE", "PAUSED"].includes(status)) {
+    fail("--heartbeat-status must be ACTIVE or PAUSED.");
+  }
+  return status;
+}
+
+function rruleFromEvery(every) {
+  const { amount, unit, ms } = parseDuration(every);
+  if (unit === "d") {
+    return `FREQ=DAILY;INTERVAL=${amount}`;
+  }
+  if (unit === "h") {
+    return `FREQ=HOURLY;INTERVAL=${amount}`;
+  }
+  const minutes = Math.max(1, Math.ceil(ms / 60000));
+  return `FREQ=MINUTELY;INTERVAL=${minutes}`;
+}
+
+function formatAutomationToml(automation) {
+  return [
+    `version = ${automation.version}`,
+    `id = ${tomlString(automation.id)}`,
+    `kind = ${tomlString(automation.kind)}`,
+    `name = ${tomlString(automation.name)}`,
+    `prompt = ${tomlString(automation.prompt)}`,
+    `status = ${tomlString(automation.status)}`,
+    `rrule = ${tomlString(automation.rrule)}`,
+    `model = ${tomlString(automation.model)}`,
+    `reasoning_effort = ${tomlString(automation.reasoning_effort)}`,
+    `execution_environment = ${tomlString(automation.execution_environment)}`,
+    `cwds = ${tomlArray(automation.cwds)}`,
+    `created_at = ${automation.created_at}`,
+    `updated_at = ${automation.updated_at}`,
+    "",
+  ].join("\n");
+}
+
+function readTomlNumber(toml, key) {
+  const match = String(toml).match(new RegExp(`^${key}\\s*=\\s*(\\d+)`, "m"));
+  return match ? Number(match[1]) : null;
+}
+
+function tomlString(value) {
+  return JSON.stringify(String(value));
+}
+
+function tomlArray(values) {
+  return `[${values.map(tomlString).join(", ")}]`;
+}
+
 function scheduleDir(cwd) {
   return resolve(cwd, ".loop-it", "schedules");
 }
 
-function parseDurationMs(value) {
+function parseDuration(value) {
   const match = String(value ?? "").trim().match(/^(\d+)(s|m|h|d)$/i);
   if (!match) {
     fail(`Invalid --every value: ${value}. Use values like 30s, 5m, 1h, or 1d.`);
@@ -458,7 +597,15 @@ function parseDurationMs(value) {
   const amount = Number.parseInt(match[1], 10);
   const unit = match[2].toLowerCase();
   const multiplier = unit === "s" ? 1000 : unit === "m" ? 60000 : unit === "h" ? 3600000 : 86400000;
-  return amount * multiplier;
+  return {
+    amount,
+    unit,
+    ms: amount * multiplier,
+  };
+}
+
+function parseDurationMs(value) {
+  return parseDuration(value).ms;
 }
 
 function parseNow(value) {
@@ -543,7 +690,7 @@ function printJson(value) {
 
 function printUsage() {
   console.log(`Usage:
-  loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex
+  loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
   loop-it tick --all --execute codex
 
 Commands:
@@ -558,6 +705,15 @@ Schedule options:
   --target <text>              Optional PR, branch, URL, queue, or other target label.
   --id <id>                    Schedule id, default selected loop id.
   --execute codex              Required. Scheduled execution is Codex-only.
+  --heartbeat <codex|external>  Create/update a Codex Scheduled heartbeat, or leave heartbeat external. Default: external.
+  --heartbeat-id <id>           Optional Codex automation id.
+  --heartbeat-name <name>       Optional Codex automation name.
+  --heartbeat-status <status>   Optional Codex automation status: ACTIVE or PAUSED.
+  --heartbeat-model <model>     Optional Codex automation model. Default: gpt-5-codex.
+  --heartbeat-reasoning-effort <level> Optional Codex automation reasoning effort. Default: medium.
+  --heartbeat-rrule <rrule>     Optional Codex automation RRULE override.
+  --heartbeat-command <command> Optional tick command in the Codex Scheduled prompt.
+  --codex-home <path>           Codex home for automation files. Default: $CODEX_HOME or ~/.codex.
   --no-worktree                Run in the current checkout instead of an isolated worktree.
   --force                      Replace existing schedule.
 
