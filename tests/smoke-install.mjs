@@ -33,6 +33,7 @@ try {
   smokeLoopRun();
   smokeLoopExecute();
   smokeScheduledRunner();
+  smokeDoctor();
   smokeGitHubConnector();
   smokePackedCli();
   console.log("Smoke install checks passed");
@@ -72,6 +73,7 @@ function smokeProjectInstall() {
     ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".agents/skills/loop-it/scripts/schedule-loop.mjs",
     ".agents/skills/loop-it/scripts/github-connector.mjs",
+    ".agents/skills/loop-it/scripts/doctor.mjs",
   ]) {
     assertFile(resolve(projectDir, target));
   }
@@ -1042,6 +1044,145 @@ function smokeScheduledRunner() {
   }
 }
 
+function smokeDoctor() {
+  const projectDir = resolve(tempRoot, "doctor");
+  const codexHome = resolve(tempRoot, "doctor-codex-home");
+  const fakeCodex = resolve(tempRoot, "fake-codex-doctor.mjs");
+  const fakeNpm = resolve(tempRoot, "fake-npm-doctor.mjs");
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
+  mkdirSync(projectDir, { recursive: true });
+
+  writeFileSync(
+    fakeCodex,
+    [
+      "#!/usr/bin/env node",
+      "console.log('codex-cli 1.2.3');",
+      "",
+    ].join("\n")
+  );
+  chmodSync(fakeCodex, 0o755);
+
+  writeFileSync(
+    fakeNpm,
+    [
+      "#!/usr/bin/env node",
+      `console.log(${JSON.stringify(packageJson.version)});`,
+      "",
+    ].join("\n")
+  );
+  chmodSync(fakeNpm, 0o755);
+
+  const pluginPath = resolve(
+    codexHome,
+    "plugins",
+    "cache",
+    "personal",
+    "loop-it",
+    packageJson.version,
+    ".codex-plugin",
+    "plugin.json"
+  );
+  mkdirSync(dirname(pluginPath), { recursive: true });
+  writeFileSync(pluginPath, JSON.stringify({ name: "loop-it", version: packageJson.version }, null, 2) + "\n");
+
+  const now = "2026-07-07T12:00:00.000Z";
+  run(nodeBin, [
+    cliPath,
+    "schedule",
+    "--from",
+    "ci-health-watch",
+    "--id",
+    "doctor-ci-watch",
+    "--every",
+    "5m",
+    "--check",
+    "npm test",
+    "--execute",
+    "codex",
+    "--heartbeat",
+    "codex",
+    "--heartbeat-id",
+    "doctor-heartbeat",
+    "--codex-home",
+    codexHome,
+    "--no-worktree",
+    "--now",
+    now,
+  ], { cwd: projectDir });
+
+  const ready = JSON.parse(run(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ]).stdout);
+  if (
+    ready.ok !== true ||
+    ready.status !== "ready" ||
+    ready.package.version !== packageJson.version ||
+    ready.codex.plugin.version !== packageJson.version ||
+    ready.codex.cli.status !== "ready" ||
+    ready.schedules.count !== 1 ||
+    ready.schedules.records[0]?.heartbeat?.exists !== true
+  ) {
+    fail("Expected doctor to report a ready Loop It install with Codex heartbeat");
+  }
+
+  const human = run(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+  ]).stdout;
+  for (const text of ["Loop It doctor", "Status: ready", "Schedules: 1", "Codex CLI: ready"]) {
+    if (!human.includes(text)) {
+      fail(`Expected doctor human output to include ${JSON.stringify(text)}`);
+    }
+  }
+
+  rmSync(resolve(codexHome, "automations", "doctor-heartbeat", "automation.toml"), { force: true });
+  const missing = spawnSync(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (missing.status === 0) {
+    fail("Expected doctor to fail when a configured Codex heartbeat file is missing");
+  }
+  const missingReport = JSON.parse(missing.stdout);
+  if (
+    missingReport.ok !== false ||
+    missingReport.status !== "missing-heartbeat" ||
+    !missingReport.issues.some((issue) => issue.code === "missing-heartbeat")
+  ) {
+    fail("Expected doctor to report missing-heartbeat when the automation file is gone");
+  }
+}
+
 function smokeGitHubConnector() {
   const projectDir = resolve(tempRoot, "github-connector");
   const codexHome = resolve(tempRoot, "github-codex-home");
@@ -1208,6 +1349,7 @@ function smokePackedCli() {
     ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".agents/skills/loop-it/scripts/schedule-loop.mjs",
     ".agents/skills/loop-it/scripts/github-connector.mjs",
+    ".agents/skills/loop-it/scripts/doctor.mjs",
     ".loop-it/LOOP.md",
     ".loop-it/LAUNCH.md",
   ]) {

@@ -43,6 +43,7 @@ The check script verifies:
 - `loop-it write` creation from a goal and verifier
 - `.loop-it/LOOP.md` creation
 - `.loop-it/LAUNCH.md` creation
+- `loop-it doctor` diagnostics for ready and missing-heartbeat states
 - execution from a packed npm tarball
 - npm package contents through `npm pack --dry-run`
 

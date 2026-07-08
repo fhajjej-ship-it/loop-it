@@ -56,6 +56,9 @@ It also includes a narrow read-only GitHub PR connector. Use:
 ```bash
 node ./bin/loop-it.mjs github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
 node ./bin/loop-it.mjs schedules list
+node ./bin/loop-it.mjs doctor
 ```
 
 The connector chooses a PR review, CI health, or review-comment loop from the library and creates a local schedule. It requires `gh` auth and keeps GitHub writes behind explicit approval.
+
+`loop-it doctor` explains whether the package, personal Codex plugin cache, project skill install, Codex CLI, schedules, Codex heartbeat files, and GitHub auth are ready. It exits non-zero for blockers such as a missing configured heartbeat, missing Codex CLI, or missing `gh` auth for GitHub-backed schedules.

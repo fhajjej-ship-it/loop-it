@@ -25,6 +25,8 @@ if (command === "install") {
   runSkillScript("start-loop.mjs", argv);
 } else if (command === "run") {
   runSkillScript("run-loop.mjs", argv);
+} else if (command === "doctor") {
+  runSkillScript("doctor.mjs", argv);
 } else if (command === "schedule") {
   runSkillScript("schedule-loop.mjs", ["schedule", ...argv]);
 } else if (command === "schedules") {
@@ -137,6 +139,7 @@ function printUsage() {
   loop-it write --goal "Fix failing checkout tests" --check "npm test -- checkout"
   loop-it run --goal "Fix failing checkout tests" --check "npm test -- checkout" --execute codex
   loop-it run --goal "Fix failing CI" --check "npm run check" --execute codex --checker codex --worktree
+  loop-it doctor
   loop-it schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
   loop-it schedules list
   loop-it github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
@@ -154,6 +157,7 @@ Commands:
   install   Copy the loop-it skill into Codex, Claude Code, and/or Cursor skill folders.
   write     Write a verifier-gated .loop-it/LOOP.md contract.
   run       Inspect repo signals, recommend a loop, prepare a launch prompt, and optionally execute it.
+  doctor    Explain package, plugin, schedule, heartbeat, Codex CLI, and GitHub connector readiness.
   schedule  Create a Codex-only time/proactive schedule and optionally its Codex Scheduled heartbeat.
   schedules List, pause, or resume local Loop It schedules.
   github    Create GitHub-backed loop schedules from PR status, review, and CI signals.
