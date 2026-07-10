@@ -2,10 +2,16 @@
 
 ## Unreleased
 
+## 0.3.17
+
 ### Added
 
 - Added `loop-it doctor` to report package, npm, Codex plugin, project skill, Codex CLI, schedule, heartbeat, and GitHub connector readiness.
-- Added smoke coverage for ready doctor diagnostics and missing Codex heartbeat blockers.
+- Added smoke coverage for ready doctor diagnostics, blocker priority, malformed local metadata, and missing Codex heartbeat blockers.
+
+### Changed
+
+- Doctor diagnostics now prioritize blockers over warnings and report malformed package, plugin, or schedule JSON as structured issues instead of crashing.
 
 ## 0.3.16
 
