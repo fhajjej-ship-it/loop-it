@@ -66,7 +66,7 @@ npx @fhajjej/loop-it@latest write --goal "Fix failing CI" --check "npm run check
 npx @fhajjej/loop-it@latest start --goal "Fix failing CI" --check "npm run check" --agent all
 ```
 
-Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. Creating `.loop-it` files only prepares the loop; the pasted prompt is what asks the agent to repair and verify. If the agent only changes `.loop-it`, keep going because the issue has not been fixed.
+Paste the relevant launch from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. Codex interactive launches prefer the generated native `/goal` command and include a normal-message fallback; Claude Code and Cursor continue to use their generated prompts. Creating `.loop-it` files only prepares the loop. If the agent only changes `.loop-it`, keep going because the issue has not been fixed.
 
 For Codex CLI execution, use `run --execute codex` instead of only preparing a launch prompt:
 

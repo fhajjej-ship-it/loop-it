@@ -39,7 +39,7 @@ npx @fhajjej/loop-it@latest start \
   --agent all
 ```
 
-Paste the relevant prompt from `.loop-it/LAUNCH.md` into Codex, Claude Code, or Cursor. That pasted prompt is what asks the agent to inspect, edit, verify, and report. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required. If an iteration only creates or edits `.loop-it` files, it has not repaired the issue yet.
+For interactive Codex work, paste the preferred native `/goal` command from `.loop-it/LAUNCH.md`; use its normal-message fallback when Goals are unavailable. For Claude Code or Cursor, paste the relevant generated prompt. The launch asks the agent to inspect, edit, verify, and report. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required. If an iteration only creates or edits `.loop-it` files, it has not repaired the issue yet.
 
 ## End-to-end library flow
 

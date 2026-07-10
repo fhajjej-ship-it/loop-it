@@ -55,14 +55,25 @@ try {
     "--print",
   ], { cwd: projectDir }).stdout;
 
+  if (
+    !printedLaunch.includes("Preferred: start a native Codex Goal.") &&
+    !printedLaunch.includes("Paste this into Codex as a normal message:")
+  ) {
+    fail("Expected generated Codex launch prompt to include either native Goal or legacy normal-message launch guidance");
+  }
+  if (
+    !printedLaunch.includes("If nothing starts after pasting the fallback") &&
+    !printedLaunch.includes("If nothing starts after pasting this")
+  ) {
+    fail("Expected generated Codex launch prompt to include fallback execution guidance");
+  }
+
   for (const text of [
-    "Paste this into Codex as a normal message:",
     "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
     "If not, run the bounded task directly from this prompt.",
     "Run The Loop mode. You are not being asked to create another loop.",
     "First action: run the verifier",
     "Changes only under .loop-it do not count as a successful iteration.",
-    "If nothing starts after pasting this, send a follow-up message",
   ]) {
     assertIncludes(printedLaunch, text, "generated Codex launch prompt");
   }
@@ -79,7 +90,7 @@ try {
 
   console.log("Public install smoke passed");
   console.log(`Package: ${packageSpec}`);
-  console.log("Verified: npm latest install, project skill files, and Codex run-now launch wording");
+  console.log("Verified: npm latest install, project skill files, and Codex native-goal or fallback launch wording");
   if (runCodex) {
     console.log("Verified: public loop-it run --execute codex fixed the failing fixture and recorded proof");
   }
