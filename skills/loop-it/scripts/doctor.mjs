@@ -54,7 +54,12 @@ function buildDoctorReport(options) {
     githubRequired,
     githubCli,
   });
-  const status = issues[0]?.code ?? "ready";
+  const primaryIssue =
+    issues.find((issue) => issue.severity === "blocker") ??
+    issues.find((issue) => issue.severity === "warning") ??
+    issues.find((issue) => issue.severity === "info") ??
+    issues[0];
+  const status = primaryIssue?.code ?? "ready";
   const ok = !issues.some((issue) => issue.severity === "blocker");
 
   return {
@@ -95,7 +100,18 @@ function readPackageInfo() {
     };
   }
 
-  const metadata = JSON.parse(readFileSync(path, "utf8"));
+  const parsed = readJsonObject(path);
+  if (!parsed.ok) {
+    return {
+      status: "invalid",
+      name: "@fhajjej/loop-it",
+      version: null,
+      path,
+      detail: parsed.detail,
+    };
+  }
+
+  const metadata = parsed.value;
   return {
     status: "found",
     name: metadata.name ?? "@fhajjej/loop-it",
@@ -149,17 +165,33 @@ function readPersonalPlugin(codexHome) {
       if (!existsSync(metadataPath)) {
         return null;
       }
-      const metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
+      const parsed = readJsonObject(metadataPath);
+      if (!parsed.ok) {
+        return {
+          sortVersion: entry.name,
+          plugin: {
+            status: "invalid",
+            version: null,
+            path: metadataPath,
+            detail: parsed.detail,
+          },
+        };
+      }
+
+      const metadata = parsed.value;
       return {
-        status: "found",
-        version: metadata.version ?? entry.name,
-        path: metadataPath,
+        sortVersion: metadata.version ?? entry.name,
+        plugin: {
+          status: "found",
+          version: metadata.version ?? entry.name,
+          path: metadataPath,
+        },
       };
     })
     .filter(Boolean)
-    .sort((a, b) => compareVersions(b.version, a.version));
+    .sort((a, b) => compareVersions(b.sortVersion, a.sortVersion));
 
-  return candidates[0] ?? {
+  return candidates[0]?.plugin ?? {
     status: "missing",
     version: null,
     path: cacheDir,
@@ -177,7 +209,30 @@ function loadSchedules(cwd) {
     .filter((name) => name.endsWith(".json"))
     .map((name) => {
       const path = resolve(dir, name);
-      const record = JSON.parse(readFileSync(path, "utf8"));
+      const parsed = readJsonObject(path);
+      if (!parsed.ok) {
+        const id = name.slice(0, -".json".length);
+        return {
+          id,
+          status: "invalid",
+          loopId: null,
+          loopType: null,
+          connector: null,
+          target: "",
+          check: null,
+          every: null,
+          nextRunAt: null,
+          lastRunAt: null,
+          lastResult: null,
+          runCount: 0,
+          path,
+          lockExists: existsSync(resolve(dir, `${id}.lock`)),
+          heartbeat: heartbeatStatus({}),
+          detail: parsed.detail,
+        };
+      }
+
+      const record = parsed.value;
       return {
         id: record.id,
         status: record.status,
@@ -258,6 +313,13 @@ function checkCommand(command, commandArgs) {
 
 function collectIssues({ packageInfo, npmLatest, plugin, schedules, codexCli, githubRequired, githubCli }) {
   const issues = [];
+  if (packageInfo.status === "invalid") {
+    issues.push({
+      code: "invalid-package",
+      severity: "blocker",
+      message: `Package metadata at ${packageInfo.path} is invalid. ${packageInfo.detail}`,
+    });
+  }
   if (packageInfo.version && npmLatest.version && compareVersions(packageInfo.version, npmLatest.version) < 0) {
     issues.push({
       code: "stale-package",
@@ -265,7 +327,13 @@ function collectIssues({ packageInfo, npmLatest, plugin, schedules, codexCli, gi
       message: `Local package ${packageInfo.version} is behind npm ${npmLatest.version}.`,
     });
   }
-  if (plugin.status === "missing") {
+  if (plugin.status === "invalid") {
+    issues.push({
+      code: "invalid-codex-plugin",
+      severity: "warning",
+      message: `Codex plugin metadata at ${plugin.path} is invalid. ${plugin.detail}`,
+    });
+  } else if (plugin.status === "missing") {
     issues.push({
       code: "missing-codex-plugin",
       severity: "warning",
@@ -293,6 +361,14 @@ function collectIssues({ packageInfo, npmLatest, plugin, schedules, codexCli, gi
     });
   }
   for (const schedule of schedules) {
+    if (schedule.status === "invalid") {
+      issues.push({
+        code: "invalid-schedule",
+        severity: "blocker",
+        message: `Schedule metadata at ${schedule.path} is invalid. ${schedule.detail}`,
+      });
+      continue;
+    }
     if (schedule.heartbeat.configured && !schedule.heartbeat.exists) {
       issues.push({
         code: "missing-heartbeat",
@@ -312,6 +388,12 @@ function collectIssues({ packageInfo, npmLatest, plugin, schedules, codexCli, gi
 }
 
 function nextAction(status) {
+  if (status === "invalid-package") {
+    return "Repair or reinstall the Loop It package, then rerun loop-it doctor.";
+  }
+  if (status === "invalid-schedule") {
+    return "Repair or recreate the invalid schedule record, then rerun loop-it doctor.";
+  }
   if (status === "missing-heartbeat") {
     return "Recreate the schedule with --heartbeat codex, or update the schedule record to use an existing Codex automation.";
   }
@@ -327,7 +409,7 @@ function nextAction(status) {
   if (status === "no-schedules") {
     return "Create a time-based or proactive schedule, for example loop-it schedule --from ci-health-watch --execute codex --heartbeat codex.";
   }
-  if (status === "missing-codex-plugin") {
+  if (status === "missing-codex-plugin" || status === "invalid-codex-plugin") {
     return "Run npm run sync:codex-plugin in this repo, or install the current plugin from the release package.";
   }
   return "Loop It is ready. Run loop-it tick --all --execute codex when a schedule is due.";
@@ -402,6 +484,23 @@ function compareVersions(left, right) {
 function parseVersion(value) {
   const match = String(value ?? "").match(/\d+(?:\.\d+)*/);
   return match ? match[0].split(".").map((part) => Number.parseInt(part, 10)) : [0];
+}
+
+function readJsonObject(path) {
+  try {
+    const value = JSON.parse(readFileSync(path, "utf8"));
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { ok: false, detail: "Expected a JSON object." };
+    }
+    return { ok: true, value };
+  } catch (error) {
+    const detail = error instanceof SyntaxError
+      ? "File does not contain valid JSON."
+      : error instanceof Error
+        ? error.message
+        : String(error);
+    return { ok: false, detail };
+  }
 }
 
 function positiveInteger(value, name) {

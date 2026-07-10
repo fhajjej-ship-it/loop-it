@@ -1153,7 +1153,131 @@ function smokeDoctor() {
     }
   }
 
-  rmSync(resolve(codexHome, "automations", "doctor-heartbeat", "automation.toml"), { force: true });
+  const missingCodexHome = resolve(tempRoot, "doctor-missing-codex-home");
+  const missingCodex = spawnSync(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    missingCodexHome,
+    "--codex-bin",
+    resolve(tempRoot, "missing-codex-doctor"),
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (missingCodex.status === 0) {
+    fail("Expected doctor to fail when Codex CLI is missing");
+  }
+  const missingCodexReport = JSON.parse(missingCodex.stdout);
+  if (
+    missingCodexReport.ok !== false ||
+    missingCodexReport.status !== "missing-codex-cli" ||
+    !missingCodexReport.issues.some((issue) => issue.code === "missing-codex-plugin") ||
+    !missingCodexReport.nextAction.includes("Install/authenticate Codex CLI")
+  ) {
+    fail("Expected doctor to prioritize the Codex CLI blocker over plugin warnings");
+  }
+
+  writeFileSync(pluginPath, "{\n");
+  const invalidPlugin = JSON.parse(run(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ]).stdout);
+  if (
+    invalidPlugin.ok !== true ||
+    invalidPlugin.status !== "invalid-codex-plugin" ||
+    invalidPlugin.codex.plugin.status !== "invalid" ||
+    !invalidPlugin.issues.some((issue) => issue.code === "invalid-codex-plugin")
+  ) {
+    fail("Expected doctor to report malformed Codex plugin metadata without crashing");
+  }
+  writeFileSync(pluginPath, JSON.stringify({ name: "loop-it", version: packageJson.version }, null, 2) + "\n");
+
+  const invalidSchedulePath = resolve(projectDir, ".loop-it", "schedules", "invalid-doctor-watch.json");
+  writeFileSync(invalidSchedulePath, "{\n");
+  const invalidSchedule = spawnSync(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (invalidSchedule.status === 0) {
+    fail("Expected doctor to fail when a schedule record contains malformed JSON");
+  }
+  const invalidScheduleReport = JSON.parse(invalidSchedule.stdout);
+  if (
+    invalidScheduleReport.ok !== false ||
+    invalidScheduleReport.status !== "invalid-schedule" ||
+    invalidScheduleReport.schedules.records.find((schedule) => schedule.path === invalidSchedulePath)?.status !== "invalid" ||
+    !invalidScheduleReport.issues.some((issue) => issue.code === "invalid-schedule")
+  ) {
+    fail("Expected doctor to report malformed schedule metadata without crashing");
+  }
+  rmSync(invalidSchedulePath);
+
+  const invalidPackageRoot = resolve(tempRoot, "doctor-invalid-package");
+  const isolatedDoctorPath = resolve(invalidPackageRoot, "skills", "loop-it", "scripts", "doctor.mjs");
+  mkdirSync(dirname(isolatedDoctorPath), { recursive: true });
+  writeFileSync(isolatedDoctorPath, readFileSync(resolve(skillSource, "scripts", "doctor.mjs")));
+  writeFileSync(resolve(invalidPackageRoot, "package.json"), "{\n");
+  const invalidPackage = spawnSync(nodeBin, [
+    isolatedDoctorPath,
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--codex-bin",
+    fakeCodex,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (invalidPackage.status === 0) {
+    fail("Expected doctor to fail when package metadata contains malformed JSON");
+  }
+  const invalidPackageReport = JSON.parse(invalidPackage.stdout);
+  if (
+    invalidPackageReport.ok !== false ||
+    invalidPackageReport.status !== "invalid-package" ||
+    invalidPackageReport.package.status !== "invalid" ||
+    !invalidPackageReport.issues.some((issue) => issue.code === "invalid-package")
+  ) {
+    fail("Expected doctor to report malformed package metadata without crashing");
+  }
+
+  const heartbeatPath = ready.schedules.records[0]?.heartbeat?.path;
+  if (!heartbeatPath) {
+    fail("Expected ready report to include a Codex heartbeat path");
+  }
+  assertFile(heartbeatPath);
+  rmSync(heartbeatPath);
   const missing = spawnSync(nodeBin, [
     cliPath,
     "doctor",
