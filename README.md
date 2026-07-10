@@ -27,6 +27,7 @@ Product page: https://swarmixai.com/experiments/loop-it-poc
 - `skills/loop-it/scripts/run-loop.mjs`: repo-intake router that recommends a loop and prepares a run-mode prompt.
 - `skills/loop-it/scripts/schedule-loop.mjs`: file-based schedule registry, Codex Scheduled heartbeat writer, and due-tick runner for Codex-only time-based and proactive loops.
 - `skills/loop-it/scripts/github-connector.mjs`: read-only GitHub PR intake through `gh` that chooses a PR/CI/review loop and creates a local schedule.
+- `skills/loop-it/scripts/doctor.mjs`: local package, plugin, schedule, heartbeat, Codex CLI, and GitHub connector diagnostics.
 - `skills/loop-it/scripts/start-loop.mjs`: zero-dependency goal/verifier launcher.
 - `skills/loop-it/references/loop-template.md`: durable loop state template.
 - `skills/loop-it/scripts/create-loop.mjs`: zero-dependency loop contract generator.
@@ -94,6 +95,8 @@ Use `loop-it schedule` for time-based or proactive loops that should be checked 
 Use `loop-it schedules list` to see local schedules and whether the Codex heartbeat file exists. Use `loop-it schedules pause --id <id>` and `loop-it schedules resume --id <id>` to stop or restart a local schedule without deleting its evidence.
 
 Use `loop-it github pr` when the trigger should come from GitHub. It reads a PR through the GitHub CLI, chooses `review-comment-resolver-routine`, `ci-health-watch`, or `pr-review-watch`, writes a read-only connector snapshot under `.loop-it/connectors/github/`, and creates a local schedule. It never comments, pushes, requests review, merges, deploys, or changes GitHub state without explicit approval.
+
+Use `loop-it doctor` when the user needs to know whether Loop It is actually ready. It reports the local package version, npm latest version, personal Codex plugin cache version, project skill install, Codex CLI availability, schedule records, Codex heartbeat files, and GitHub CLI auth when connector state exists. It exits non-zero for real blockers such as missing Codex CLI, missing configured heartbeat files, or missing GitHub auth for GitHub-backed schedules.
 
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
@@ -171,6 +174,7 @@ List, pause, or resume schedules:
 npx @fhajjej/loop-it@latest schedules list
 npx @fhajjej/loop-it@latest schedules pause --id ci-health-watch
 npx @fhajjej/loop-it@latest schedules resume --id ci-health-watch
+npx @fhajjej/loop-it@latest doctor
 ```
 
 Create a GitHub PR-backed schedule:
@@ -338,6 +342,7 @@ node ./bin/loop-it.mjs new --name "Release readiness" --objective "Prepare publi
 node ./bin/loop-it.mjs schedule --from ci-health-watch --every 10m --check "npm run check" --execute codex --heartbeat codex
 node ./bin/loop-it.mjs schedules list
 node ./bin/loop-it.mjs github pr --repo owner/repo --pr 123 --every 10m --execute codex --heartbeat codex
+node ./bin/loop-it.mjs doctor
 node ./bin/loop-it.mjs tick --all --execute codex
 ```
 
@@ -347,7 +352,7 @@ node ./bin/loop-it.mjs tick --all --execute codex
 
 `npm run smoke:readiness` proves the runner refuses unattended Codex execution when there is no automated verifier or when the request requires approval-sensitive work.
 
-`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, writes the Codex Scheduled heartbeat file, lists/pause/resumes schedules, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, skips locked schedules, and proves a fake GitHub PR can create a connector-backed scheduled loop.
+`npm run smoke` includes the scheduled-runner proof: it rejects goal-based loops for scheduling, creates a time-based Codex schedule, writes the Codex Scheduled heartbeat file, lists/pause/resumes schedules, ticks a due record through a fake Codex executable, verifies the failing check is fixed, annotates `.loop-it/progress.json`, skips locked schedules, proves doctor diagnostics for ready and missing-heartbeat states, and proves a fake GitHub PR can create a connector-backed scheduled loop.
 
 `npm run smoke:public-codex -- --keep` is the public-package execution proof. It installs `@fhajjej/loop-it@latest` into a fresh temporary repo, runs the public `loop-it run --execute codex` path against a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. It requires local Codex CLI auth and may use a real Codex request, so it is kept out of `npm run check`.
 

@@ -19,6 +19,7 @@ First decide which mode the user needs. Bias toward **Run now** when the user as
 - **Launch from goal**: compile a goal, verifier, cap, stop conditions, approval gates, and host-specific launch prompt. This prepares the loop; it does not repair code until an agent runs the launch prompt.
 - **Design only**: produce a reusable loop prompt or project-local loop file without claiming the issue was fixed.
 - **Run now**: inspect the target codebase, select the right loop, execute bounded iterations, edit when needed, verify after each pass, record evidence, and stop on proof, repeated failure, blocker, approval need, or the iteration cap.
+- **Doctor**: explain whether Loop It is installed, current, scheduled, and able to run Codex or GitHub-backed loops.
 - **Schedule/tick**: for time-based or proactive loops, create `.loop-it/schedules/<id>.json`; add `--heartbeat codex` when the user expects a native Codex Scheduled task to call `tick`.
 - **Connector intake**: for GitHub PR work, read PR signals with `gh`, choose a PR/CI/review loop, write `.loop-it/connectors/github/<id>.json`, and schedule a Codex tick without sending external messages.
 - **Export/install**: adapt the same loop for Codex, Claude Code, Cursor, or another SKILL.md-compatible agent.
@@ -204,6 +205,15 @@ node <skill-dir>/scripts/schedule-loop.mjs tick --all --execute codex
 Schedule mode is Codex-only. `schedule` writes `.loop-it/schedules/<id>.json` with the selected time-based or proactive library loop, goal, verifier, interval, next run time, and worktree preference. With `--heartbeat codex`, it also writes or updates the local Codex automation file under `~/.codex/automations/<id>/automation.toml`, so the schedule appears in Codex Scheduled and calls `tick`. `tick` runs each due schedule once: first it runs the verifier, records proof if the verifier already passes, and only calls the run loop through Codex when the verifier fails.
 
 The heartbeat is not hosted by Loop It. A user, cron, launchd, GitHub Actions, Codex Scheduled automation, or a plugin connector must call `tick`. Do not claim Loop It is polling, listening, or running in the background unless such a caller is actually configured or `--heartbeat codex` successfully created the local Codex automation.
+
+Use `doctor` when the user asks whether the plugin, schedule, or connector is working:
+
+```bash
+node <skill-dir>/scripts/doctor.mjs --cwd <project>
+node <skill-dir>/scripts/doctor.mjs --cwd <project> --json
+```
+
+Doctor must report package version, npm latest version when available, personal Codex plugin cache version, project skill install, Codex CLI availability, local schedules, configured Codex heartbeat files, and GitHub CLI auth when GitHub connector state exists. Treat `missing-heartbeat`, `missing-codex-cli`, and `missing-gh-auth` as real blockers for unattended scheduled runs.
 
 For scheduled ticks:
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Added `loop-it doctor` to report package, npm, Codex plugin, project skill, Codex CLI, schedule, heartbeat, and GitHub connector readiness.
+- Added smoke coverage for ready doctor diagnostics and missing Codex heartbeat blockers.
+
 ## 0.3.16
 
 ### Added
