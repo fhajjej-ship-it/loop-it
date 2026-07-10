@@ -234,7 +234,7 @@ npx @fhajjej/loop-it@latest start \
   --agent codex
 ```
 
-Paste the generated Codex launch prompt as a normal message. That is the step that asks Codex to inspect, edit, verify, and report. If `$loop-it` or slash commands are unavailable, the generated prompt still tells the agent to run the bounded task directly.
+For interactive Codex work, paste the generated native `/goal` command. Native Goal state owns the live lifecycle while `.loop-it` keeps the portable contract and evidence. If `/goal` or `$loop-it` is unavailable, use the generated normal-message fallback. Non-interactive `run --execute codex` continues to use Loop It's bounded runner without requiring native Goals.
 
 More examples: [docs/examples.md](docs/examples.md).
 

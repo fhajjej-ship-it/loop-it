@@ -167,7 +167,15 @@ function renderAgentLaunch(agentName, loop) {
   if (agentName === "codex") {
     return `## Codex Launch
 
-Paste this into Codex as a normal message:
+Preferred: start a native Codex Goal. Paste this single-line command into an interactive Codex task:
+
+\`\`\`text
+/goal ${inline(loop.goal)} Scope: ${inline(loop.scope)}. Treat .loop-it/LOOP.md as the portable contract when it exists. Run ${inline(loop.check)} before editing and after every iteration. Use at most ${loop.maxIterations} iterations. Make only scoped changes. Record verifier evidence in .loop-it/progress.json when that file exists. Stop when ${inline(loop.stop)}. Pause and ask for approval before ${inline(loop.approval)}.
+\`\`\`
+
+Native \`/goal\` owns the live running, paused, and completed state. The \`.loop-it\` files remain the portable contract and evidence record.
+
+If \`/goal\` is unavailable, or this is a non-interactive Codex run, paste this fallback as a normal message:
 
 \`\`\`text
 Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled. If not, run the bounded task directly from this prompt.
@@ -176,7 +184,7 @@ Goal: ${plain(loop.goal)}
 Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
 
 Run The Loop mode. You are not being asked to create another loop.
-Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
+Read .loop-it/LOOP.md as state when it exists, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
 First action: run the verifier, or the closest available equivalent, and capture the actual failure.
 If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
 Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
@@ -188,7 +196,7 @@ Stop when: ${plain(loop.stop)}
 Approval required for: ${plain(loop.approval)}
 \`\`\`
 
-If nothing starts after pasting this, send a follow-up message: "Run the loop now from the prompt above."`;
+If nothing starts after pasting the fallback, send a follow-up message: "Run the loop now from the prompt above."`;
   }
 
   if (agentName === "claude") {
@@ -259,7 +267,7 @@ function progressState(loop) {
     blockers: [],
     remainingRisks: [],
     evidenceToRecord: ["iteration number", "verifier output", "changed files", "blockers", "remaining risks"],
-    recommendedNextAction: "Paste a host launch prompt from .loop-it/LAUNCH.md into the target agent to run the repair; .loop-it-only changes do not count as progress.",
+    recommendedNextAction: "Start the native Codex /goal command or paste another host launch prompt from .loop-it/LAUNCH.md; .loop-it-only changes do not count as progress.",
     updatedAt: loop.now,
   };
 }
@@ -332,6 +340,10 @@ function findLibraryLoop(id) {
 
 function plain(value) {
   return String(value).replaceAll("```", "'''");
+}
+
+function inline(value) {
+  return plain(value).replace(/\s+/g, " ").trim();
 }
 
 function printUsage() {

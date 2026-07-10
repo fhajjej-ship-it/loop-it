@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.18
+
+### Changed
+
+- Codex interactive launch guides now prefer the native `/goal` lifecycle while preserving the portable `.loop-it` contract, a self-contained normal-message fallback, and the existing non-interactive `run --execute codex` runner.
+
 ## 0.3.17
 
 ### Added

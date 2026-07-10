@@ -1,6 +1,6 @@
 {
   "name": "loop-it",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "description": "Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
   "homepage": "https://swarmixai.com/experiments/loop-it-poc",
   "license": "MIT",

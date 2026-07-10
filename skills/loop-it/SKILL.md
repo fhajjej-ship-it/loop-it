@@ -145,11 +145,11 @@ Library-backed loop files also create `.loop-it/progress.json` unless `--no-prog
 
 Loop It compiles host launch prompts and portable loop state. The generated prompts are safe to paste as normal chat messages, with optional skill commands only when the host supports them.
 
-- **Codex**: For finish-line work, generate a normal-message prompt with the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. It may say to use `$loop-it` when available, but it must still tell Codex to run the bounded task directly when the skill or slash commands are unavailable.
+- **Codex**: For interactive, long-running finish-line work, prefer a native `/goal` command containing the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. Native Goal state owns the live running, paused, and completed lifecycle. Keep `.loop-it` files as the portable contract and evidence record, and always include a self-contained normal-message fallback when `/goal` is unavailable. `loop-it run --execute codex` remains the non-interactive bounded runner and must not require native Goals.
 - **Claude Code**: Generate a normal-message prompt with the verifier and cap. Use Claude Code `/loop` only for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
 - **Cursor**: Generate a normal Agent-chat prompt. It may say to use `/loop-it` when available, but it must still run as plain instructions when the skill command is unavailable.
 
-Never describe portable `.loop-it` state as a native host goal. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: portable loop files, host skill command, or plain agent prompt.
+Never describe portable `.loop-it` state as native Goal lifecycle state. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: native Codex Goal, portable loop files, host skill command, or plain agent prompt.
 
 ## Run The Loop
 

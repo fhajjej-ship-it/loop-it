@@ -439,7 +439,8 @@ function smokeLoopStart() {
     "## Codex Launch",
     "## Claude Code Launch",
     "## Cursor Launch",
-    "Paste this into Codex as a normal message:",
+    "Preferred: start a native Codex Goal.",
+    "/goal Fix failing checkout tests Scope: current working tree.",
     "Goal: Fix failing checkout tests",
     "Verifier: npm test -- checkout",
     "Iteration cap: 4",
@@ -460,6 +461,8 @@ function smokeLoopStart() {
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
     "Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.",
+    "Native `/goal` owns the live running, paused, and completed state.",
+    "If `/goal` is unavailable, or this is a non-interactive Codex run",
     "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
     "If not, run the bounded task directly from this prompt.",
     "You are not being asked to create another loop.",
@@ -468,7 +471,7 @@ function smokeLoopStart() {
     "Do not run loop-it write, loop-it new, or loop-it start.",
     "Use Claude Code `/loop` only for polling or interval work.",
     "Use /loop-it if this Cursor workspace has the Loop It skill installed.",
-    "If nothing starts after pasting this",
+    "If nothing starts after pasting the fallback",
   ]) {
     if (!launchContent.includes(text)) {
       fail(`Expected ${launchFile} to contain ${JSON.stringify(text)}`);
@@ -541,6 +544,7 @@ function smokeLoopRun() {
 
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
+    "/goal inspect this repo and run the right loop Scope: current working tree.",
     "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
     "If not, run the bounded task directly from this prompt.",
     "You are not being asked to create another loop.",
@@ -614,7 +618,7 @@ function smokeLoopRun() {
     failingProgress.verifier !== "npm test" ||
     failingProgress.lastResult !== "not-run" ||
     failingProgress.recommendedNextAction !==
-      "Paste a host launch prompt from .loop-it/LAUNCH.md into the target agent to run the repair; .loop-it-only changes do not count as progress."
+      "Start the native Codex /goal command or paste another host launch prompt from .loop-it/LAUNCH.md; .loop-it-only changes do not count as progress."
   ) {
     fail("Expected failing test run progress to prepare execution without claiming completion");
   }
@@ -632,9 +636,10 @@ function smokeLoopRun() {
 
   const failingLaunchContent = readFileSync(failingLaunchFile, "utf8");
   for (const text of [
+    "/goal fix failing npm test with the smallest safe change Scope: current working tree.",
     "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
     "If not, run the bounded task directly from this prompt.",
-    "Read .loop-it/LOOP.md as state, then execute the repair.",
+    "Read .loop-it/LOOP.md as state when it exists, then execute the repair.",
     "First action: run the verifier",
     "If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.",
     "Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.",
