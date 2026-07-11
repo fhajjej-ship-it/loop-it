@@ -201,6 +201,73 @@ function smokeLibrarySelection() {
     fail("Expected next to continue the active release-readiness loop");
   }
 
+  const scheduledProjectDir = resolve(tempRoot, "next-from-scheduled-custom-progress");
+  writeProgress(scheduledProjectDir, {
+    activeLoopId: "weekly-adoption-review",
+    loopName: "Weekly adoption review",
+    status: "scheduled",
+    objective: "Review adoption signals weekly",
+    lastCheck: "read-only adoption evidence",
+    lastResult: "pass",
+    blockers: [],
+    remainingRisks: ["Wait for a complete weekly evidence window"],
+    recommendedNextAction: "Wait for the scheduled adoption review on Friday at 09:00",
+  });
+  const scheduledNext = run(nodeBin, [cliPath, "next", "--cwd", scheduledProjectDir]).stdout;
+  for (const text of [
+    "Active progress: Weekly adoption review (scheduled)",
+    "Next action: Wait for the scheduled adoption review on Friday at 09:00",
+    "No new loop recommended.",
+  ]) {
+    if (!scheduledNext.includes(text)) {
+      fail(`Expected scheduled custom progress output to include ${JSON.stringify(text)}`);
+    }
+  }
+  if (scheduledNext.includes("Recommended loop:")) {
+    fail("Expected scheduled custom progress not to invent a new loop recommendation");
+  }
+  const scheduledNextJson = JSON.parse(
+    run(nodeBin, [cliPath, "next", "--cwd", scheduledProjectDir, "--json"]).stdout
+  );
+  if (
+    scheduledNextJson.selected !== null ||
+    scheduledNextJson.progressResolution?.state !== "scheduled" ||
+    scheduledNextJson.progressResolution?.nextAction !==
+      "Wait for the scheduled adoption review on Friday at 09:00"
+  ) {
+    fail("Expected scheduled custom progress JSON to preserve the recorded next action without selecting a loop");
+  }
+
+  const completedScheduleProjectDir = resolve(tempRoot, "next-from-completed-schedule-progress");
+  writeProgress(completedScheduleProjectDir, {
+    activeLoopId: "docs-freshness-watch",
+    loopName: "Docs freshness watch",
+    scheduleId: "docs-freshness-watch",
+    status: "completed",
+    objective: "Check docs freshness after releases",
+    lastCheck: "npm run check",
+    lastResult: "pass",
+    blockers: [],
+    remainingRisks: [],
+    recommendedNextAction: "Wait until 2026-07-12T04:33:32.031Z for the next scheduled tick.",
+  });
+  const completedScheduleNext = run(
+    nodeBin,
+    [cliPath, "next", "--cwd", completedScheduleProjectDir]
+  ).stdout;
+  for (const text of [
+    "Active progress: Docs freshness watch (completed)",
+    "Next action: Wait until 2026-07-12T04:33:32.031Z for the next scheduled tick.",
+    "No new loop recommended.",
+  ]) {
+    if (!completedScheduleNext.includes(text)) {
+      fail(`Expected completed schedule output to include ${JSON.stringify(text)}`);
+    }
+  }
+  if (completedScheduleNext.includes("Recommended loop:")) {
+    fail("Expected completed schedule progress not to invent a new loop recommendation");
+  }
+
   const blockedProjectDir = resolve(tempRoot, "next-from-blocked-progress");
   writeProgress(blockedProjectDir, {
     activeLoopId: "failing-ci-repair",

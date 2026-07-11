@@ -105,6 +105,31 @@ export function recommendLoop(options = {}) {
   const progressResolution = progress ? resolveProgress(progress, options.cwd ?? process.cwd()) : null;
   const status = String(progress?.data?.status ?? "").toLowerCase();
   const inactiveStatuses = ["complete", "completed", "stopped", "blocked"];
+  const activeLoop = progress?.data?.activeLoopId
+    ? findLoopById(progress.data.activeLoopId, library)
+    : null;
+  const scheduledProgressOwnsNextAction =
+    progress?.data?.recommendedNextAction &&
+    (progress.data.scheduleId ||
+      (status === "scheduled" && progress.data.activeLoopId && !activeLoop));
+
+  if (scheduledProgressOwnsNextAction) {
+    return {
+      source: "progress",
+      selected: null,
+      alternatives: [],
+      progress,
+      progressResolution: {
+        state: "scheduled",
+        reason: "scheduled progress already defines the next action",
+        activeLoopId: progress.data.activeLoopId ?? null,
+        scheduleId: progress.data.scheduleId ?? null,
+        loopName: progress.data.loopName ?? progress.data.activeLoopId ?? progress.data.scheduleId,
+        status,
+        nextAction: progress.data.recommendedNextAction,
+      },
+    };
+  }
 
   if (progressResolution?.state === "stale-resolved") {
     const selectedLoop = findLoopById("codebase-intake-to-running-loop", library);
@@ -134,7 +159,6 @@ export function recommendLoop(options = {}) {
   }
 
   if (progress?.data?.activeLoopId) {
-    const activeLoop = findLoopById(progress.data.activeLoopId, library);
     if (activeLoop && !inactiveStatuses.includes(status)) {
       return withWorkflow({
         source: "progress",
@@ -770,6 +794,14 @@ function printRanked(title, results) {
 
 function printRecommendation(recommendation, sourceLabel) {
   if (!recommendation.selected) {
+    if (recommendation.progressResolution?.state === "scheduled") {
+      const progress = recommendation.progressResolution;
+      console.log(`Active progress: ${progress.loopName} (${progress.status})`);
+      console.log(`Source: ${sourceLabel}`);
+      console.log(`Next action: ${progress.nextAction}`);
+      console.log("No new loop recommended.");
+      return;
+    }
     console.log("No matching loop found.");
     return;
   }
