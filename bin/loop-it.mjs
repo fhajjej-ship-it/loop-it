@@ -177,6 +177,7 @@ Install options:
 Run execution options:
   --execute codex                    Call Codex CLI and rerun the verifier after each pass
   --checker codex                    Run a second read-only checker after the verifier passes
+  --codex-bin <path>                 Override PATH and Codex Desktop executable discovery
   --worktree                         Create a fresh git worktree/branch and run Codex there`);
 }
 

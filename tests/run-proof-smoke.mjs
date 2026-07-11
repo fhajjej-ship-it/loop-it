@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -13,6 +13,9 @@ const projectDir = resolve(tempRoot, "repo");
 const blockedProjectDir = resolve(tempRoot, "blocked-repo");
 const isolatedProjectDir = resolve(tempRoot, "isolated-repo");
 const isolatedWorktreeDir = resolve(tempRoot, "isolated-run-worktree");
+const desktopProjectDir = resolve(tempRoot, "desktop-codex-repo");
+const desktopHomeDir = resolve(tempRoot, "home");
+const desktopCodex = resolve(desktopHomeDir, "Applications", "ChatGPT.app", "Contents", "Resources", "codex");
 const fakeCodex = resolve(tempRoot, "fake-codex.mjs");
 const fakeCodexPass = resolve(tempRoot, "fake-codex-pass.mjs");
 const fakeChecker = resolve(tempRoot, "fake-checker.mjs");
@@ -25,6 +28,7 @@ try {
   createFakeCodexPass();
   createFakeChecker();
   createFakeCheckerBlocker();
+  createDesktopCodexFallback();
 
   const executed = run(nodeBin, [
     cliPath,
@@ -202,6 +206,42 @@ try {
     fail("Expected isolated run to record completed proof with worktree metadata");
   }
 
+  createFailingFixture(desktopProjectDir);
+  expectFailure("npm", ["test"], "Expected desktop fallback fixture npm test to fail before Codex runs", desktopProjectDir);
+  const desktopResolved = run(nodeBin, [
+    cliPath,
+    "run",
+    "--from",
+    "failing-ci-repair",
+    "--goal",
+    "Fix the failing test using the Codex Desktop CLI fallback",
+    "--check",
+    "npm test",
+    "--agent",
+    "codex",
+    "--execute",
+    "codex",
+    "--codex-sandbox",
+    "none",
+    "--max-iterations",
+    "1",
+    "--skip-git-repo-check",
+  ], {
+    cwd: desktopProjectDir,
+    env: {
+      ...process.env,
+      HOME: desktopHomeDir,
+      PATH: [dirname(process.execPath), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].join(delimiter),
+    },
+  });
+
+  assertIncludes(desktopResolved.stdout, `Using Codex Desktop CLI: ${desktopCodex}`, "Codex Desktop fallback output");
+  run("npm", ["test"], { cwd: desktopProjectDir });
+  const desktopProgress = JSON.parse(readFileSync(resolve(desktopProjectDir, ".loop-it", "progress.json"), "utf8"));
+  if (desktopProgress.status !== "completed" || desktopProgress.proof?.result !== "pass") {
+    fail("Expected Codex Desktop fallback run to complete with proof");
+  }
+
   console.log("Run proof smoke passed");
   console.log("Verified: failing fixture before run, selected loop, repeated fake Codex execution, verifier pass, checker pass/block, isolated worktree execution, and progress proof");
 } finally {
@@ -332,6 +372,29 @@ function createFakeCheckerBlocker() {
   chmodSync(fakeCheckerBlocker, 0o755);
 }
 
+function createDesktopCodexFallback() {
+  mkdirSync(dirname(desktopCodex), { recursive: true });
+  writeFileSync(
+    desktopCodex,
+    [
+      "#!/usr/bin/env node",
+      "import { readFileSync, writeFileSync } from 'node:fs';",
+      "import { resolve } from 'node:path';",
+      "",
+      "const testPath = resolve(process.cwd(), 'test.mjs');",
+      "const before = readFileSync(testPath, 'utf8');",
+      "writeFileSync(testPath, before.replace('assert.equal(total, 3);', 'assert.equal(total, 2);'));",
+      "const outputIndex = process.argv.indexOf('--output-last-message');",
+      "if (outputIndex !== -1 && process.argv[outputIndex + 1]) {",
+      "  writeFileSync(resolve(process.cwd(), process.argv[outputIndex + 1]), 'Codex Desktop fallback fixed the test.\\n');",
+      "}",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  chmodSync(desktopCodex, 0o755);
+}
+
 function initGitRepo(targetDir) {
   run("git", ["init", "-b", "main"], { cwd: targetDir });
   run("git", ["add", "."], { cwd: targetDir });
@@ -349,6 +412,7 @@ function initGitRepo(targetDir) {
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: options.cwd ?? repoRoot,
+    env: options.env ?? process.env,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });

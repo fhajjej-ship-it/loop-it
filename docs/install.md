@@ -74,7 +74,7 @@ For Codex CLI execution, use `run --execute codex` instead of only preparing a l
 npx @fhajjej/loop-it@latest run --goal "Fix failing CI" --check "npm run check" --agent codex --execute codex --checker codex --worktree
 ```
 
-That path calls Codex, reruns the verifier after each pass, repeats up to the iteration cap, optionally runs a read-only checker, prints a `Run proof` summary on success, and records the selected loop, executor, verifier, checker result, Codex output paths, changed files, optional worktree metadata, and per-iteration evidence in `.loop-it/progress.json`.
+That path calls Codex, reruns the verifier after each pass, repeats up to the iteration cap, optionally runs a read-only checker, prints a `Run proof` summary on success, and records the selected loop, executor, verifier, checker result, Codex output paths, changed files, optional worktree metadata, and per-iteration evidence in `.loop-it/progress.json`. On macOS, Loop It automatically uses the Codex executable bundled with Codex Desktop when `codex` is not on your terminal `PATH`. Use `--codex-bin <path>` or `LOOP_IT_CODEX_BIN` to override discovery.
 
 Use `--worktree` when you want Codex to edit a fresh branch/worktree instead of the current checkout. Loop it chooses `origin/main`, `main`, `origin/master`, `master`, or `HEAD` as the base unless you pass `--worktree-base <ref>`.
 

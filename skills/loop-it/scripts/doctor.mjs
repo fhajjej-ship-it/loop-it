@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
+import { resolveCodexCli } from "./lib/codex-cli.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(scriptDir, "..", "..", "..");
@@ -40,7 +41,11 @@ function buildDoctorReport(options) {
   const schedules = loadSchedules(cwd);
   const githubConnectorCount = countJsonFiles(resolve(cwd, ".loop-it", "connectors", "github"));
   const githubRequired = githubConnectorCount > 0 || schedules.some((schedule) => schedule.connector === "github");
-  const codexCli = checkCommand(stringArg(options["codex-bin"], "codex"), ["--version"]);
+  const codexResolution = resolveCodexCli({ requested: stringArg(options["codex-bin"], "") });
+  const codexCli = {
+    ...checkCommand(codexResolution.bin, ["--version"]),
+    source: codexResolution.source,
+  };
   const githubCli = githubRequired || options["check-gh"]
     ? checkCommand(stringArg(options["gh-bin"], "gh"), ["auth", "status"])
     : { status: "not-required", ok: true, output: "", detail: "No GitHub connector state found." };
@@ -545,7 +550,7 @@ function printUsage() {
 Options:
   --cwd <path>             Repository to inspect. Default: current directory.
   --codex-home <path>      Codex home for plugin and automation files. Default: $CODEX_HOME or ~/.codex.
-  --codex-bin <path>       Codex executable override. Default: codex.
+  --codex-bin <path>       Override PATH and Codex Desktop executable discovery.
   --gh-bin <path>          GitHub CLI executable override. Default: gh.
   --npm-bin <path>         npm executable override. Default: npm.
   --check-gh               Check gh auth even when no GitHub connector state exists.

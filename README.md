@@ -84,7 +84,7 @@ Loop it has three product verbs:
 2. **Recommend** one bundled loop with a verifier gate.
 3. **Run** the selected loop in Codex, Claude Code, or Cursor until proof, blocker, or approval.
 
-`loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
+`loop-it run --execute codex` is the happy path when the user wants work done. It inspects repo signals, picks or applies a loop, writes the run contract, calls Codex CLI, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. When `codex` is not on the terminal `PATH`, Loop It automatically discovers the executable bundled with Codex Desktop on macOS. Use `--codex-bin <path>` or `LOOP_IT_CODEX_BIN` only when you need an explicit override. `loop-it run` without `--execute` prepares the same loop contract and launch prompt without calling Codex. `write` and `start` are lower-level preparation commands. A result that only creates or edits `.loop-it` files is not a successful repair.
 
 Add `--checker codex` when the run needs a second, read-only review after the verifier passes. The checker inspects the changed files, verifier output, Codex output, and `.loop-it/progress.json`, then writes a checker receipt. Loop it records whether the checker passed, blocked, was inconclusive, or was skipped.
 
@@ -96,7 +96,7 @@ Use `loop-it schedules list` to see local schedules and whether the Codex heartb
 
 Use `loop-it github pr` when the trigger should come from GitHub. It reads a PR through the GitHub CLI, chooses `review-comment-resolver-routine`, `ci-health-watch`, or `pr-review-watch`, writes a read-only connector snapshot under `.loop-it/connectors/github/`, and creates a local schedule. It never comments, pushes, requests review, merges, deploys, or changes GitHub state without explicit approval.
 
-Use `loop-it doctor` when the user needs to know whether Loop It is actually ready. It reports the local package version, npm latest version, personal Codex plugin cache version, project skill install, Codex CLI availability, schedule records, Codex heartbeat files, and GitHub CLI auth when connector state exists. It exits non-zero for real blockers such as missing Codex CLI, missing configured heartbeat files, or missing GitHub auth for GitHub-backed schedules.
+Use `loop-it doctor` when the user needs to know whether Loop It is actually ready. It reports the local package version, npm latest version, personal Codex plugin cache version, project skill install, Codex CLI availability (including the Codex Desktop fallback), schedule records, Codex heartbeat files, and GitHub CLI auth when connector state exists. It exits non-zero for real blockers such as missing Codex CLI, missing configured heartbeat files, or missing GitHub auth for GitHub-backed schedules.
 
 Before `--execute codex` starts, Loop it runs a readiness preflight:
 
