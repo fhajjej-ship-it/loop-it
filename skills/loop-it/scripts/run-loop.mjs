@@ -4,6 +4,7 @@ import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { findLoopById, recommendLoop } from "./select-loop.mjs";
+import { resolveCodexCli } from "./lib/codex-cli.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const startScript = resolve(scriptDir, "start-loop.mjs");
@@ -161,9 +162,12 @@ process.exit(0);
 function executeWithCodex(run) {
   const launchPath = resolve(run.cwd, ".loop-it", "LAUNCH.md");
   const outputPath = resolve(run.cwd, stringArg(args["codex-output"], ".loop-it/CODEX_FINAL.md"));
-  const codexBin = stringArg(args["codex-bin"], "codex");
+  const codexCli = resolveCodexCli({ requested: stringArg(args["codex-bin"], "") });
+  const codexBin = codexCli.bin;
   const sandbox = stringArg(args["codex-sandbox"], "workspace-write");
-  const checkerBin = stringArg(args["checker-bin"], codexBin);
+  const checkerBin = args["checker-bin"]
+    ? resolveCodexCli({ requested: stringArg(args["checker-bin"], "") }).bin
+    : codexBin;
   const checkerSandbox = stringArg(args["checker-sandbox"], "read-only");
   const checkerOutputPath = resolve(run.cwd, stringArg(args["checker-output"], ".loop-it/CODEX_CHECKER.md"));
 
@@ -176,6 +180,10 @@ function executeWithCodex(run) {
   let previousFailureSignature = null;
   let previousVerifierOutput = "";
   const proofIterations = [];
+
+  if (codexCli.source === "desktop") {
+    console.log(`Using Codex Desktop CLI: ${codexBin}`);
+  }
 
   for (let iteration = 1; iteration <= run.maxIterations; iteration += 1) {
     const iterationOutputPath = outputPathForIteration(outputPath, iteration);
@@ -1218,7 +1226,7 @@ Options:
   --max-iterations <n>      Iteration cap, default selected loop cap
   --execute <none|codex>    Execute the generated loop with Codex CLI, default none
   --checker <none|codex>    Optional read-only checker after the verifier passes, default none
-  --codex-bin <path>        Codex executable for --execute codex, default codex
+  --codex-bin <path>        Codex executable override; otherwise discover PATH or Codex Desktop
   --codex-sandbox <mode>    Codex sandbox mode, default workspace-write; use none to omit
   --codex-output <path>     Last Codex message path, default .loop-it/CODEX_FINAL.md
   --checker-bin <path>      Checker Codex executable, default --codex-bin

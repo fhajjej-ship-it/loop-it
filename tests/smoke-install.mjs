@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -1119,6 +1119,8 @@ function smokeScheduledRunner() {
 function smokeDoctor() {
   const projectDir = resolve(tempRoot, "doctor");
   const codexHome = resolve(tempRoot, "doctor-codex-home");
+  const desktopHome = resolve(tempRoot, "doctor-desktop-home");
+  const desktopCodex = resolve(desktopHome, "Applications", "ChatGPT.app", "Contents", "Resources", "codex");
   const fakeCodex = resolve(tempRoot, "fake-codex-doctor.mjs");
   const fakeNpm = resolve(tempRoot, "fake-npm-doctor.mjs");
   const packageJson = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
@@ -1143,6 +1145,10 @@ function smokeDoctor() {
     ].join("\n")
   );
   chmodSync(fakeNpm, 0o755);
+
+  mkdirSync(dirname(desktopCodex), { recursive: true });
+  writeFileSync(desktopCodex, "#!/usr/bin/env node\nconsole.log('codex-cli desktop-1.2.3');\n");
+  chmodSync(desktopCodex, 0o755);
 
   const pluginPath = resolve(
     codexHome,
@@ -1205,6 +1211,30 @@ function smokeDoctor() {
     ready.schedules.records[0]?.heartbeat?.exists !== true
   ) {
     fail("Expected doctor to report a ready Loop It install with Codex heartbeat");
+  }
+
+  const desktopReady = JSON.parse(run(nodeBin, [
+    cliPath,
+    "doctor",
+    "--cwd",
+    projectDir,
+    "--codex-home",
+    codexHome,
+    "--npm-bin",
+    fakeNpm,
+    "--json",
+  ], {
+    env: {
+      HOME: desktopHome,
+      PATH: [dirname(process.execPath), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].join(delimiter),
+    },
+  }).stdout);
+  if (
+    desktopReady.ok !== true ||
+    desktopReady.codex.cli.status !== "ready" ||
+    desktopReady.codex.cli.command !== desktopCodex
+  ) {
+    fail("Expected doctor to discover the bundled Codex Desktop CLI when codex is not on PATH");
   }
 
   const human = run(nodeBin, [
@@ -1315,6 +1345,9 @@ function smokeDoctor() {
   const isolatedDoctorPath = resolve(invalidPackageRoot, "skills", "loop-it", "scripts", "doctor.mjs");
   mkdirSync(dirname(isolatedDoctorPath), { recursive: true });
   writeFileSync(isolatedDoctorPath, readFileSync(resolve(skillSource, "scripts", "doctor.mjs")));
+  const isolatedCodexCliPath = resolve(dirname(isolatedDoctorPath), "lib", "codex-cli.mjs");
+  mkdirSync(dirname(isolatedCodexCliPath), { recursive: true });
+  writeFileSync(isolatedCodexCliPath, readFileSync(resolve(skillSource, "scripts", "lib", "codex-cli.mjs")));
   writeFileSync(resolve(invalidPackageRoot, "package.json"), "{\n");
   const invalidPackage = spawnSync(nodeBin, [
     isolatedDoctorPath,

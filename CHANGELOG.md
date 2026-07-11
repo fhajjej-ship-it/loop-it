@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.20
+
+### Fixed
+
+- `loop-it run --execute codex` and `loop-it doctor` now discover the Codex executable bundled with Codex Desktop on macOS when `codex` is not available on the terminal `PATH`. Explicit `--codex-bin` and `LOOP_IT_CODEX_BIN` overrides still take precedence.
+
 ## 0.3.19
 
 ### Changed
