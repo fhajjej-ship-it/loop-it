@@ -1,6 +1,6 @@
 {
   "name": "@fhajjej/loop-it",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "description": "Portable loop router, library, launcher, and Agent Skill for finding, recommending, and running bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
   "type": "module",
   "author": {

@@ -83,11 +83,12 @@ Resolve `<skill-dir>` to this skill's folder. In Claude Code, `${CLAUDE_SKILL_DI
 When selecting:
 
 1. Check `.loop-it/progress.json` first when the user asks what to loop next.
-2. If no progress exists, match the user's goal against `references/library/loops.json`.
-3. Recommend one loop, plus at most two alternatives.
-4. Explain the match in one sentence.
-5. Ask the loop's top questions only if needed.
-6. If no library loop fits, design a custom loop and say it should be considered for the library after it proves useful.
+2. If progress is schedule-owned and already records a recommended next action, preserve that action instead of selecting an unrelated library loop, including after a passing tick records `completed`.
+3. If no progress exists, match the user's goal against `references/library/loops.json`.
+4. Recommend one loop, plus at most two alternatives.
+5. Explain the match in one sentence.
+6. Ask the loop's top questions only if needed.
+7. If no library loop fits, design a custom loop and say it should be considered for the library after it proves useful.
 
 Read `references/library/loops.json` only when the selector script is unavailable or manual inspection is needed. Read `references/loop-template.md` when the task needs the generic durable state shape.
 

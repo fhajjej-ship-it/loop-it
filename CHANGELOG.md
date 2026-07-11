@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.19
+
+### Changed
+
+- `loop-it next` now preserves the recorded next action for schedule-owned progress instead of fuzzy-routing to an unrelated library loop, including after passing ticks record `completed`.
+
 ## 0.3.18
 
 ### Changed

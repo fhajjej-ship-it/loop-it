@@ -220,7 +220,7 @@ npx @fhajjej/loop-it@latest start --goal "fix failing checkout test" --check "np
 npx @fhajjej/loop-it@latest next --cwd .
 ```
 
-`next` continues an active loop when progress is still open. When progress is complete, stopped, or blocked, it uses the recorded evidence to recommend the next loop.
+`next` continues an active bundled loop when progress is still open. For scheduled progress with a recorded next action, it preserves that action instead of inventing a new loop, including after a passing tick records `completed`. When unscheduled progress is complete, stopped, or blocked, it uses the recorded evidence to recommend the next loop.
 
 ## First Loop
 
