@@ -29,9 +29,12 @@ npm view @fhajjej/loop-it name version
 
 ```bash
 npm run check
-npm run smoke:public-install
 npm publish --dry-run --access public
 ```
+
+Do not run `npm run smoke:public-install` before publishing. It intentionally
+installs the npm `latest` tag, which still points to the previous release during
+local preflight. Run it only after the new version is live.
 
 The check script verifies:
 
@@ -74,10 +77,11 @@ codex plugin list | grep 'loop-it@personal'
 Use `npm run smoke:public-codex -- --keep` only on a local machine with Codex CLI auth. It installs the public package in a temporary fixture, runs `loop-it run --execute codex`, asks Codex to fix a tiny failing `npm test`, reruns the verifier, and checks `.loop-it/progress.json` for completed proof. `--keep` preserves the fixture for inspection.
 
 After npm is live, update the Swarmix product page at
-`/experiments/loop-it-poc` before treating the release as complete. The page
-must use `npx @fhajjej/loop-it@latest install --agent all --scope project` as
-the primary install command, show the current package version, describe the
-current runner behavior, and keep the portfolio consumer dependency aligned
+`/experiments/loop-it` before treating the release as complete. The page
+must let users choose a loop goal and open or copy one self-contained,
+normal-language prompt. It must not expose terminal or slash commands as the
+way to start a task. Show the current package version, describe the current
+prompt and runner behavior, and keep the portfolio consumer dependency aligned
 with the published npm version.
 
 After the product page is aligned, refresh the local Codex plugin with

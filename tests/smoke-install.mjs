@@ -18,14 +18,24 @@ import { spawnSync } from "node:child_process";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const skillSource = resolve(repoRoot, "skills", "loop-it");
 const libraryEvalsPath = resolve(skillSource, "references", "library", "evals.json");
+const goalLibraryPath = resolve(skillSource, "references", "library", "goals.json");
+const goalLibraryScriptPath = resolve(skillSource, "scripts", "goal-library.mjs");
 const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-smoke-"));
 const allowedLoopTypes = new Set(["turn-based", "goal-based", "time-based", "proactive"]);
+const forbiddenUserPromptPatterns = [
+  ["npx", /\bnpx\b/i],
+  ["npm run", /\bnpm\s+run\b/i],
+  ["loop-it start/write/run", /\bloop-it\s+(?:start|write|run)\b/i],
+  ["codex exec", /\bcodex\s+exec\b/i],
+  ["/goal", /\/goal\b/i],
+];
 
 try {
   smokePackageMetadata();
   smokeProjectInstall();
+  smokeGoalLibrary();
   smokeLibrarySelection();
   smokeLoopFileCreation();
   smokeLoopWriting();
@@ -67,7 +77,11 @@ function smokeProjectInstall() {
     ".agents/skills/loop-it/references/loop-template.md",
     ".agents/skills/loop-it/references/library/loops.json",
     ".agents/skills/loop-it/references/library/evals.json",
+    ".agents/skills/loop-it/references/library/goals.json",
+    ".agents/skills/loop-it/references/library/goals-schema.json",
+    ".agents/skills/loop-it/references/library/goals-evals.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
+    ".agents/skills/loop-it/scripts/goal-library.mjs",
     ".agents/skills/loop-it/scripts/create-loop.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
@@ -94,6 +108,205 @@ function smokeProjectInstall() {
   }
 
   run(nodeBin, [cliPath, "install", "--agent", "codex", "--scope", "project", "--cwd", projectDir, "--force"]);
+}
+
+function smokeGoalLibrary() {
+  const library = JSON.parse(readFileSync(goalLibraryPath, "utf8"));
+  const expectedCategories = new Map([
+    ["product-ux", "Product & UX"],
+    ["design-prototyping", "Design & Prototyping"],
+    ["research-decisions", "Research & Decisions"],
+    ["content-messaging", "Content & Messaging"],
+    ["data-evaluation", "Data & Evaluation"],
+    ["operations-support", "Operations & Support"],
+  ]);
+  if (!Array.isArray(library.categories) || library.categories.length !== 6) {
+    fail(`Expected goal library to include exactly 6 categories, found ${library.categories?.length ?? 0}`);
+  }
+  if (!Array.isArray(library.goals) || library.goals.length !== 12) {
+    fail(`Expected Loop goals library to include exactly 12 goals, found ${library.goals?.length ?? 0}`);
+  }
+
+  const categoryIds = new Set();
+  const goalsPerCategory = new Map();
+  for (const category of library.categories) {
+    if (categoryIds.has(category.id)) {
+      fail(`Expected unique goal category ids, found duplicate ${category.id}`);
+    }
+    categoryIds.add(category.id);
+    goalsPerCategory.set(category.id, 0);
+    if (expectedCategories.get(category.id) !== category.title) {
+      fail(`Expected canonical category ${category.id} to use title ${expectedCategories.get(category.id)}`);
+    }
+  }
+  for (const categoryId of expectedCategories.keys()) {
+    if (!categoryIds.has(categoryId)) {
+      fail(`Expected Loop goals library to include category ${categoryId}`);
+    }
+  }
+
+  const goalIds = new Set();
+  for (const goal of library.goals) {
+    if (goalIds.has(goal.id)) {
+      fail(`Expected unique goal ids, found duplicate ${goal.id}`);
+    }
+    goalIds.add(goal.id);
+    if (!categoryIds.has(goal.category)) {
+      fail(`Expected ${goal.id} to reference a known category, got ${goal.category}`);
+    }
+    goalsPerCategory.set(goal.category, (goalsPerCategory.get(goal.category) ?? 0) + 1);
+
+    const inputIds = new Set();
+    for (const input of goal.requiredInputs ?? []) {
+      if (inputIds.has(input.id)) {
+        fail(`Expected ${goal.id} input ids to be unique, found duplicate ${input.id}`);
+      }
+      inputIds.add(input.id);
+    }
+
+    const compiled = run(nodeBin, [goalLibraryScriptPath, "compile", "--id", goal.id]).stdout;
+    for (const text of [
+      "Use this goal",
+      "review-ready deliverable",
+      "rubric evidence or a clear blocker",
+      goal.defaultGoal,
+      goal.expectedArtifact,
+      "Expected deliverable",
+      "Proof rubric",
+      "Evidence to return",
+    ]) {
+      assertIncludes(compiled, text, `${goal.id} compiled prompt`);
+    }
+    assertUserFacingPromptOnly(compiled, `${goal.id} compiled prompt`);
+  }
+
+  if (!goalIds.has("clickable-flow-prototype")) {
+    fail("Expected Clickable Flow Prototype to use the canonical clickable-flow-prototype id");
+  }
+
+  for (const [categoryId, count] of goalsPerCategory) {
+    if (count !== 2) {
+      fail(`Expected category ${categoryId} to include exactly 2 loop goals, found ${count}`);
+    }
+  }
+
+  const evalReport = JSON.parse(run(nodeBin, [goalLibraryScriptPath, "eval", "--json"]).stdout);
+  if (!evalReport.ok || evalReport.failed !== 0 || evalReport.missingGoalIds.length !== 0) {
+    fail("Expected goal library eval scenarios to pass and cover every loop goal");
+  }
+
+  const creativeGoal = "turn this article into a LinkedIn draft in our brand voice";
+  const recommendation = JSON.parse(
+    run(nodeBin, [cliPath, "recommend", "--goal", creativeGoal, "--json"]).stdout
+  );
+  if (
+    recommendation.kind !== "goal-template" ||
+    recommendation.selected?.goal?.id !== "source-to-content-pack" ||
+    recommendation.selected?.confidence === "low"
+  ) {
+    fail("Expected a creative content request to recommend source-to-content-pack with usable confidence");
+  }
+  if (typeof recommendation.prompt !== "string" || !recommendation.prompt.includes(creativeGoal)) {
+    fail("Expected creative recommendation to include a compiled, goal-specific prompt");
+  }
+  assertUserFacingPromptOnly(recommendation.prompt, "creative recommendation prompt");
+
+  const promptOnlyProject = resolve(tempRoot, "creative-goal-prompt-only");
+  mkdirSync(promptOnlyProject, { recursive: true });
+  const promptPlan = JSON.parse(
+    run(nodeBin, [cliPath, "run", "--goal", creativeGoal, "--cwd", promptOnlyProject, "--json"]).stdout
+  );
+  if (
+    promptPlan.kind !== "goal-template" ||
+    promptPlan.action !== "prompt-ready" ||
+    promptPlan.goalTemplateId !== "source-to-content-pack" ||
+    promptPlan.canExecuteUnattended !== false
+  ) {
+    fail("Expected creative run routing to return a prompt-ready, interactive goal plan");
+  }
+  assertUserFacingPromptOnly(promptPlan.prompt, "creative run prompt plan");
+  if (existsSync(resolve(promptOnlyProject, ".loop-it"))) {
+    fail("Expected creative prompt routing not to create repository loop state");
+  }
+
+  const refusedExecution = spawnSync(
+    nodeBin,
+    [cliPath, "run", "--goal", creativeGoal, "--cwd", promptOnlyProject, "--execute", "codex"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+  );
+  if (refusedExecution.status !== 2 || !refusedExecution.stdout.includes("ready as an interactive prompt")) {
+    fail("Expected unattended creative execution to stop with a prompt-ready result");
+  }
+  assertUserFacingPromptOnly(refusedExecution.stdout, "refused creative execution prompt");
+  if (existsSync(resolve(promptOnlyProject, ".loop-it"))) {
+    fail("Expected refused creative execution not to create repository loop state");
+  }
+
+  const refusedJsonExecution = spawnSync(
+    nodeBin,
+    [cliPath, "run", "--goal", creativeGoal, "--cwd", promptOnlyProject, "--execute", "codex", "--json"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+  );
+  if (refusedJsonExecution.status !== 2) {
+    fail("Expected JSON creative execution refusal to return the same nonzero status as text mode");
+  }
+  const refusedJsonPlan = JSON.parse(refusedJsonExecution.stdout);
+  if (refusedJsonPlan.kind !== "goal-template" || refusedJsonPlan.canExecuteUnattended !== false) {
+    fail("Expected JSON creative execution refusal to return a prompt-ready goal plan");
+  }
+  assertUserFacingPromptOnly(refusedJsonPlan.prompt, "refused JSON creative execution prompt");
+
+  const engineeringOverlapGoal = "fix data quality validation test";
+  const engineeringRecommendation = JSON.parse(
+    run(nodeBin, [cliPath, "recommend", "--goal", engineeringOverlapGoal, "--json"]).stdout
+  );
+  if (
+    engineeringRecommendation.kind !== "loop" ||
+    engineeringRecommendation.selected?.loop?.id !== "ticket-to-verified-fix" ||
+    engineeringRecommendation.selected?.confidence === "low"
+  ) {
+    fail("Expected explicit test-repair intent to bypass overlapping creative loop goals");
+  }
+  assertUserFacingPromptOnly(engineeringRecommendation.workflow?.prompt ?? "", "engineering overlap prompt");
+
+  writeFileSync(
+    resolve(promptOnlyProject, "package.json"),
+    JSON.stringify({ scripts: { test: "node test.mjs" } }, null, 2)
+  );
+  const engineeringRunPlan = JSON.parse(
+    run(nodeBin, [cliPath, "run", "--goal", engineeringOverlapGoal, "--cwd", promptOnlyProject, "--json"]).stdout
+  );
+  if (engineeringRunPlan.kind || engineeringRunPlan.selectedLoopId !== "ticket-to-verified-fix") {
+    fail("Expected run routing to keep explicit test-repair intent in the engineering loop path");
+  }
+
+  const unmatchedGoal = "prepare a concise finance brief with cited evidence";
+  const customRecommendation = JSON.parse(
+    run(nodeBin, [cliPath, "recommend", "--goal", unmatchedGoal, "--json"]).stdout
+  );
+  if (
+    customRecommendation.kind !== "custom" ||
+    customRecommendation.selected !== null ||
+    !customRecommendation.prompt?.includes(unmatchedGoal)
+  ) {
+    fail("Expected an unmatched request to return a safe custom prompt instead of a low-confidence engineering loop");
+  }
+  assertUserFacingPromptOnly(customRecommendation.prompt, "unmatched custom recommendation prompt");
+
+  const customRunPlan = JSON.parse(
+    run(nodeBin, [cliPath, "run", "--goal", unmatchedGoal, "--cwd", promptOnlyProject, "--json"]).stdout
+  );
+  if (
+    customRunPlan.kind !== "custom" ||
+    customRunPlan.action !== "prompt-ready" ||
+    customRunPlan.canExecuteUnattended !== false
+  ) {
+    fail("Expected unmatched run routing to return a prompt-ready custom plan");
+  }
+  assertUserFacingPromptOnly(customRunPlan.prompt, "unmatched custom run prompt");
+  if (existsSync(resolve(promptOnlyProject, ".loop-it"))) {
+    fail("Expected custom prompt routing not to create repository loop state");
+  }
 }
 
 function smokeLibrarySelection() {
@@ -139,6 +352,10 @@ function smokeLibrarySelection() {
   if (!recommendation.decision?.confidence || !Array.isArray(recommendation.decision?.whyNotAlternatives)) {
     fail("Expected recommendations to include decision confidence and alternative rationale");
   }
+  if (typeof recommendation.workflow?.prompt !== "string") {
+    fail("Expected engineering recommendations to include a generated workflow prompt");
+  }
+  assertUserFacingPromptOnly(recommendation.workflow.prompt, "engineering recommendation prompt");
   const showOutput = run(nodeBin, [cliPath, "library", "show", "failing-ci-repair"]).stdout;
   for (const text of ["Type: goal-based", "Plain English:", "Use when:", "Start with:", "First step:", "Proof tip:", "Not for:"]) {
     if (!showOutput.includes(text)) {
@@ -287,12 +504,10 @@ function smokeLibrarySelection() {
   if (blockedNext.selected?.loop?.id === "failing-ci-repair") {
     fail("Expected blocked progress not to continue the blocked active loop");
   }
-  if (!blockedNext.workflow?.write?.startsWith("loop-it write --from small-edit-verification")) {
-    fail("Expected blocked progress recommendation to include the next loop write workflow");
+  if (typeof blockedNext.workflow?.prompt !== "string") {
+    fail("Expected blocked progress recommendation to include a generated workflow prompt");
   }
-  if (!blockedNext.workflow?.start?.startsWith("loop-it start --from small-edit-verification")) {
-    fail("Expected blocked progress recommendation to include the next loop launch workflow");
-  }
+  assertUserFacingPromptOnly(blockedNext.workflow.prompt, "blocked progress recommendation prompt");
 
   const completedProjectDir = resolve(tempRoot, "next-from-completed-progress");
   writeProgress(completedProjectDir, {
@@ -506,12 +721,13 @@ function smokeLoopStart() {
     "## Codex Launch",
     "## Claude Code Launch",
     "## Cursor Launch",
-    "Preferred: start a native Codex Goal.",
-    "/goal Fix failing checkout tests Scope: current working tree.",
+    "Paste this as a normal message:",
+    "Run this bounded Loop It task now in the current workspace.",
     "Goal: Fix failing checkout tests",
-    "Verifier: npm test -- checkout",
+    "Proof requirement: Use the configured proof requirement from the local Loop It contract.",
     "Iteration cap: 4",
     "the pasted launch prompt starts execution mode",
+    "Do not ask me to run or copy terminal commands.",
   ]) {
     if (!started.stdout.includes(text)) {
       fail(`Expected loop start output to include ${JSON.stringify(text)}`);
@@ -527,23 +743,20 @@ function smokeLoopStart() {
 
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
-    "Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.",
-    "Native `/goal` owns the live running, paused, and completed state.",
-    "If `/goal` is unavailable, or this is a non-interactive Codex run",
-    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
-    "If not, run the bounded task directly from this prompt.",
-    "You are not being asked to create another loop.",
-    "First action: run the verifier",
-    "Changes only under .loop-it do not count as a successful iteration.",
-    "Do not run loop-it write, loop-it new, or loop-it start.",
-    "Use Claude Code `/loop` only for polling or interval work.",
-    "Use /loop-it if this Cursor workspace has the Loop It skill installed.",
-    "If nothing starts after pasting the fallback",
+    "Protocol\nDISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE",
+    "If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result.",
+    "Changes only to Loop It state files do not count as completing the task.",
+    "Do not ask me to run or copy terminal commands.",
+    "The prompt starts the task. The local Loop It files remain the portable contract and evidence record.",
   ]) {
     if (!launchContent.includes(text)) {
       fail(`Expected ${launchFile} to contain ${JSON.stringify(text)}`);
     }
   }
+  if ((launchContent.match(/Paste this as a normal message:/g) ?? []).length !== 3) {
+    fail("Expected Codex, Claude Code, and Cursor launches to use normal-message prompts");
+  }
+  assertUserFacingPromptOnly(launchContent, "generated multi-agent launch prompts");
 
   const progress = JSON.parse(readFileSync(progressFile, "utf8"));
   if (progress.status !== "ready" || progress.verifier !== "npm test -- checkout" || progress.maxIterations !== 4) {
@@ -611,17 +824,18 @@ function smokeLoopRun() {
 
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
-    "/goal inspect this repo and run the right loop Scope: current working tree.",
-    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
-    "If not, run the bounded task directly from this prompt.",
-    "You are not being asked to create another loop.",
-    "First action: run the verifier",
-    "Changes only under .loop-it do not count as a successful iteration.",
+    "Paste this as a normal message:",
+    "Run this bounded Loop It task now in the current workspace.",
+    "Goal\ninspect this repo and run the right loop",
+    "Proof required\nUse the configured proof requirement from the local Loop It contract.",
+    "Changes only to Loop It state files do not count as completing the task.",
+    "Do not ask me to run or copy terminal commands.",
   ]) {
     if (!launchContent.includes(text)) {
       fail(`Expected run launch prompt to contain ${JSON.stringify(text)}`);
     }
   }
+  assertUserFacingPromptOnly(launchContent, "intake run launch prompt");
 
   const failingProjectDir = resolve(tempRoot, "loop-run-failing-test");
   mkdirSync(failingProjectDir, { recursive: true });
@@ -685,7 +899,7 @@ function smokeLoopRun() {
     failingProgress.verifier !== "npm test" ||
     failingProgress.lastResult !== "not-run" ||
     failingProgress.recommendedNextAction !==
-      "Start the native Codex /goal command or paste another host launch prompt from .loop-it/LAUNCH.md; .loop-it-only changes do not count as progress."
+      "Open the generated prompt in the selected agent; changes only to Loop It state files do not count as progress."
   ) {
     fail("Expected failing test run progress to prepare execution without claiming completion");
   }
@@ -703,19 +917,19 @@ function smokeLoopRun() {
 
   const failingLaunchContent = readFileSync(failingLaunchFile, "utf8");
   for (const text of [
-    "/goal fix failing npm test with the smallest safe change Scope: current working tree.",
-    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
-    "If not, run the bounded task directly from this prompt.",
-    "Read .loop-it/LOOP.md as state when it exists, then execute the repair.",
-    "First action: run the verifier",
-    "If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.",
-    "Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.",
-    "After each iteration, run the verifier, record evidence in .loop-it/progress.json",
+    "Paste this as a normal message:",
+    "Run this bounded Loop It task now in the current workspace.",
+    "Goal\nfix failing project checks with the smallest safe change",
+    "Proof required\nUse the configured proof requirement from the local Loop It contract.",
+    "If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result.",
+    "Changes only to Loop It state files do not count as completing the task.",
+    "Record evidence, changed files or artifacts, blockers, remaining risks, and the next safe action.",
   ]) {
     if (!failingLaunchContent.includes(text)) {
       fail(`Expected failing test launch prompt to contain ${JSON.stringify(text)}`);
     }
   }
+  assertUserFacingPromptOnly(failingLaunchContent, "failing test launch prompt");
 
   const plan = JSON.parse(
     run(nodeBin, [
@@ -1573,7 +1787,11 @@ function smokePackedCli() {
     ".claude/skills/loop-it/SKILL.md",
     ".cursor/skills/loop-it/SKILL.md",
     ".agents/skills/loop-it/references/library/loops.json",
+    ".agents/skills/loop-it/references/library/goals.json",
+    ".agents/skills/loop-it/references/library/goals-schema.json",
+    ".agents/skills/loop-it/references/library/goals-evals.json",
     ".agents/skills/loop-it/scripts/select-loop.mjs",
+    ".agents/skills/loop-it/scripts/goal-library.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
     ".agents/skills/loop-it/scripts/schedule-loop.mjs",
@@ -1624,6 +1842,20 @@ function run(command, args, options = {}) {
 function assertFile(path) {
   if (!existsSync(path)) {
     fail(`Expected file to exist: ${path}`);
+  }
+}
+
+function assertIncludes(content, expected, label) {
+  if (!content.includes(expected)) {
+    fail(`Expected ${label} to include ${JSON.stringify(expected)}`);
+  }
+}
+
+function assertUserFacingPromptOnly(content, label) {
+  for (const [name, pattern] of forbiddenUserPromptPatterns) {
+    if (pattern.test(content)) {
+      fail(`Expected ${label} not to contain user-facing ${name} terminal syntax`);
+    }
   }
 }
 

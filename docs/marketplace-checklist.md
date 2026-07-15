@@ -5,9 +5,9 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 ## Product basics
 
 - [ ] Clear name: Loop it
-- [ ] One-sentence description: Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.
+- [ ] One-sentence description: Run categorized product, design, research, content, data, operations, and engineering goals with proof.
 - [ ] Public repo: https://github.com/fhajjej-ship-it/loop-it
-- [ ] Product page: https://swarmixai.com/experiments/loop-it-poc
+- [ ] Product page: https://swarmixai.com/experiments/loop-it
 - [ ] License: MIT
 
 ## Install proof
@@ -26,6 +26,9 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 - [ ] Fresh project `loop-it tick --all --execute codex` runs due schedules or clearly reports no due schedules.
 - [ ] Packed npm tarball execution works.
 - [ ] npm publish dry-run passes.
+- [ ] Loop goals library contains 12 goals across six categories and matches its schema.
+- [ ] Creative and analytical routing evals pass without stealing explicit engineering requests.
+- [ ] Every generated user prompt is normal-language and contains no terminal or slash command.
 
 ## Review proof
 
@@ -39,4 +42,4 @@ Use this checklist before submitting Loop it to agent directories or plugin mark
 
 - [ ] Current GitHub release exists.
 - [ ] `@fhajjej/loop-it` npm package is published.
-- [ ] Product page install command matches the real public install path.
+- [ ] Product page opens or copies a self-contained natural-language prompt and exposes no terminal command.

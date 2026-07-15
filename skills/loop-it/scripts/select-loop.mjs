@@ -3,6 +3,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import {
+  assertPromptText,
+  compileGoalPrompt,
+  recommendGoalTemplate,
+  sanitizePromptObjective,
+} from "./goal-library.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, "..");
@@ -189,6 +195,58 @@ export function recommendLoop(options = {}) {
   });
 }
 
+export function recommendPrompt(options = {}) {
+  const goal = String(options.goal ?? "").trim();
+  const goalRecommendation = recommendGoalTemplate({
+    goal,
+    category: options.category,
+  });
+  if (goalRecommendation.selected && goalRecommendation.selected.confidence !== "low") {
+    return {
+      kind: "goal-template",
+      source: "goal",
+      ...goalRecommendation,
+    };
+  }
+
+  const loopRecommendation = recommendLoop(options);
+  if (loopRecommendation.selected && loopRecommendation.selected.confidence !== "low") {
+    return {
+      kind: "loop",
+      ...loopRecommendation,
+    };
+  }
+
+  return {
+    kind: "custom",
+    source: "goal",
+    selected: null,
+    alternatives: [],
+    reason: "No loop goal or advanced loop matched with enough confidence.",
+    prompt: compileCustomPrompt(goal),
+  };
+}
+
+export function compileCustomPrompt(goal) {
+  const objective = sanitizePromptObjective(goal, { label: "Goal" });
+  const prompt = `Run this as a bounded Loop It task in the current workspace.
+
+Goal
+${objective}
+
+First inspect only the context needed to identify the smallest useful local artifact or scoped change. If the intended result or proof boundary is genuinely unclear, ask one targeted question before acting.
+
+Use at most 3 focused passes. After each pass, compare the result with the goal, record concrete evidence, and continue only when another pass has a clear expected improvement.
+
+Do not claim completion without reviewable evidence. Stop when the result is supported, the iteration cap is reached, the same weakness repeats twice, required context is unavailable, or approval is needed.
+
+Keep production writes, external messages, publishing, deploys, purchases, credential changes, destructive git operations, and irreversible changes behind explicit approval. Do not ask me to run or copy terminal commands.
+
+Return the artifact or changed files, evidence, assumptions, blockers, remaining risks, and the next safe action.`;
+  assertPromptText(prompt, "Custom loop prompt");
+  return prompt;
+}
+
 export function evaluateLibrary(options = {}) {
   const library = options.library ?? loadLibrary();
   const evals = options.evals ?? loadEvals();
@@ -239,22 +297,50 @@ export function loopDefaults(loop) {
 }
 
 export function loopWorkflow(loop) {
-  const goal = shellQuote(loop.defaultObjective);
-  const check = shellQuote(loop.defaultCheck);
   return {
     choose: loop.userGuide?.useWhen ?? first(loop.bestFor) ?? loop.summary,
     startWith: loop.userGuide?.starterRequest ?? loop.defaultObjective,
     firstStep: loop.userGuide?.firstStep ?? "State the goal, check, scope, and current blocker.",
     proofTip: loop.userGuide?.proofTip ?? loop.defaultCheck,
     notFor: loop.userGuide?.notFor ?? first(loop.avoidWhen) ?? "Do not use when the goal or proof is unclear.",
-    write: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
-    start: `loop-it start --from ${loop.id} --goal ${goal} --check ${check}`,
-    create: `loop-it write --from ${loop.id} --goal ${goal} --check ${check}`,
-    proof: loop.defaultCheck,
+    prompt: compileLoopPrompt(loop),
+    proof: loop.userGuide?.proofTip ?? loop.defaultCheck,
     track:
-      "Update .loop-it/progress.json with lastResult, blockers, remainingRisks, and recommendedNextAction.",
-    next: "Run loop-it next --cwd . when the loop is complete, stopped, or blocked.",
+      "Record the result, evidence, blockers, remaining risks, and recommended next action.",
+    next: "Continue only when another pass has a clear expected improvement.",
   };
+}
+
+export function compileLoopPrompt(loop, options = {}) {
+  const objective = sanitizePromptObjective(options.goal, {
+    fallback: loop.defaultObjective,
+    label: "Loop goal",
+  });
+  const proof = loop.userGuide?.proofTip ?? loop.defaultCheck;
+  const stop = loop.stopConditions.map((condition) => `- ${condition}`).join("\n");
+  const approvals = loop.approvalGates.map((gate) => `- ${gate}`).join("\n");
+  const prompt = `Run this as a bounded Loop It task in the current workspace.
+
+Goal
+${objective}
+
+Selected loop
+${loop.title}: ${loop.summary}
+
+Proof required
+${proof}
+
+Use at most ${loop.maxIterations} focused passes. Inspect the smallest relevant context, take one scoped action, verify the result, record evidence, and continue only when another pass has a clear expected improvement.
+
+Stop when
+${stop}
+
+Approval required before
+${approvals}
+
+Do not ask me to run or copy terminal commands. Handle safe local verification inside the agent workflow and return the evidence, changed files or artifacts, blockers, remaining risks, and next safe action.`;
+  assertPromptText(prompt, loop.id);
+  return prompt;
 }
 
 function withWorkflow(recommendation) {
@@ -270,10 +356,6 @@ function withWorkflow(recommendation) {
 
 function first(values) {
   return Array.isArray(values) && values.length > 0 ? values[0] : null;
-}
-
-function shellQuote(value) {
-  return `"${String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
 function scoreLoop(loop, tokens, rawQuery, library) {
@@ -316,8 +398,7 @@ function scoreLoop(loop, tokens, rawQuery, library) {
   }
 
   for (const alias of loop.aliases ?? []) {
-    const loweredAlias = alias.toLowerCase();
-    if (loweredQuery.includes(loweredAlias)) {
+    if (matchesPhrase(loweredQuery, alias)) {
       total += 8;
       reasons.add(`matched alias "${alias}"`);
     }
@@ -422,15 +503,17 @@ function confidenceFor(item, nextItem) {
 }
 
 function matchesPhrase(loweredQuery, phrase) {
-  const phraseText = String(phrase ?? "").toLowerCase();
-  if (!phraseText) {
+  const phraseTokens = tokenize(phrase);
+  if (phraseTokens.length === 0) {
     return false;
   }
-  if (loweredQuery.includes(phraseText)) {
-    return true;
+  const queryTokens = tokenize(loweredQuery);
+  if (phraseTokens.length === 1) {
+    return queryTokens.includes(phraseTokens[0]);
   }
-  const tokens = tokenize(phraseText);
-  return tokens.length > 0 && tokens.every((token) => loweredQuery.includes(token));
+  const normalizedQuery = ` ${queryTokens.join(" ")} `;
+  const normalizedPhrase = ` ${phraseTokens.join(" ")} `;
+  return normalizedQuery.includes(normalizedPhrase) || phraseTokens.every((token) => queryTokens.includes(token));
 }
 
 function progressText(data) {
@@ -691,10 +774,14 @@ function printShow(args) {
   console.log("Workflow:");
   const workflow = loopWorkflow(loop);
   console.log(`1. Choose: ${workflow.choose}`);
-  console.log(`2. Write: ${workflow.write}`);
-  console.log(`3. Launch: ${workflow.start}`);
-  console.log(`4. Track: ${workflow.track}`);
-  console.log(`5. Next: ${workflow.next}`);
+  console.log(`2. Start with: ${workflow.startWith}`);
+  console.log(`3. First step: ${workflow.firstStep}`);
+  console.log(`4. Prove: ${workflow.proof}`);
+  console.log(`5. Track: ${workflow.track}`);
+  console.log(`6. Next: ${workflow.next}`);
+  console.log("");
+  console.log("Generated prompt:");
+  console.log(workflow.prompt);
   console.log("");
   console.log("Questions if context is unclear:");
   for (const question of loop.questions.slice(0, 3)) {
@@ -708,7 +795,7 @@ function printRecommend(args) {
     throw new Error("Provide --goal or a positional goal.");
   }
 
-  const recommendation = recommendLoop({ goal });
+  const recommendation = recommendPrompt({ goal, category: args.category });
   if (args.json) {
     printJson(recommendation);
     return;
@@ -783,9 +870,9 @@ function printRanked(title, results) {
     if (item.loop.userGuide?.plainLanguage) {
       console.log(`  Plain English: ${item.loop.userGuide.plainLanguage}`);
     }
-    console.log(`  Proof: ${item.loop.defaultCheck}`);
+    console.log(`  Proof: ${item.loop.userGuide?.proofTip ?? item.loop.defaultCheck}`);
     console.log(`  Confidence: ${item.confidence}`);
-    console.log(`  Write: ${loopWorkflow(item.loop).write}`);
+    console.log(`  Start with: ${loopWorkflow(item.loop).startWith}`);
     if (item.reasons.length > 0) {
       console.log(`  Why: ${item.reasons.join(", ")}`);
     }
@@ -793,6 +880,28 @@ function printRanked(title, results) {
 }
 
 function printRecommendation(recommendation, sourceLabel) {
+  if (recommendation.kind === "custom") {
+    console.log("No confident library match.");
+    console.log(`Reason: ${recommendation.reason}`);
+    console.log("");
+    console.log(recommendation.prompt);
+    return;
+  }
+
+  if (recommendation.kind === "goal-template") {
+    const { goal, score, confidence, reasons } = recommendation.selected;
+    console.log(`Recommended loop goal: ${goal.title} (${goal.id})`);
+    console.log(`Category: ${goal.category}`);
+    console.log(`Confidence: ${confidence}`);
+    console.log(`Score: ${score}`);
+    if (reasons.length > 0) {
+      console.log(`Why: ${reasons.join(", ")}`);
+    }
+    console.log("");
+    console.log(compileGoalPrompt(goal, { goal: sourceLabel }));
+    return;
+  }
+
   if (!recommendation.selected) {
     if (recommendation.progressResolution?.state === "scheduled") {
       const progress = recommendation.progressResolution;
@@ -825,13 +934,14 @@ function printRecommendation(recommendation, sourceLabel) {
   console.log(`1. Use when: ${workflow.choose}`);
   console.log(`2. Start with: ${workflow.startWith}`);
   console.log(`3. First step: ${workflow.firstStep}`);
-  console.log(`4. Write: ${workflow.write}`);
-  console.log(`5. Launch: ${workflow.start}`);
-  console.log(`6. Prove: ${workflow.proof}`);
-  console.log(`7. Proof tip: ${workflow.proofTip}`);
-  console.log(`8. Track: ${workflow.track}`);
-  console.log(`9. Next: ${workflow.next}`);
+  console.log(`4. Prove: ${workflow.proof}`);
+  console.log(`5. Proof tip: ${workflow.proofTip}`);
+  console.log(`6. Track: ${workflow.track}`);
+  console.log(`7. Next: ${workflow.next}`);
   console.log(`Not for: ${workflow.notFor}`);
+  console.log("");
+  console.log("Generated prompt:");
+  console.log(workflow.prompt);
   console.log("");
   console.log("Questions if this is still unclear:");
   for (const question of loop.questions.slice(0, 3)) {

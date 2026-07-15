@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.4.0
+
+### Added
+
+- Added a prompt-first Loop goals library with 12 experimental goals across Product & UX, Design & Prototyping, Research & Decisions, Content & Messaging, Data & Evaluation, and Operations & Support.
+- Added structured goal inputs, expected deliverables, proof rubrics, capability requirements, approval gates, routing evaluations, and a command-free natural-language prompt compiler.
+
+### Changed
+
+- Creative and analytical requests now route to review-ready goal prompts instead of repository repair loops.
+- Loop recommendation and host launch output now provide normal-language prompts without user-facing terminal or native slash commands.
+- Public onboarding and examples now lead with goal prompts while preserving advanced repository runners as internal tooling.
+
+### Fixed
+
+- Short aliases such as `ci` now match token boundaries instead of words such as `cited`, `concise`, or `finance`.
+
 ## 0.3.20
 
 ### Fixed

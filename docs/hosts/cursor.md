@@ -1,44 +1,28 @@
 # Cursor
 
-Install Loop it into a project:
-
-```bash
-npx @fhajjej/loop-it@latest install --agent cursor --scope project
-```
-
-This creates:
+Add the Loop It skill to the workspace, then paste or write a normal-language goal in Agent chat. Users do not need to generate a terminal command to begin.
 
 ```text
-.cursor/skills/loop-it/SKILL.md
+Review this mobile journey, fix its highest-impact usability problem, and return before-and-after evidence.
 ```
-
-Run the command from the project root, or pass `--cwd /real/path/to/your-project`.
-
-Invoke it in Cursor Agent chat:
 
 ```text
-/loop-it design a performance loop for the slow dashboard route
+Create a clickable local prototype for this onboarding path and score it against the supplied acceptance criteria.
 ```
 
-Generate a Cursor launch prompt:
+## Prompt behavior
 
-```bash
-npx @fhajjej/loop-it@latest start \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --agent cursor
-```
-
-Cursor launch behavior:
-
-- Loop it creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
-- Those files are the contract, not the repair. Paste the Cursor launch prompt into Agent chat before expecting changed files.
-- The generated prompt can use `/loop-it` when the skill is installed, but it also works as plain Agent-chat instructions.
-- Use Cursor rules for always-on project conventions, not as a replacement for the procedural loop state.
+- A matching loop goal defines its required inputs, expected deliverable, proof rubric, iteration cap, stop rules, and approval gates.
+- Advanced engineering prompts ask the agent to handle safe repository checks and return evidence.
+- The complete task remains understandable as a normal message even without skill-specific syntax.
+- Cursor rules are suitable for always-on project conventions; Loop It prompts are for bounded, evidence-producing tasks.
+- External writes and irreversible actions remain approval-gated.
 
 Recommended Cursor use:
 
-- editor-local repair loops;
+- editor-local product and design passes;
 - small diff review;
 - performance or UX checks while staying close to source files;
-- procedural loops that should not become always-on project rules.
+- bounded tasks that should not become always-on project rules.
+
+Maintainers working on a project-local development copy can use the [local installation notes](../install.md).

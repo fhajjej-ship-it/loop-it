@@ -1,18 +1,27 @@
 ---
 name: loop-it
-description: Write, choose, compile, launch, find, recommend, design, adapt, export, or run bounded AI-agent coding loops with explicit goals, verifier gates, iteration caps, stop conditions, library patterns, and host-specific launch prompts for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks what should be looped next, asks to choose a loop from a library, asks to write or set up an agent loop, or wants iterative code improvement, debugging, review, documentation, evaluation, cleanup, or verification with explicit checks and stopping conditions. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
+description: Choose, compile, launch, or run bounded AI-agent goals with explicit deliverables, proof rubrics, verifier gates, iteration caps, stop conditions, and approval boundaries. Includes a categorized Loop goals library for product, design, research, content, data, and operations plus advanced engineering loops for Codex, Claude Code, Cursor, and other SKILL.md-compatible agents. Use when the user says "loop it", asks for a loop goal, asks what should be looped next, or wants iterative improvement with proof. Do not use for simple one-shot edits unless the user asks for a repeatable loop.
 ---
 
 # Loop It
 
-Turn an open-ended coding objective into a bounded, verifier-gated run. Loop It helps inspect the codebase, choose from a loop library, run the selected loop, track evidence, schedule recurring checks, intake approved connector signals, and stop when the verifier passes, a blocker is real, or approval is required.
+Turn an open-ended objective into a bounded run with a concrete artifact and proof. Loop It has two related libraries:
 
-Loop It's local execution path is primarily for **goal-based coding loops**: a user gives a concrete objective, the loop has a verifier, and the run stops on proof, blocker, approval need, or the iteration cap. The bundled library also includes turn-based, time-based, and proactive patterns. Time-based and proactive loops can run only through Loop It's Codex-only `schedule`/`tick` path. In Codex, `schedule --heartbeat codex` can create or update the local native Scheduled heartbeat that calls `tick`; outside Codex, an external heartbeat or connector must call `tick`.
+- `references/library/goals.json`: the user-facing, categorized Loop goals library for product, design, research, content, data, and operations work.
+- `references/library/loops.json`: advanced execution patterns for repository repair, verification, scheduling, and proactive routines.
+
+Loop goals describe the review-ready deliverable the user wants. Advanced loops describe how an engineering or operational task should iterate. Do not collapse these concepts or route a creative deliverable request into a repository repair loop.
+
+Loop It's repository execution path is primarily for **goal-based coding loops** with an automated verifier. Its Loop goals library is prompt-first: one complete natural-language prompt tells the agent to work toward the declared local deliverable, critique it against a rubric, refine it within the iteration cap, and return rubric evidence or a clear blocker. Rubric completion is not automatic human approval.
+
+Never give the user a terminal command as the way to start a task. Run helper scripts internally when useful, then return or open one normal-language agent prompt. Do not show package-manager commands, shell snippets, `codex exec`, or generated launch commands in user-facing output.
 
 ## Decision
 
 First decide which mode the user needs. Bias toward **Run now** when the user asks to fix, improve, debug, harden, ship, clean up, or otherwise change a codebase.
 
+- **Find a loop goal**: select a categorized goal from `references/library/goals.json`, collect only its required inputs, and compile one complete normal-language prompt.
+- **Use a loop goal**: work toward the declared review-ready deliverable, critique it against every proof criterion, refine it within the cap, and return rubric evidence or a clear blocker.
 - **Write a loop**: author a custom loop contract with a concrete goal, verifier, cap, stop rules, approval gates, and evidence fields.
 - **Find from library**: select a bundled loop for the user's goal.
 - **Next from progress**: inspect `.loop-it/progress.json` or `.loop-it/LOOP.md` and recommend what to loop next.
@@ -27,29 +36,28 @@ First decide which mode the user needs. Bias toward **Run now** when the user as
 If a prompt says "Run The Loop mode", "run the prompt", "fix the issue", or "repair", treat it as **Run now**. Do not create another loop contract as the main output.
 If the user says "loop it", "fix this", "improve this repo", "what should we tackle next", or gives a broad codebase goal, use the `codebase-intake-to-running-loop` path first: inspect the repo, recommend one concrete loop, name the verifier, then run that loop.
 
+If the goal asks for a product, design, research, content, data, or operations deliverable, check the Loop goals library before the engineering loop library. A specific matching loop goal outranks generic codebase intake. Do not infer repository intent merely because the current workspace contains code.
+
 If the task is vague, do not ask a broad discovery questionnaire. First recommend the best likely library loop and state the assumption. Ask up to three targeted questions only when the goal, success check, repository scope, or approval boundary is genuinely blocking.
 
 ## Default Run Flow
 
 When the user expects work to happen, do this instead of only writing `.loop-it` files:
 
-1. Inspect active `.loop-it/progress.json`, package scripts, CI config, README setup commands, test config, and the user request.
-2. Select one loop from the bundled library. Use `codebase-intake-to-running-loop` only when the concrete loop is not obvious yet.
-3. Name the verifier. Prefer the user's check; otherwise infer `npm run check`, `npm test`, lint, typecheck, build, or the narrowest project-specific check.
-4. Run the verifier or closest safe equivalent before editing when practical.
-5. Make the smallest credible project change when the verifier or inspected evidence points to one.
-6. Rerun the verifier.
-7. Update `.loop-it/progress.json` and `.loop-it/LOOP.md` when they exist.
-8. Stop with proof, a real blocker, or one targeted question. Do not stop merely because loop state was created.
+1. Classify the request as a loop goal or an advanced repository loop.
+2. For a loop goal, inspect only the declared inputs, work toward the expected deliverable, critique it against the proof rubric, refine it, and return rubric evidence or a clear blocker.
+3. For a repository loop, inspect active progress, package scripts, CI config, README setup commands, and test config; select one advanced loop and run the narrowest safe verifier.
+4. Update portable progress state when it exists.
+5. Stop with proof, a real blocker, or one targeted question. Do not stop merely because loop state was created.
 
 ## Contract
 
 Every loop needs these fields before execution:
 
-- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. The bundled library includes 5 loops of each type.
+- Loop type: `turn-based`, `goal-based`, `time-based`, or `proactive`. Loop type describes cadence, not subject matter.
 - Objective: the concrete outcome, not a theme.
 - Scope: repository, files, feature area, data source, or environment.
-- Success check: command, benchmark, manual inspection, review criterion, or measurable threshold.
+- Success check: automated project proof, measurable threshold, or an explicit artifact rubric that can reject weak output.
 - Iteration cap: maximum passes or time budget.
 - Stop conditions: success, no meaningful improvement, repeated failure, blocked access, unsafe action, or approval requirement.
 - Evidence: what to record after each pass.
@@ -66,7 +74,18 @@ Use the loop type to set expectations:
 
 ## Select A Loop
 
-Prefer the bundled library over inventing a loop from scratch.
+Prefer a bundled loop goal or advanced loop over inventing a new contract from scratch.
+
+For non-engineering work, read `references/library/goals.json`. The starter set includes:
+
+- Product & UX: First Value Sprint and Mobile Journey Rescue.
+- Design & Prototyping: Visual Consistency Pass and Clickable Flow Prototype.
+- Research & Decisions: Feedback Theme Synthesis and Competitor Evidence Brief.
+- Content & Messaging: Landing Page Message Pass and Source-to-Content Pack.
+- Data & Evaluation: Data Quality Snapshot and Experiment Results Brief.
+- Operations & Support: SOP From Messy Notes and Support Knowledge Gap Audit.
+
+Each loop goal declares its required inputs, expected deliverable, proof rubric, evidence, iteration cap, capabilities, reliability, and approval gates. Keep experimental goals labeled experimental until repeated real runs support promotion.
 
 Use the selector script when available:
 
@@ -84,11 +103,12 @@ When selecting:
 
 1. Check `.loop-it/progress.json` first when the user asks what to loop next.
 2. If progress is schedule-owned and already records a recommended next action, preserve that action instead of selecting an unrelated library loop, including after a passing tick records `completed`.
-3. If no progress exists, match the user's goal against `references/library/loops.json`.
-4. Recommend one loop, plus at most two alternatives.
-5. Explain the match in one sentence.
-6. Ask the loop's top questions only if needed.
-7. If no library loop fits, design a custom loop and say it should be considered for the library after it proves useful.
+3. Match product, design, research, content, data, and operations artifact requests against `references/library/goals.json`.
+4. Match repository repair, release, scheduled, and connector work against `references/library/loops.json`.
+5. Recommend one loop goal or advanced loop, plus at most two alternatives.
+6. Explain the match in one sentence.
+7. Ask only for a missing required input or proof boundary.
+8. If no library item fits, design a custom loop and say it should be considered for the library after it proves useful.
 
 Read `references/library/loops.json` only when the selector script is unavailable or manual inspection is needed. Read `references/loop-template.md` when the task needs the generic durable state shape.
 
@@ -144,13 +164,13 @@ Library-backed loop files also create `.loop-it/progress.json` unless `--no-prog
 
 ## Host Goal Behavior
 
-Loop It compiles host launch prompts and portable loop state. The generated prompts are safe to paste as normal chat messages, with optional skill commands only when the host supports them.
+Loop It compiles normal-language prompts and portable loop state. The user should receive one prompt, never a terminal command or command-generation walkthrough.
 
-- **Codex**: For interactive, long-running finish-line work, prefer a native `/goal` command containing the objective, verifier, iteration cap, stop conditions, approval gates, and evidence requirements. Native Goal state owns the live running, paused, and completed lifecycle. Keep `.loop-it` files as the portable contract and evidence record, and always include a self-contained normal-message fallback when `/goal` is unavailable. `loop-it run --execute codex` remains the non-interactive bounded runner and must not require native Goals.
-- **Claude Code**: Generate a normal-message prompt with the verifier and cap. Use Claude Code `/loop` only for polling or interval work, not for verifier-gated finish-line work. Keep `.loop-it` files as shared portable state.
-- **Cursor**: Generate a normal Agent-chat prompt. It may say to use `/loop-it` when available, but it must still run as plain instructions when the skill command is unavailable.
+- **Codex**: Generate a normal-message prompt with the objective, artifact or verifier, iteration cap, stop conditions, approval gates, and evidence requirements.
+- **Claude Code**: Generate the same normal-message task contract. Keep `.loop-it` files as optional shared portable state.
+- **Cursor**: Generate the same normal Agent-chat prompt with scoped output and proof.
 
-Never describe portable `.loop-it` state as native Goal lifecycle state. Never describe generated `.loop-it` files as a completed repair. Say which mechanism was used: native Codex Goal, portable loop files, host skill command, or plain agent prompt.
+Never describe generated `.loop-it` files as a completed repair. Say whether the result is a local artifact, rubric evidence, automated verifier evidence, or a blocker.
 
 ## Run The Loop
 

@@ -1,7 +1,7 @@
 interface:
   display_name: "Loop it"
-  short_description: "Find and run goal-based agent loops"
+  short_description: "Use categorized goals with rubric evidence"
   icon_small: "./assets/loop-it-logo-black.svg"
   icon_large: "./assets/loop-it-logo-black.svg"
   brand_color: "#111111"
-  default_prompt: "Use $loop-it to choose the right loop and turn this task into a bounded coding workflow."
+  default_prompt: "Choose the best matching Loop It goal, use it as a bounded task, and return a review-ready deliverable with rubric evidence or a clear blocker."

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { findLoopById, recommendLoop } from "./select-loop.mjs";
+import { findLoopById, recommendLoop, recommendPrompt } from "./select-loop.mjs";
 import { resolveCodexCli } from "./lib/codex-cli.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -21,13 +21,59 @@ const goal = stringArg(
   args.goal ?? args._.join(" "),
   "Find the highest-confidence actionable issue in this repository, recommend the right Loop It loop, and run it."
 );
+const requestedExecute = stringArg(args.execute, "none");
+const promptRecommendation = args.from || args.check ? null : recommendPrompt({ goal });
+
+if (["goal-template", "custom"].includes(promptRecommendation?.kind)) {
+  const selectedGoalTemplate = promptRecommendation.selected?.goal ?? null;
+  const promptPlan = selectedGoalTemplate
+    ? {
+        kind: "goal-template",
+        action: "prompt-ready",
+        goalTemplateId: selectedGoalTemplate.id,
+        goalTemplateTitle: selectedGoalTemplate.title,
+        category: selectedGoalTemplate.category,
+        goal,
+        expectedArtifact: selectedGoalTemplate.expectedArtifact,
+        proof: selectedGoalTemplate.proof,
+        maxIterations: selectedGoalTemplate.maxIterations,
+        prompt: promptRecommendation.prompt,
+        canExecuteUnattended: false,
+        nextAction: "Open the generated prompt in an interactive agent and review the artifact against its rubric.",
+      }
+    : {
+        kind: "custom",
+        action: "prompt-ready",
+        goal,
+        reason: promptRecommendation.reason,
+        maxIterations: 3,
+        prompt: promptRecommendation.prompt,
+        canExecuteUnattended: false,
+        nextAction: "Open the custom prompt in an interactive agent and confirm its result against reviewable evidence.",
+      };
+  if (args.json) {
+    console.log(JSON.stringify(promptPlan, null, 2));
+    process.exit(requestedExecute === "none" ? 0 : 2);
+  }
+  if (requestedExecute !== "none") {
+    console.log(
+      selectedGoalTemplate
+        ? "This goal uses rubric-based artifact proof and is ready as an interactive prompt, not unattended execution."
+        : "No library item matched confidently, so this request is ready as an interactive custom prompt, not unattended execution."
+    );
+    console.log("");
+  }
+  console.log(promptPlan.prompt);
+  process.exit(requestedExecute === "none" ? 0 : 2);
+}
+
 const repo = inspectRepository(cwd);
 const loop = selectLoop(args, goal, repo);
 const check = stringArg(args.check, inferCheck(goal, repo));
 const maxIterations = stringArg(args["max-iterations"], loop.maxIterations ?? "3");
 const iterationCap = positiveInteger(maxIterations, "--max-iterations");
 const agent = stringArg(args.agent, "codex");
-const execute = stringArg(args.execute, "none");
+const execute = requestedExecute;
 const checker = stringArg(args.checker ?? args.review, "none");
 const isolateWorktree = Boolean(args.worktree);
 

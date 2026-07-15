@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loop It Goals Library",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "categories", "goals"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "description", "order"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "order": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "category",
+          "summary",
+          "tags",
+          "aliases",
+          "loopType",
+          "workflow",
+          "defaultGoal",
+          "requiredInputs",
+          "sampleInput",
+          "expectedArtifact",
+          "proof",
+          "maxIterations",
+          "capabilities",
+          "reliability",
+          "approvalGates",
+          "goodExamples",
+          "badExamples"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1 },
+          "category": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "summary": { "type": "string", "minLength": 1 },
+          "tags": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "aliases": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "loopType": { "type": "string", "enum": ["turn-based", "goal-based"] },
+          "workflow": { "type": "string", "enum": ["workspace-artifact-to-proof"] },
+          "defaultGoal": { "type": "string", "minLength": 1 },
+          "requiredInputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "label", "description", "required"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                "label": { "type": "string", "minLength": 1 },
+                "description": { "type": "string", "minLength": 1 },
+                "required": { "type": "boolean" }
+              }
+            }
+          },
+          "sampleInput": { "type": "string", "minLength": 1 },
+          "expectedArtifact": { "type": "string", "minLength": 1 },
+          "proof": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "criteria", "evidence"],
+            "properties": {
+              "mode": { "type": "string", "enum": ["rubric", "hybrid"] },
+              "criteria": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } },
+              "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            }
+          },
+          "maxIterations": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "capabilities": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "reliability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "summary"],
+            "properties": {
+              "status": { "type": "string", "enum": ["experimental", "tested"] },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          },
+          "approvalGates": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "goodExamples": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } },
+          "badExamples": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}

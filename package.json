@@ -1,7 +1,7 @@
 {
   "name": "@fhajjej/loop-it",
-  "version": "0.3.20",
-  "description": "Portable loop router, library, launcher, and Agent Skill for finding, recommending, and running bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
+  "version": "0.4.0",
+  "description": "Categorized Loop goals library and Agent Skill for bounded product, design, research, content, data, operations, and engineering work with rubric evidence.",
   "type": "module",
   "author": {
     "name": "Loop it",
@@ -10,7 +10,7 @@
   "engines": {
     "node": ">=18"
   },
-  "homepage": "https://swarmixai.com/experiments/loop-it-poc",
+  "homepage": "https://swarmixai.com/experiments/loop-it",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fhajjej-ship-it/loop-it.git"
@@ -41,7 +41,7 @@
     "test": "node tests/smoke-install.mjs",
     "sync:project": "node ./bin/loop-it.mjs install --agent all --scope project --force",
     "sync:codex-plugin": "node scripts/sync-codex-plugin.mjs",
-    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check skills/loop-it/scripts/start-loop.mjs && node --check skills/loop-it/scripts/run-loop.mjs && node --check skills/loop-it/scripts/lib/codex-cli.mjs && node --check skills/loop-it/scripts/schedule-loop.mjs && node --check skills/loop-it/scripts/github-connector.mjs && node --check skills/loop-it/scripts/doctor.mjs && node --check scripts/sync-codex-plugin.mjs && node --check tests/smoke-install.mjs && node --check tests/public-install-smoke.mjs && node --check tests/run-proof-smoke.mjs && node --check tests/readiness-preflight-smoke.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json','skills/loop-it/references/library/evals.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && node skills/loop-it/scripts/select-loop.mjs eval && npm run smoke && npm run smoke:run-proof && npm run smoke:readiness && npm pack --dry-run",
+    "check": "node --check bin/loop-it.mjs && node --check skills/loop-it/scripts/create-loop.mjs && node --check skills/loop-it/scripts/select-loop.mjs && node --check skills/loop-it/scripts/goal-library.mjs && node --check skills/loop-it/scripts/start-loop.mjs && node --check skills/loop-it/scripts/run-loop.mjs && node --check skills/loop-it/scripts/lib/codex-cli.mjs && node --check skills/loop-it/scripts/schedule-loop.mjs && node --check skills/loop-it/scripts/github-connector.mjs && node --check skills/loop-it/scripts/doctor.mjs && node --check scripts/sync-codex-plugin.mjs && node --check tests/smoke-install.mjs && node --check tests/goal-library-validation-smoke.mjs && node --check tests/prompt-only-launch-smoke.mjs && node --check tests/public-install-smoke.mjs && node --check tests/run-proof-smoke.mjs && node --check tests/readiness-preflight-smoke.mjs && node -e \"const fs=require('fs'); ['.codex-plugin/plugin.json','.claude-plugin/plugin.json','.cursor-plugin/plugin.json','skills/loop-it/references/library/loops.json','skills/loop-it/references/library/schema.json','skills/loop-it/references/library/evals.json','skills/loop-it/references/library/goals.json','skills/loop-it/references/library/goals-schema.json','skills/loop-it/references/library/goals-evals.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8')))\" && node tests/goal-library-validation-smoke.mjs && node tests/prompt-only-launch-smoke.mjs && node skills/loop-it/scripts/select-loop.mjs eval && node skills/loop-it/scripts/goal-library.mjs eval && npm run smoke && npm run smoke:run-proof && npm run smoke:readiness && npm pack --dry-run",
     "smoke": "node tests/smoke-install.mjs",
     "smoke:public-install": "node tests/public-install-smoke.mjs",
     "smoke:public-codex": "node tests/public-install-smoke.mjs --codex-run",

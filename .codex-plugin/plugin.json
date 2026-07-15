@@ -1,12 +1,12 @@
 {
   "name": "loop-it",
-  "version": "0.3.20",
-  "description": "Find, recommend, and run bounded agent loops across turn-based, goal-based, time-based, and proactive patterns.",
+  "version": "0.4.0",
+  "description": "Use categorized product, design, research, content, data, operations, and engineering goals with rubric evidence.",
   "author": {
     "name": "Loop it",
     "url": "https://github.com/fhajjej-ship-it/loop-it"
   },
-  "homepage": "https://swarmixai.com/experiments/loop-it-poc",
+  "homepage": "https://swarmixai.com/experiments/loop-it",
   "repository": "https://github.com/fhajjej-ship-it/loop-it",
   "license": "MIT",
   "keywords": [
@@ -19,19 +19,19 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Loop it",
-    "shortDescription": "Run bounded agent loops with proof.",
-    "longDescription": "Loop it packages a portable loop router, balanced loop library, launcher, local GitHub PR connector, and Agent Skill that helps Codex inspect a codebase, pick the right loop pattern, run local goal-based verifier-gated passes, or create Codex Scheduled heartbeats for time-based and proactive workflows. It is local runner tooling, not a hosted background service.",
+    "shortDescription": "Use categorized goals with rubric evidence.",
+    "longDescription": "Loop it gives Codex a categorized library of bounded product, design, research, content, data, operations, and engineering goals. Each goal compiles one command-free prompt that works toward a review-ready deliverable and returns rubric evidence or a clear blocker. Advanced repository and scheduled loops remain available, but users start from a normal-language prompt rather than terminal commands.",
     "developerName": "Loop it",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
       "Write"
     ],
-    "websiteURL": "https://swarmixai.com/experiments/loop-it-poc",
+    "websiteURL": "https://swarmixai.com/experiments/loop-it",
     "defaultPrompt": [
-      "Use $loop-it to inspect this repo and run the right repair loop.",
-      "Use $loop-it to fix this failing check with proof.",
-      "Use $loop-it to find the next actionable loop."
+      "Turn this customer feedback into traceable themes and one next action.",
+      "Create a review-ready landing page message from this approved evidence.",
+      "Inspect this repo and repair the highest-confidence issue with proof."
     ],
     "brandColor": "#111111",
     "composerIcon": "./skills/loop-it/assets/loop-it-logo-black.svg",
