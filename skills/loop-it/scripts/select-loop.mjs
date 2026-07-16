@@ -872,7 +872,7 @@ function printRanked(title, results) {
     }
     console.log(`  Proof: ${item.loop.userGuide?.proofTip ?? item.loop.defaultCheck}`);
     console.log(`  Confidence: ${item.confidence}`);
-    console.log(`  Start with: ${loopWorkflow(item.loop).startWith}`);
+    console.log(`  Start with: ${item.loop.userGuide?.starterRequest ?? item.loop.defaultObjective}`);
     if (item.reasons.length > 0) {
       console.log(`  Why: ${item.reasons.join(", ")}`);
     }

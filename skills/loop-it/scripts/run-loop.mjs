@@ -4,6 +4,7 @@ import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { findLoopById, recommendLoop, recommendPrompt } from "./select-loop.mjs";
+import { sanitizePromptObjective } from "./goal-library.mjs";
 import { resolveCodexCli } from "./lib/codex-cli.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -17,12 +18,15 @@ if (args.help || args.h) {
 }
 
 const cwd = resolve(stringArg(args.cwd, process.cwd()));
-const goal = stringArg(
-  args.goal ?? args._.join(" "),
-  "Find the highest-confidence actionable issue in this repository, recommend the right Loop It loop, and run it."
+const goal = safePromptObjective(
+  stringArg(
+    args.goal ?? args._.join(" "),
+    "Find the highest-confidence actionable issue in this repository, recommend the right Loop It loop, and run it."
+  ),
+  { label: "Goal" }
 );
 const requestedExecute = stringArg(args.execute, "none");
-const promptRecommendation = args.from || args.check ? null : recommendPrompt({ goal });
+const promptRecommendation = args.from || args.check ? null : safePromptRecommendation(goal);
 
 if (["goal-template", "custom"].includes(promptRecommendation?.kind)) {
   const selectedGoalTemplate = promptRecommendation.selected?.goal ?? null;
@@ -932,7 +936,7 @@ function approvalRiskSignals(...values) {
   const patterns = [
     ["production write", /\b(production write|write to production|prod write|production data)\b/],
     ["deployment", /\b(deploy to production|production deploy|release to production|ship to production|vercel deploy --prod|--prod)\b/],
-    ["publishing", /\b(npm publish|publish package|publish to npm|publish release)\b/],
+    ["publishing", /\b(npm publish|publish (?:the )?package|publish to npm|publish release)\b/],
     ["external message", /\b(send email|send slack|post to slack|external message|notify customer)\b/],
     ["payments", /\b(payment|payments|billing|stripe|invoice|charge customer)\b/],
     ["credentials", /\b(secret|credential|api key|token rotation|rotate key|otp)\b/],
@@ -1248,6 +1252,22 @@ function stringArg(value, fallback) {
     return fallback;
   }
   return value.trim();
+}
+
+function safePromptObjective(value, options) {
+  try {
+    return sanitizePromptObjective(value, options);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+}
+
+function safePromptRecommendation(goal) {
+  try {
+    return recommendPrompt({ goal });
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function positiveInteger(value, label) {

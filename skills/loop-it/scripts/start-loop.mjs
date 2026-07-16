@@ -17,7 +17,7 @@ if (args.help || args.h) {
 
 const libraryLoop = args.from ? findLibraryLoop(args.from) : null;
 const defaults = libraryLoop ? loopDefaults(libraryLoop) : {};
-const goal = sanitizePromptObjective(requiredString(args.goal, "--goal"), {
+const goal = safePromptObjective(requiredString(args.goal, "--goal"), {
   label: "Goal",
 });
 const check = requiredString(args.check, "--check");
@@ -314,6 +314,14 @@ function findLibraryLoop(id) {
 
 function plain(value) {
   return String(value).replaceAll("```", "'''");
+}
+
+function safePromptObjective(value, options) {
+  try {
+    return sanitizePromptObjective(value, options);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function displayProof(check, options = {}) {

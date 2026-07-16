@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { assertUserFacingPromptOnly } from "./helpers/prompt-only.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const skillSource = resolve(repoRoot, "skills", "loop-it");
@@ -24,13 +25,6 @@ const nodeBin = process.execPath;
 const cliPath = resolve(repoRoot, "bin", "loop-it.mjs");
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-smoke-"));
 const allowedLoopTypes = new Set(["turn-based", "goal-based", "time-based", "proactive"]);
-const forbiddenUserPromptPatterns = [
-  ["npx", /\bnpx\b/i],
-  ["npm run", /\bnpm\s+run\b/i],
-  ["loop-it start/write/run", /\bloop-it\s+(?:start|write|run)\b/i],
-  ["codex exec", /\bcodex\s+exec\b/i],
-  ["/goal", /\/goal\b/i],
-];
 
 try {
   smokePackageMetadata();
@@ -1848,14 +1842,6 @@ function assertFile(path) {
 function assertIncludes(content, expected, label) {
   if (!content.includes(expected)) {
     fail(`Expected ${label} to include ${JSON.stringify(expected)}`);
-  }
-}
-
-function assertUserFacingPromptOnly(content, label) {
-  for (const [name, pattern] of forbiddenUserPromptPatterns) {
-    if (pattern.test(content)) {
-      fail(`Expected ${label} not to contain user-facing ${name} terminal syntax`);
-    }
   }
 }
 

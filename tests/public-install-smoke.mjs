@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { assertUserFacingPromptOnly } from "./helpers/prompt-only.mjs";
 
 const args = new Set(process.argv.slice(2));
 const keep = args.has("--keep");
@@ -13,13 +14,6 @@ const gitBin = process.platform === "win32" ? "git.exe" : "git";
 const packageSpec = "@fhajjej/loop-it@latest";
 const tempRoot = mkdtempSync(resolve(tmpdir(), "loop-it-public-install-"));
 const projectDir = resolve(tempRoot, "repo");
-const forbiddenUserPromptPatterns = [
-  ["npx", /\bnpx\b/i],
-  ["npm run", /\bnpm\s+run\b/i],
-  ["loop-it start/write/run", /\bloop-it\s+(?:start|write|run)\b/i],
-  ["codex exec", /\bcodex\s+exec\b/i],
-  ["/goal", /\/goal\b/i],
-];
 let passed = false;
 
 try {
@@ -69,9 +63,10 @@ try {
   for (const text of [
     "Paste this as a normal message:",
     "Run this bounded Loop It task now in the current workspace.",
-    "Goal\nFix the failing npm test with the smallest safe change",
-    "Proof required\nRun the configured local project check inside the agent workflow and report whether it passed.",
-    "If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result.",
+    "Goal\nFix the failing project checks with the smallest safe change",
+    "Proof required\nInfer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.",
+    "Print mode does not create local Loop It state",
+    "If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result.",
     "Changes only to Loop It state files do not count as completing the task.",
     "Do not ask me to run or copy terminal commands.",
   ]) {
@@ -257,14 +252,6 @@ function assertFile(path) {
 function assertIncludes(content, expected, label) {
   if (!content.includes(expected)) {
     fail(`Expected ${label} to include ${JSON.stringify(expected)}`);
-  }
-}
-
-function assertUserFacingPromptOnly(content, label) {
-  for (const [name, pattern] of forbiddenUserPromptPatterns) {
-    if (pattern.test(content)) {
-      fail(`Expected ${label} not to contain user-facing ${name} terminal syntax`);
-    }
   }
 }
 

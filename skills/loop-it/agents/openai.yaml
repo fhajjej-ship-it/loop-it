@@ -1,7 +1,7 @@
 interface:
   display_name: "Loop it"
   short_description: "Use categorized goals with rubric evidence"
-  icon_small: "./assets/loop-it-logo-black.svg"
-  icon_large: "./assets/loop-it-logo-black.svg"
+  icon_small: "../assets/loop-it-logo-black.svg"
+  icon_large: "../assets/loop-it-logo-black.svg"
   brand_color: "#111111"
   default_prompt: "Choose the best matching Loop It goal, use it as a bounded task, and return a review-ready deliverable with rubric evidence or a clear blocker."

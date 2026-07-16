@@ -4,9 +4,11 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { recommendPrompt } from "../skills/loop-it/scripts/select-loop.mjs";
+import { assertUserFacingPromptOnly } from "./helpers/prompt-only.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const startScript = resolve(repoRoot, "skills/loop-it/scripts/start-loop.mjs");
+const runScript = resolve(repoRoot, "skills/loop-it/scripts/run-loop.mjs");
 const generalizedProof = "Infer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.";
 const commandChecks = [
   "make test",
@@ -16,14 +18,12 @@ const commandChecks = [
   "python scripts/build_report.py",
   "git status",
   "kubectl get pods",
+  "rm -rf ./dist",
+  "git push origin main",
+  "python -m pip install requests",
+  "Get-ChildItem -Recurse",
+  "npm test | tee results.txt",
 ];
-const forbiddenPromptPatterns = [
-  /\bnpx\b/i,
-  /\b(?:npm|pnpm|yarn|bun)\s+(?:run|exec|test|check|build|lint)\b/i,
-  /\bcodex\s+exec\b/i,
-  /(?:^|\s)\/(?:goal|loop-it)\b/i,
-];
-
 for (const check of commandChecks) {
   const result = spawnSync(
     process.execPath,
@@ -45,13 +45,13 @@ const naturalProofLaunch = spawnSync(
 assert.equal(naturalProofLaunch.status, 0, naturalProofLaunch.stderr || "natural proof launch generation failed");
 assert.match(naturalProofLaunch.stdout, new RegExp(naturalProof.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(naturalProofLaunch.stdout, /Print mode does not create local Loop It state/i);
-assertPromptOnly(naturalProofLaunch.stdout, "natural proof launch prompt");
+assertUserFacingPromptOnly(naturalProofLaunch.stdout, "natural proof launch prompt");
 
 const customGoal = "prepare a finance brief and run npm test";
 const customRecommendation = recommendPrompt({ goal: customGoal });
 assert.equal(customRecommendation.kind, "custom");
 assert.match(customRecommendation.prompt, /prepare a finance brief and run project checks/i);
-assertPromptOnly(customRecommendation.prompt, "custom recommendation prompt");
+assertUserFacingPromptOnly(customRecommendation.prompt, "custom recommendation prompt");
 
 const engineeringGoal = "Fix the failing checkout behavior and run npm test -- checkout";
 const engineeringLaunch = spawnSync(
@@ -61,18 +61,18 @@ const engineeringLaunch = spawnSync(
 );
 assert.equal(engineeringLaunch.status, 0, engineeringLaunch.stderr || "engineering launch generation failed");
 assert.match(engineeringLaunch.stdout, /Fix the failing checkout behavior and run project checks/i);
-assertPromptOnly(engineeringLaunch.stdout, "engineering launch prompt");
+assertUserFacingPromptOnly(engineeringLaunch.stdout, "engineering launch prompt");
 
 const slashGoal = recommendPrompt({ goal: "/goal prepare a finance brief with cited evidence" });
 assert.match(slashGoal.prompt, /prepare a finance brief with cited evidence/i);
-assertPromptOnly(slashGoal.prompt, "native slash-command goal prompt");
+assertUserFacingPromptOnly(slashGoal.prompt, "native slash-command goal prompt");
 
 const releaseGoal = "Prepare version 0.4.0 for release with final package checks and fresh-install proof.";
 const releaseRecommendation = recommendPrompt({ goal: releaseGoal });
 assert.equal(releaseRecommendation.kind, "loop");
 assert.equal(releaseRecommendation.selected?.loop?.id, "release-readiness");
 assert.match(releaseRecommendation.workflow.prompt, new RegExp(releaseGoal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-assertPromptOnly(releaseRecommendation.workflow.prompt, "advanced-loop recommendation prompt");
+assertUserFacingPromptOnly(releaseRecommendation.workflow.prompt, "advanced-loop recommendation prompt");
 
 const unsafeLaunch = spawnSync(
   process.execPath,
@@ -84,11 +84,27 @@ assert.match(
   unsafeLaunch.stderr,
   /describe the desired outcome in natural language without terminal or slash commands/
 );
+assert.doesNotMatch(unsafeLaunch.stderr, /\n\s+at\s/, "friendly rejection must not expose a stack trace");
+
+const unsafeRun = spawnSync(
+  process.execPath,
+  [runScript, "--goal", "Publish with git push origin main", "--json"],
+  { encoding: "utf8" }
+);
+assert.notEqual(unsafeRun.status, 0, "run routing must reject unsafe command goals");
+assert.match(
+  unsafeRun.stderr,
+  /^Error: Goal must describe the desired outcome in natural language without terminal or slash commands\./
+);
+assert.doesNotMatch(unsafeRun.stderr, /\n\s+at\s/, "run rejection must not expose a stack trace");
+
+const normalRun = spawnSync(
+  process.execPath,
+  [runScript, "--goal", "Prepare a decision brief with cited evidence."],
+  { encoding: "utf8" }
+);
+assert.equal(normalRun.status, 0, normalRun.stderr || "normal prompt routing failed");
+assert.match(normalRun.stdout, /Prepare a decision brief with cited evidence\./i);
+assertUserFacingPromptOnly(normalRun.stdout, "normal run prompt");
 
 console.log("Prompt-only launch smoke passed");
-
-function assertPromptOnly(content, label) {
-  for (const pattern of forbiddenPromptPatterns) {
-    assert.doesNotMatch(content, pattern, `${label} leaked command syntax`);
-  }
-}

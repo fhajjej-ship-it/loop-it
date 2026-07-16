@@ -11,7 +11,32 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const commandBoundary = String.raw`(?=\s*(?:$|["'\`,.;!?)]|&&|\|\||\bthen\b|\band\s+(?:report|summarize|continue|fix|rerun|record|capture)\b))`;
 const commandRules = [
   {
-    source: String.raw`\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?(?:test|check|build|lint|install|add|remove|publish|deploy|start|dev|dlx|x|create)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+    source: String.raw`\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?(?:test|check|build|lint)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+    replacement: "project checks",
+  },
+  {
+    source: String.raw`(?:\brun\s+)?\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?publish(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+    replacement: "publish the package",
+  },
+  {
+    source: String.raw`(?:\brun\s+)?\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?deploy(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+    replacement: "deploy the project",
+  },
+  {
+    source: String.raw`(?:\brun\s+)?\b(?:npm|pnpm|yarn|bun)\s+(?:install|add|remove)(?:(?:\s+--\s+[a-z0-9_./:@-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:@=*-]*))*`,
+    replacement: "update project dependencies",
+  },
+  {
+    source: String.raw`(?:\brun\s+)?\b(?:npm|pnpm|yarn|bun)\s+(?:start|dev)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+    replacement: "start the project",
+  },
+  {
+    source: String.raw`(?:\brun\s+)?\b(?:npm|pnpm|yarn|bun)\s+(?:create)(?:(?:\s+--\s+[a-z0-9_./:@-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:@=*-]*))*`,
+    replacement: "create the project",
+  },
+  {
+    source: String.raw`\b(?:npm|pnpm|yarn|bun)\s+(?:run|exec|dlx|x)\s+[a-z0-9_./:@-]+(?:(?:\s+--\s+[a-z0-9_./:@-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:@=*-]*))*`,
+    replacement: "project task",
   },
   {
     // A capitalized “Make …” is ordinary prose; the lowercase executable is command-shaped
@@ -37,6 +62,23 @@ const commandRules = [
   {
     source: String.raw`\bkubectl\s+(?:get|describe|logs|wait|rollout)\s+[a-zA-Z0-9_./:-]+(?:(?:\s+--\s+[a-zA-Z0-9_./:-]+)|(?:\s+--?[a-zA-Z0-9][a-zA-Z0-9_./:=*-]*))*${commandBoundary}`,
   },
+];
+const executableNames = String.raw`(?:npm|pnpm|yarn|bun|npx|codex|loop-it|make|dotnet|swift|cargo|pytest|go|python(?:3(?:\.\d+)*)?|py|git|kubectl|pip3?|sudo|rm|rmdir|curl|wget|docker|podman|terraform|helm|gh|aws|gcloud|az|bash|zsh|sh|powershell|pwsh|ls|pwd|cat|grep|sed|awk|tee|head|tail|xargs)`;
+const unsupportedPromptPatterns = [
+  new RegExp(String.raw`\`{3}(?:sh|bash|zsh|shell|console|terminal|powershell|pwsh|cmd)?\s*(?:\$\s*)?${executableNames}\b`, "i"),
+  new RegExp(String.raw`\`\s*(?:\$\s*)?${executableNames}\b[^\`\n]*\``, "i"),
+  /(?:&&|\|\|)/,
+  new RegExp(String.raw`\b(?:${executableNames}|project checks)\b[^\n.;!?]*\s\|\s[^\n.;!?]+`, "i"),
+  /(?:^|\s)(?:>>?|<)\s*(?:[./~]|[a-z0-9_-]+\.)[a-z0-9_./~-]*/i,
+  /\$\([^)]*\)/,
+  /\b(?:sudo\s+)?(?:rm|rmdir|mkfs|chmod|chown)\s+(?:-[^\s,.;!?]+\s+)*[^\s,.;!?]+/i,
+  /\b(?:del|erase|format)\s+(?:\/[a-z?]+\s+)*(?:[a-z]:|[./~][^\s,.;!?]+|[^\s,.;!?]+\.[a-z0-9]+)\b/i,
+  /\bgit\s+(?:add|apply|checkout|switch|restore|reset|clean|commit|push|pull|fetch|merge|rebase|cherry-pick|revert|tag|stash|worktree)\b/i,
+  /\b(?:python(?:3(?:\.\d+)*)?\s+-m\s+)?pip3?\s+(?:install|uninstall|check|freeze|list|download|wheel)\b/i,
+  /\b(?:curl|wget|docker|podman|terraform|ansible|helm|gh|aws|gcloud|az)\s+[^\s,.;!?]+/i,
+  /\b(?:sudo\s+)?(?:bash|zsh|sh|powershell|pwsh)\s+(?:-[^\s,.;!?]+\s+)*[^\s,.;!?]+/i,
+  /\b(?:Get|Set|New|Remove|Invoke|Start|Stop|Restart|Test|Write|Read|Clear|Copy|Move)-[A-Z][A-Za-z]+\b/,
+  /\b(?:ls|pwd|cat|grep|sed|awk|tee|head|tail|xargs)\s+(?:--?[a-z0-9_-]+|[./~][^\s,.;!?]+|[^\s,.;!?]+\.[a-z0-9]+)\b/i,
 ];
 const forbiddenPromptPatterns = [
   /\bnpx\b/i,
@@ -326,12 +368,18 @@ export function sanitizePromptObjective(value, options = {}) {
     .replace(/(?:^|\s)\/(?:goal|loop-it)\b\s*/gi, " ")
     .trim();
 
+  if (unsupportedPromptPatterns.some((pattern) => pattern.test(objective))) {
+    throw new Error(
+      `${label} must describe the desired outcome in natural language without terminal or slash commands. Remove the command and state the result you want.`
+    );
+  }
+
   let replacedCommand = false;
   for (const rule of commandRules) {
     const pattern = new RegExp(rule.source, "g");
     if (pattern.test(objective)) {
       replacedCommand = true;
-      objective = objective.replace(new RegExp(rule.source, "g"), "project checks");
+      objective = objective.replace(new RegExp(rule.source, "g"), rule.replacement ?? "project checks");
     }
   }
 
@@ -544,19 +592,25 @@ export function assertPromptText(userFacingText, goalId) {
       throw new Error(`${goalId} contains user-facing terminal or slash-command syntax.`);
     }
   }
+  for (const pattern of unsupportedPromptPatterns) {
+    if (pattern.test(userFacingText)) {
+      throw new Error(`${goalId} contains user-facing terminal or slash-command syntax.`);
+    }
+  }
 }
 
 export function hasPromptCommandSyntax(value) {
   const text = String(value ?? "");
   return (
     forbiddenPromptPatterns.some((pattern) => pattern.test(text)) ||
-    commandRules.some((rule) => new RegExp(rule.source).test(text))
+    commandRules.some((rule) => new RegExp(rule.source).test(text)) ||
+    unsupportedPromptPatterns.some((pattern) => pattern.test(text))
   );
 }
 
 function isOnlyGeneralizedCommand(value) {
   const residue = String(value)
-    .replace(/\bproject checks\b/gi, " ")
+    .replace(/\b(?:project checks|project task)\b/gi, " ")
     .replace(/\b(?:please|run|rerun|execute|use|perform|and|then|now|the|a|an|to|for|with|after|before)\b/gi, " ")
     .replace(/[^a-z0-9]+/gi, "")
     .trim();

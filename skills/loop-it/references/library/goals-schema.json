@@ -3,12 +3,16 @@
   "title": "Loop It Goals Library",
   "type": "object",
   "additionalProperties": false,
+  "$defs": {
+    "nonBlankString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
   "required": ["version", "categories", "goals"],
   "properties": {
-    "version": {
-      "type": "string",
-      "minLength": 1
-    },
+    "version": { "$ref": "#/$defs/nonBlankString" },
     "categories": {
       "type": "array",
       "minItems": 1,
@@ -18,8 +22,8 @@
         "required": ["id", "title", "description", "order"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-          "title": { "type": "string", "minLength": 1 },
-          "description": { "type": "string", "minLength": 1 },
+          "title": { "$ref": "#/$defs/nonBlankString" },
+          "description": { "$ref": "#/$defs/nonBlankString" },
           "order": { "type": "integer", "minimum": 0 }
         }
       }
@@ -53,14 +57,14 @@
         ],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-          "title": { "type": "string", "minLength": 1 },
+          "title": { "$ref": "#/$defs/nonBlankString" },
           "category": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-          "summary": { "type": "string", "minLength": 1 },
-          "tags": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "aliases": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "summary": { "$ref": "#/$defs/nonBlankString" },
+          "tags": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "aliases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
           "loopType": { "type": "string", "enum": ["turn-based", "goal-based"] },
           "workflow": { "type": "string", "enum": ["workspace-artifact-to-proof"] },
-          "defaultGoal": { "type": "string", "minLength": 1 },
+          "defaultGoal": { "$ref": "#/$defs/nonBlankString" },
           "requiredInputs": {
             "type": "array",
             "minItems": 1,
@@ -70,38 +74,38 @@
               "required": ["id", "label", "description", "required"],
               "properties": {
                 "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-                "label": { "type": "string", "minLength": 1 },
-                "description": { "type": "string", "minLength": 1 },
+                "label": { "$ref": "#/$defs/nonBlankString" },
+                "description": { "$ref": "#/$defs/nonBlankString" },
                 "required": { "type": "boolean" }
               }
             }
           },
-          "sampleInput": { "type": "string", "minLength": 1 },
-          "expectedArtifact": { "type": "string", "minLength": 1 },
+          "sampleInput": { "$ref": "#/$defs/nonBlankString" },
+          "expectedArtifact": { "$ref": "#/$defs/nonBlankString" },
           "proof": {
             "type": "object",
             "additionalProperties": false,
             "required": ["mode", "criteria", "evidence"],
             "properties": {
               "mode": { "type": "string", "enum": ["rubric", "hybrid"] },
-              "criteria": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } },
-              "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+              "criteria": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } },
+              "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } }
             }
           },
           "maxIterations": { "type": "integer", "minimum": 1, "maximum": 7 },
-          "capabilities": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "capabilities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
           "reliability": {
             "type": "object",
             "additionalProperties": false,
             "required": ["status", "summary"],
             "properties": {
               "status": { "type": "string", "enum": ["experimental", "tested"] },
-              "summary": { "type": "string", "minLength": 1 }
+              "summary": { "$ref": "#/$defs/nonBlankString" }
             }
           },
-          "approvalGates": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "goodExamples": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } },
-          "badExamples": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } }
+          "approvalGates": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "goodExamples": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "badExamples": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } }
         }
       }
     }

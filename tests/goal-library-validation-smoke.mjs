@@ -76,6 +76,22 @@ for (const commandOnlyGoal of ["python scripts/build_report.py", "git status", "
   );
 }
 
+for (const unsafeGoal of [
+  "Delete the output with rm -rf ./dist",
+  "Publish the branch with git push origin main",
+  "Install the package with python -m pip install requests",
+  "Inspect everything with Get-ChildItem -Recurse",
+  "Run npm test | tee results.txt",
+  "Use `npm test` as the proof",
+  "Use ```sh\nnpm test\n``` as the proof",
+]) {
+  assert.throws(
+    () => compileGoalPrompt(library.goals[0], { goal: unsafeGoal }),
+    /describe the desired outcome in natural language without terminal or slash commands/,
+    `unsupported executable-style goal must be rejected: ${unsafeGoal}`
+  );
+}
+
 console.log("Goal library validation smoke passed");
 
 function expectInvalid(mutate, message) {
