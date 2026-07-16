@@ -16,6 +16,10 @@ Loop It's repository execution path is primarily for **goal-based coding loops**
 
 Never give the user a terminal command as the way to start a task. Run helper scripts internally when useful, then return or open one normal-language agent prompt. Do not show package-manager commands, shell snippets, `codex exec`, or generated launch commands in user-facing output.
 
+## Internal Helper Boundary
+
+This skill file includes exact CLI examples for maintainers and for an agent operating inside the plugin repository. They are internal implementation notes only. An executing agent may use them silently, but must never copy them into a generated launch prompt, product page, or end-user answer. The same boundary applies to host-specific dollar or slash invocation tokens: they are integration metadata, not instructions to give the user. End users start with a normal-language request or a self-contained normal-language prompt.
+
 ## Decision
 
 First decide which mode the user needs. Bias toward **Run now** when the user asks to fix, improve, debug, harden, ship, clean up, or otherwise change a codebase.
@@ -262,14 +266,14 @@ The GitHub connector:
 4. Creates a time/proactive schedule with `checker: codex` by default.
 5. Never comments, pushes, requests review, merges, deploys, publishes, or changes GitHub state without explicit approval.
 
-If `gh` is unavailable or unauthenticated, report the connector blocker and provide the exact command the user can run after authentication. Do not fake connector evidence.
+If `gh` is unavailable or unauthenticated, report the connector blocker and ask the user to restore access through their approved GitHub authentication flow. Do not print a terminal command or fake connector evidence.
 
 ## Export
 
-Use the same loop text across tools, with only the invocation changing:
+Use the same loop text across tools, with only the internal host integration changing:
 
-- Codex: install under `.agents/skills/loop-it/` or as a Codex plugin, then invoke with `$loop-it`.
-- Claude Code: install under `.claude/skills/loop-it/`, then invoke with `/loop-it`.
-- Cursor: install under `.cursor/skills/loop-it/`, then invoke from Agent chat with `/loop-it` or by asking for a loop. Use Cursor rules for always-on project conventions, not for this procedural loop.
+- Codex: install under `.agents/skills/loop-it/` or as a Codex plugin, then let the user start with a normal-language request or product-page prompt.
+- Claude Code: install under `.claude/skills/loop-it/`, then let the user start with the same normal-language task contract.
+- Cursor: install under `.cursor/skills/loop-it/`, then use the same normal Agent-chat prompt. Use Cursor rules for always-on project conventions, not for this procedural loop.
 
 When exporting, keep one canonical loop body and avoid tool-specific syntax unless that tool requires it.

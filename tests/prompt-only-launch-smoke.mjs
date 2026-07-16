@@ -7,12 +7,15 @@ import { recommendPrompt } from "../skills/loop-it/scripts/select-loop.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const startScript = resolve(repoRoot, "skills/loop-it/scripts/start-loop.mjs");
-const proofMessage = "Use the configured proof requirement from the local Loop It contract.";
+const generalizedProof = "Infer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.";
 const commandChecks = [
   "make test",
   "dotnet test",
   "swift test",
   "pytest tests/unit",
+  "python scripts/build_report.py",
+  "git status",
+  "kubectl get pods",
 ];
 const forbiddenPromptPatterns = [
   /\bnpx\b/i,
@@ -28,9 +31,21 @@ for (const check of commandChecks) {
     { encoding: "utf8" }
   );
   assert.equal(result.status, 0, result.stderr || `launch generation failed for ${check}`);
-  assert.match(result.stdout, new RegExp(proofMessage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(result.stdout, new RegExp(generalizedProof.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.equal(result.stdout.includes(check), false, `launch leaked verifier command: ${check}`);
+  assert.doesNotMatch(result.stdout, /configured proof requirement from the local Loop It contract/i);
 }
+
+const naturalProof = "Every recommendation cites a source and names a decision owner.";
+const naturalProofLaunch = spawnSync(
+  process.execPath,
+  [startScript, "--goal", "Prepare a decision brief.", "--check", naturalProof, "--agent", "codex", "--print"],
+  { encoding: "utf8" }
+);
+assert.equal(naturalProofLaunch.status, 0, naturalProofLaunch.stderr || "natural proof launch generation failed");
+assert.match(naturalProofLaunch.stdout, new RegExp(naturalProof.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(naturalProofLaunch.stdout, /Print mode does not create local Loop It state/i);
+assertPromptOnly(naturalProofLaunch.stdout, "natural proof launch prompt");
 
 const customGoal = "prepare a finance brief and run npm test";
 const customRecommendation = recommendPrompt({ goal: customGoal });
@@ -51,6 +66,13 @@ assertPromptOnly(engineeringLaunch.stdout, "engineering launch prompt");
 const slashGoal = recommendPrompt({ goal: "/goal prepare a finance brief with cited evidence" });
 assert.match(slashGoal.prompt, /prepare a finance brief with cited evidence/i);
 assertPromptOnly(slashGoal.prompt, "native slash-command goal prompt");
+
+const releaseGoal = "Prepare version 0.4.0 for release with final package checks and fresh-install proof.";
+const releaseRecommendation = recommendPrompt({ goal: releaseGoal });
+assert.equal(releaseRecommendation.kind, "loop");
+assert.equal(releaseRecommendation.selected?.loop?.id, "release-readiness");
+assert.match(releaseRecommendation.workflow.prompt, new RegExp(releaseGoal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assertPromptOnly(releaseRecommendation.workflow.prompt, "advanced-loop recommendation prompt");
 
 const unsafeLaunch = spawnSync(
   process.execPath,

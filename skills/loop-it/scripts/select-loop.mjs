@@ -161,7 +161,7 @@ export function recommendLoop(options = {}) {
       alternatives,
       progress,
       progressResolution,
-    });
+    }, { goal: options.goal });
   }
 
   if (progress?.data?.activeLoopId) {
@@ -176,7 +176,7 @@ export function recommendLoop(options = {}) {
         },
         alternatives: rankLoops(progress.text, { library, limit: 4 }).filter((item) => item.loop.id !== activeLoop.id).slice(0, 2),
         progress,
-      });
+      }, { goal: options.goal });
     }
   }
 
@@ -192,7 +192,7 @@ export function recommendLoop(options = {}) {
     alternatives: ranked.slice(1),
     progress,
     progressResolution,
-  });
+  }, { goal: options.goal });
 }
 
 export function recommendPrompt(options = {}) {
@@ -296,14 +296,14 @@ export function loopDefaults(loop) {
   };
 }
 
-export function loopWorkflow(loop) {
+export function loopWorkflow(loop, options = {}) {
   return {
     choose: loop.userGuide?.useWhen ?? first(loop.bestFor) ?? loop.summary,
     startWith: loop.userGuide?.starterRequest ?? loop.defaultObjective,
     firstStep: loop.userGuide?.firstStep ?? "State the goal, check, scope, and current blocker.",
     proofTip: loop.userGuide?.proofTip ?? loop.defaultCheck,
     notFor: loop.userGuide?.notFor ?? first(loop.avoidWhen) ?? "Do not use when the goal or proof is unclear.",
-    prompt: compileLoopPrompt(loop),
+    prompt: compileLoopPrompt(loop, options),
     proof: loop.userGuide?.proofTip ?? loop.defaultCheck,
     track:
       "Record the result, evidence, blockers, remaining risks, and recommended next action.",
@@ -343,13 +343,13 @@ Do not ask me to run or copy terminal commands. Handle safe local verification i
   return prompt;
 }
 
-function withWorkflow(recommendation) {
+function withWorkflow(recommendation, options = {}) {
   if (!recommendation.selected?.loop) {
     return recommendation;
   }
   return {
     ...recommendation,
-    workflow: loopWorkflow(recommendation.selected.loop),
+    workflow: loopWorkflow(recommendation.selected.loop, options),
     decision: recommendationDecision(recommendation.selected, recommendation.alternatives ?? []),
   };
 }

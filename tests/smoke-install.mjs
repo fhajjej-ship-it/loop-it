@@ -724,7 +724,7 @@ function smokeLoopStart() {
     "Paste this as a normal message:",
     "Run this bounded Loop It task now in the current workspace.",
     "Goal: Fix failing checkout tests",
-    "Proof requirement: Use the configured proof requirement from the local Loop It contract.",
+    "Proof requirement: Run the project verifier recorded in the local Loop It contract inside the agent workflow and report whether it passed.",
     "Iteration cap: 4",
     "the pasted launch prompt starts execution mode",
     "Do not ask me to run or copy terminal commands.",
@@ -744,7 +744,7 @@ function smokeLoopStart() {
   const launchContent = readFileSync(launchFile, "utf8");
   for (const text of [
     "Protocol\nDISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE",
-    "If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result.",
+    "If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result.",
     "Changes only to Loop It state files do not count as completing the task.",
     "Do not ask me to run or copy terminal commands.",
     "The prompt starts the task. The local Loop It files remain the portable contract and evidence record.",
@@ -827,7 +827,7 @@ function smokeLoopRun() {
     "Paste this as a normal message:",
     "Run this bounded Loop It task now in the current workspace.",
     "Goal\ninspect this repo and run the right loop",
-    "Proof required\nUse the configured proof requirement from the local Loop It contract.",
+    "Proof required\nRun the project verifier recorded in the local Loop It contract inside the agent workflow and report whether it passed.",
     "Changes only to Loop It state files do not count as completing the task.",
     "Do not ask me to run or copy terminal commands.",
   ]) {
@@ -920,8 +920,8 @@ function smokeLoopRun() {
     "Paste this as a normal message:",
     "Run this bounded Loop It task now in the current workspace.",
     "Goal\nfix failing project checks with the smallest safe change",
-    "Proof required\nUse the configured proof requirement from the local Loop It contract.",
-    "If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result.",
+    "Proof required\nRun the project verifier recorded in the local Loop It contract inside the agent workflow and report whether it passed.",
+    "If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result.",
     "Changes only to Loop It state files do not count as completing the task.",
     "Record evidence, changed files or artifacts, blockers, remaining risks, and the next safe action.",
   ]) {

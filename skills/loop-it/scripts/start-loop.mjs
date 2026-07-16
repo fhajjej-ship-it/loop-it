@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { assertPromptText, sanitizePromptObjective } from "./goal-library.mjs";
+import {
+  assertPromptText,
+  hasPromptCommandSyntax,
+  sanitizePromptObjective,
+} from "./goal-library.mjs";
 import { findLoopById, loopDefaults } from "./select-loop.mjs";
 
 const args = parseArgs(process.argv.slice(2));
@@ -46,7 +50,7 @@ const contract = {
   now,
 };
 const loopContent = renderLoopContract(contract);
-const launchContent = renderLaunchGuide(contract);
+const launchContent = renderLaunchGuide(contract, { hasLocalContract: !args.print });
 assertPromptText(launchContent, "Generated launch prompt");
 const progress = progressState(contract);
 
@@ -149,25 +153,32 @@ See \`.loop-it/LAUNCH.md\` for the Codex, Claude Code, and Cursor launch prompts
 `;
 }
 
-function renderLaunchGuide(loop) {
-  const sections = loop.agents.map((name) => renderAgentLaunch(name, loop)).join("\n");
+function renderLaunchGuide(loop, options = {}) {
+  const hasLocalContract = Boolean(options.hasLocalContract);
+  const sections = loop.agents
+    .map((name) => renderAgentLaunch(name, loop, { hasLocalContract }))
+    .join("\n");
+  const usageNote = hasLocalContract
+    ? "Use this file to run the loop in an agent. The generated `.loop-it` files prepare the contract; the pasted launch prompt starts execution mode. A run is not successful when it only creates or edits `.loop-it` files."
+    : "Use the prompt below as one self-contained normal message. Print mode does not create local Loop It state; the agent must return the requested proof in its response.";
   return `# ${loop.name} Launch
 
 Goal: ${loop.goal}
 
-Proof requirement: ${displayProof(loop.check)}
+Proof requirement: ${displayProof(loop.check, { hasLocalContract })}
 
 Iteration cap: ${loop.maxIterations}
 
 Stop: ${loop.stop}
 
-Use this file to run the loop in an agent. The generated \`.loop-it\` files prepare the contract; the pasted launch prompt starts execution mode. A run is not successful when it only creates or edits \`.loop-it\` files.
+${usageNote}
 
 ${sections}
 `;
 }
 
-function renderAgentLaunch(agentName, loop) {
+function renderAgentLaunch(agentName, loop, options = {}) {
+  const hasLocalContract = Boolean(options.hasLocalContract);
   const heading = {
     codex: "Codex Launch",
     claude: "Claude Code Launch",
@@ -187,14 +198,14 @@ Scope
 ${plain(loop.scope)}
 
 Proof required
-${plain(displayProof(loop.check))}
+${plain(displayProof(loop.check, { hasLocalContract }))}
 
 Use at most ${loop.maxIterations} focused iterations.
 
 Protocol
 DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE
 
-Inspect the smallest relevant context. If a project verifier is configured in the local Loop It contract, run it inside the agent workflow and capture the actual result. Otherwise infer the narrowest safe local proof from the workspace. Make only scoped changes, and continue only when the next pass has a clear expected improvement.
+Inspect the smallest relevant context and apply the proof requirement above directly. If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result. If print mode did not create a contract and the supplied proof was command-shaped, infer the narrowest safe local proof from the workspace. Make only scoped changes, and continue only when the next pass has a clear expected improvement.
 
 Changes only to Loop It state files do not count as completing the task. Record evidence, changed files or artifacts, blockers, remaining risks, and the next safe action.
 
@@ -207,7 +218,11 @@ ${plain(loop.approval)}
 Do not ask me to run or copy terminal commands. Do not publish, send external messages, deploy, purchase, change credentials, run destructive git operations, or make irreversible data changes without explicit approval.
 \`\`\`
 
-The prompt starts the task. The local Loop It files remain the portable contract and evidence record.`;
+${
+  hasLocalContract
+    ? "The prompt starts the task. The local Loop It files remain the portable contract and evidence record."
+    : "The prompt starts the task. Return the evidence in the final response because print mode did not create local Loop It state."
+}`;
 }
 
 function progressState(loop) {
@@ -301,8 +316,15 @@ function plain(value) {
   return String(value).replaceAll("```", "'''");
 }
 
-function displayProof() {
-  return "Use the configured proof requirement from the local Loop It contract. If it is a project check, run it inside the agent workflow and report whether it passed; otherwise apply the stated success criteria directly.";
+function displayProof(check, options = {}) {
+  const proof = String(check ?? "").trim();
+  if (!hasPromptCommandSyntax(proof)) {
+    return proof;
+  }
+  if (options.hasLocalContract) {
+    return "Run the project verifier recorded in the local Loop It contract inside the agent workflow and report whether it passed.";
+  }
+  return "Infer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.";
 }
 
 function printUsage() {

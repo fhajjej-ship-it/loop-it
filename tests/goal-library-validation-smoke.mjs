@@ -49,11 +49,32 @@ const sanitizedPrompt = compileGoalPrompt(library.goals[0], {
 assert.match(sanitizedPrompt, /Improve the onboarding flow and run project checks\./);
 assert.doesNotMatch(sanitizedPrompt, /\bnpm\b/i);
 
+for (const command of ["python scripts/build_report.py", "git status", "kubectl get pods"]) {
+  const prompt = compileGoalPrompt(library.goals[0], {
+    goal: `Improve the onboarding flow and use ${command}.`,
+  });
+  assert.match(prompt, /Improve the onboarding flow and use project checks/i);
+  assert.equal(prompt.includes(command), false, `compiled goal leaked command syntax: ${command}`);
+}
+
+for (const naturalGoal of ["Go build a clickable prototype", "Make test plans for the launch"]) {
+  const prompt = compileGoalPrompt(library.goals[0], { goal: naturalGoal });
+  assert.match(prompt, new RegExp(naturalGoal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+}
+
 assert.throws(
   () => compileGoalPrompt(library.goals[0], { goal: "npx unsafe-launcher --execute" }),
   /describe the desired outcome in natural language without terminal or slash commands/,
   "unsafe command-only goals must fail with a natural-language input error"
 );
+
+for (const commandOnlyGoal of ["python scripts/build_report.py", "git status", "kubectl get pods"]) {
+  assert.throws(
+    () => compileGoalPrompt(library.goals[0], { goal: commandOnlyGoal }),
+    /describe the desired outcome in natural language without terminal or slash commands/,
+    `command-only goal must be rejected: ${commandOnlyGoal}`
+  );
+}
 
 console.log("Goal library validation smoke passed");
 

@@ -8,21 +8,42 @@ const skillRoot = resolve(scriptDir, "..");
 const goalLibraryPath = resolve(skillRoot, "references", "library", "goals.json");
 const goalEvalsPath = resolve(skillRoot, "references", "library", "goals-evals.json");
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const commandBoundary = String.raw`(?=\s*(?:$|["'\`,.;!?)]|&&|\|\||\bthen\b|\band\s+(?:report|summarize|continue|fix|rerun|record|capture)\b))`;
+const commandRules = [
+  {
+    source: String.raw`\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?(?:test|check|build|lint|install|add|remove|publish|deploy|start|dev|dlx|x|create)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*`,
+  },
+  {
+    // A capitalized “Make …” is ordinary prose; the lowercase executable is command-shaped
+    // only when its target ends like a command instead of continuing as a noun phrase.
+    source: String.raw`\bmake\s+(?:test|check|build|run)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+  {
+    source: String.raw`\b(?:dotnet|swift|cargo)\s+(?:test|check|build|run)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+  {
+    source: String.raw`\bpytest(?:\s+(?:\.{0,2}/)?[a-z0-9_.:/-]+)*(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+  {
+    // Preserve natural prose such as “Go build a clickable prototype.”
+    source: String.raw`\bgo\s+(?:test|build|run)(?:\s+(?:(?:\.{1,2}/|[a-z0-9_.-]+/)[a-z0-9_./-]*|[a-z0-9_.-]+\.go))?(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+  {
+    source: String.raw`\b(?:python(?:3(?:\.\d+)*)?|py)\s+(?:(?:-[a-zA-Z][a-zA-Z0-9-]*(?:=[^\s,.;]+)?\s+)*)?(?:\.{0,2}/)?[a-zA-Z0-9_./-]+\.py(?:(?:\s+--\s+[a-zA-Z0-9_./:-]+)|(?:\s+--?[a-zA-Z0-9][a-zA-Z0-9_./:=*-]*))*`,
+  },
+  {
+    source: String.raw`\bgit\s+(?:status|diff|log|show|branch|rev-parse)(?:(?:\s+--\s+[a-zA-Z0-9_./:-]+)|(?:\s+--?[a-zA-Z0-9][a-zA-Z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+  {
+    source: String.raw`\bkubectl\s+(?:get|describe|logs|wait|rollout)\s+[a-zA-Z0-9_./:-]+(?:(?:\s+--\s+[a-zA-Z0-9_./:-]+)|(?:\s+--?[a-zA-Z0-9][a-zA-Z0-9_./:=*-]*))*${commandBoundary}`,
+  },
+];
 const forbiddenPromptPatterns = [
   /\bnpx\b/i,
-  /\b(?:npm|pnpm|yarn|bun)\s+(?:run|exec|test|check|build|lint)\b/i,
   /\bcodex\s+exec\b/i,
   /\bloop-it\s+(?:run|start|write|new|schedule|tick)\b/i,
   /(?:^|\s)\/(?:goal|loop-it)\b/i,
-  /\b(?:make|dotnet|swift|pytest|cargo)\s+(?:test|check|build|run)\b/i,
-  /\bgo\s+(?:test|build|run)\b/i,
   /(?:^|\s)\$\s+[a-z]/i,
-];
-const projectCommandPatterns = [
-  /\b(?:npm|pnpm|yarn|bun)\s+(?:(?:run|exec)\s+)?(?:test|check|build|lint|install|add|remove|publish|deploy|start|dev|dlx|x|create)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*/gi,
-  /\b(?:make|dotnet|swift|cargo)\s+(?:test|check|build|run)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*/gi,
-  /\bpytest(?:\s+[a-z0-9_./:-]+)*(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*/gi,
-  /\bgo\s+(?:test|build|run)(?:(?:\s+--\s+[a-z0-9_./:-]+)|(?:\s+--?[a-z0-9][a-z0-9_./:=*-]*))*/gi,
 ];
 const libraryKeys = new Set(["version", "categories", "goals"]);
 const categoryKeys = new Set(["id", "title", "description", "order"]);
@@ -305,8 +326,13 @@ export function sanitizePromptObjective(value, options = {}) {
     .replace(/(?:^|\s)\/(?:goal|loop-it)\b\s*/gi, " ")
     .trim();
 
-  for (const pattern of projectCommandPatterns) {
-    objective = objective.replace(pattern, "project checks");
+  let replacedCommand = false;
+  for (const rule of commandRules) {
+    const pattern = new RegExp(rule.source, "g");
+    if (pattern.test(objective)) {
+      replacedCommand = true;
+      objective = objective.replace(new RegExp(rule.source, "g"), "project checks");
+    }
   }
 
   objective = objective
@@ -316,6 +342,12 @@ export function sanitizePromptObjective(value, options = {}) {
 
   if (!objective || !/[a-z0-9]/i.test(objective)) {
     throw new Error(`${label} must describe the desired outcome in natural language.`);
+  }
+
+  if (replacedCommand && isOnlyGeneralizedCommand(objective)) {
+    throw new Error(
+      `${label} must describe the desired outcome in natural language without terminal or slash commands. Remove the command and state the result you want.`
+    );
   }
 
   try {
@@ -507,6 +539,28 @@ export function assertPromptText(userFacingText, goalId) {
       throw new Error(`${goalId} contains user-facing terminal or slash-command syntax.`);
     }
   }
+  for (const rule of commandRules) {
+    if (new RegExp(rule.source).test(userFacingText)) {
+      throw new Error(`${goalId} contains user-facing terminal or slash-command syntax.`);
+    }
+  }
+}
+
+export function hasPromptCommandSyntax(value) {
+  const text = String(value ?? "");
+  return (
+    forbiddenPromptPatterns.some((pattern) => pattern.test(text)) ||
+    commandRules.some((rule) => new RegExp(rule.source).test(text))
+  );
+}
+
+function isOnlyGeneralizedCommand(value) {
+  const residue = String(value)
+    .replace(/\bproject checks\b/gi, " ")
+    .replace(/\b(?:please|run|rerun|execute|use|perform|and|then|now|the|a|an|to|for|with|after|before)\b/gi, " ")
+    .replace(/[^a-z0-9]+/gi, "")
+    .trim();
+  return residue === "";
 }
 
 function requireOnlyKeys(value, allowedKeys, label) {
