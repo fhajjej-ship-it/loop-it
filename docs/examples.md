@@ -1,162 +1,55 @@
-# Examples
+# Prompt examples
 
-Use these prompts after installing Loop it.
+Loop It gives users normal-language prompts. The agent handles safe local checks and workspace actions internally.
 
-## Run the right loop with Codex
-
-```bash
-npx @fhajjej/loop-it@latest run \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --agent codex \
-  --execute codex \
-  --checker codex \
-  --worktree
-```
-
-`run --execute codex` inspects repo signals, recommends the highest-confidence loop, writes the loop contract, calls `codex exec`, reruns the verifier after each pass, and repeats up to the iteration cap until proof, a repeated failure, a blocker, or approval-sensitive work stops it. If `codex` is not on the terminal `PATH`, Loop It discovers the executable bundled with Codex Desktop on macOS; `--codex-bin <path>` and `LOOP_IT_CODEX_BIN` are explicit overrides. Add `--checker codex` when you want a second read-only Codex pass to inspect the changed files, verifier output, Codex output, and `.loop-it/progress.json` before the run is accepted. Add `--worktree` when Codex should edit a fresh git worktree/branch instead of your current checkout. When the verifier passes, the CLI prints a `Run proof` summary and records a machine-readable `proof` object with the selected loop, executor, verifier, checker result, final Codex output path, changed files, optional worktree metadata, and per-iteration evidence.
-
-Omit `--execute codex` when you only want to prepare the launch prompt for a human to paste into Codex, Claude Code, or Cursor.
-
-## Write a verifier-gated loop
-
-```bash
-npx @fhajjej/loop-it@latest write \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --max-iterations 5
-```
-
-This writes `.loop-it/LOOP.md` and `.loop-it/progress.json`. It prepares the loop contract; it does not repair code until an agent runs it.
-
-## Start a verifier-gated loop
-
-```bash
-npx @fhajjej/loop-it@latest start \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --max-iterations 5 \
-  --agent all
-```
-
-For interactive Codex work, paste the preferred native `/goal` command from `.loop-it/LAUNCH.md`; use its normal-message fallback when Goals are unavailable. For Claude Code or Cursor, paste the relevant generated prompt. The launch asks the agent to inspect, edit, verify, and report. The generated contract uses `DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE` and stops when the verifier passes, the iteration cap is reached, repeated failure is detected, or approval is required. If an iteration only creates or edits `.loop-it` files, it has not repaired the issue yet.
-
-## End-to-end library flow
-
-```bash
-npx @fhajjej/loop-it@latest recommend --goal "fix failing checkout test"
-npx @fhajjej/loop-it@latest new --from failing-ci-repair
-```
-
-Run the generated loop with Codex, Claude Code, Cursor, or another `SKILL.md`-compatible agent. Do not treat the generated files as the fix. After each pass, update `.loop-it/progress.json` with the last result, blockers, remaining risks, and recommended next action.
-
-```bash
-npx @fhajjej/loop-it@latest next --cwd .
-```
-
-Use `next` to continue an active loop or select the next loop from recorded progress.
-
-## Codex: scheduled heartbeat
-
-```bash
-npx @fhajjej/loop-it@latest schedule \
-  --from docs-freshness-watch \
-  --every 1d \
-  --goal "Check setup docs for command and version drift" \
-  --check "npm run check" \
-  --execute codex \
-  --heartbeat codex
-```
-
-This writes `.loop-it/schedules/docs-freshness-watch.json` and creates or updates the local Codex Scheduled heartbeat that calls `npx @fhajjej/loop-it@latest tick --all --execute codex`. Use `loop-it tick --all --execute codex` directly when you want to test one due pass without waiting for the scheduler.
-
-## Codex: ticket to verified fix
+## First Value Sprint
 
 ```text
-Use $loop-it to fix the failing checkout test.
+Use this goal as a bounded Loop It task.
 
-Objective:
-Fix the regression without unrelated refactors.
+Walk through the first-time user journey, identify the single biggest barrier to reaching value, make the smallest credible improvement, and prove the journey is clearer on desktop and mobile.
 
-Success check:
-npm test -- checkout
-
-Iteration budget:
-3 passes maximum.
-
-Stop conditions:
-Stop when the test passes with regression coverage, the same failure repeats twice, or approval is needed.
+Return the changed artifact, before-and-after journey evidence, the proof-rubric result, remaining risks, and the next safe action. Do not ask me to run or copy terminal commands.
 ```
 
-## Claude Code: docs sweep
+## Feedback Theme Synthesis
 
 ```text
-/loop-it create a docs sweep loop for this repository.
+Analyze the supplied numbered feedback, group recurring themes, cite the source item behind every conclusion, and recommend one bounded next action without inventing customer evidence.
 
-Objective:
-Make setup docs match the current CLI and package behavior.
-
-Success check:
-Run every documented command that can be safely run locally.
-
-Iteration budget:
-3 passes maximum.
+Separate observations, interpretation, assumptions, and missing evidence. Return the theme table, source map, recommendation, and the rubric result for every criterion.
 ```
 
-## Cursor: review repair
+## Landing Page Message Pass
 
 ```text
-/loop-it design a review repair loop for the current diff.
+Create three distinct landing-page message directions from the supplied audience, offer, and approved evidence. Select the strongest direction using a clear rubric and produce one review-ready concept without inventing claims.
 
-Objective:
-Address blocking correctness, test, and UX findings without broad refactors.
-
-Success check:
-The changed files pass the narrowest relevant lint, type-check, or manual review.
-
-Iteration budget:
-2 passes maximum.
+Keep all outputs local drafts. Do not publish, send messages, or start paid promotion. Return the directions, selection rationale, final concept, assumptions, and proof.
 ```
 
-## Durable loop file
+## Data Quality Snapshot
 
-```bash
-node ./bin/loop-it.mjs new \
-  --name "Release readiness" \
-  --objective "Prepare the repo for a public release" \
-  --check "npm run check" \
-  --max-iterations 3
+```text
+Inspect the supplied dataset without mutating it. Quantify missing, duplicate, invalid, and suspicious values, then produce a prioritized remediation brief with reproducible counts.
+
+Return the profile summary, issue table, remediation priorities, source-preservation evidence, and remaining uncertainty.
 ```
 
-## Launch from a library loop
+## SOP From Messy Notes
 
-```bash
-node ./bin/loop-it.mjs write \
-  --from failing-ci-repair \
-  --goal "Fix the failing CI job with the smallest safe change" \
-  --check "npm run check"
+```text
+Turn the supplied process notes into a concise standard operating procedure. Preserve unresolved gaps as questions, and make ownership, inputs, decisions, approval points, failure paths, and completion evidence explicit.
 
-node ./bin/loop-it.mjs start \
-  --from failing-ci-repair \
-  --goal "Fix the failing CI job with the smallest safe change" \
-  --check "npm run check" \
-  --agent codex
+Return the SOP, gap list, approval map, rubric result, and the next review action. Do not execute the procedure or contact external recipients.
 ```
 
-## Find a loop from the library
+## Advanced repository repair
 
-```bash
-node ./bin/loop-it.mjs run --goal "Inspect this repo and run the right loop" --agent codex
-node ./bin/loop-it.mjs library search "failing ci"
-node ./bin/loop-it.mjs library eval
-node ./bin/loop-it.mjs recommend --goal "fix failing checkout test"
-node ./bin/loop-it.mjs new --from failing-ci-repair
+```text
+Run this as a bounded Loop It task in the current workspace.
+
+Fix the reported behavior with the smallest credible change. Infer and run the narrowest safe project verification inside the agent workflow. Use at most three focused iterations, stop on proof or a real blocker, and keep deploys, external messages, credentials, destructive git actions, and irreversible changes behind approval.
+
+Return the changed files, verification evidence, blockers, remaining risks, and the next safe action. Do not ask me to run or copy terminal commands.
 ```
-
-## Recommend the next loop from progress
-
-```bash
-node ./bin/loop-it.mjs next --cwd .
-```
-
-`next` reads `.loop-it/progress.json` first, then falls back to `.loop-it/LOOP.md`.

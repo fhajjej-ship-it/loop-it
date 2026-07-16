@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import {
+  assertPromptText,
+  hasPromptCommandSyntax,
+  sanitizePromptObjective,
+} from "./goal-library.mjs";
 import { findLoopById, loopDefaults } from "./select-loop.mjs";
 
 const args = parseArgs(process.argv.slice(2));
@@ -12,7 +17,9 @@ if (args.help || args.h) {
 
 const libraryLoop = args.from ? findLibraryLoop(args.from) : null;
 const defaults = libraryLoop ? loopDefaults(libraryLoop) : {};
-const goal = requiredString(args.goal, "--goal");
+const goal = safePromptObjective(requiredString(args.goal, "--goal"), {
+  label: "Goal",
+});
 const check = requiredString(args.check, "--check");
 const name = stringArg(args.name, defaults.name ?? "Agent Loop");
 const scope = stringArg(args.scope, "current working tree");
@@ -43,7 +50,8 @@ const contract = {
   now,
 };
 const loopContent = renderLoopContract(contract);
-const launchContent = renderLaunchGuide(contract);
+const launchContent = renderLaunchGuide(contract, { hasLocalContract: !args.print });
+assertPromptText(launchContent, "Generated launch prompt");
 const progress = progressState(contract);
 
 if (args.print) {
@@ -145,110 +153,76 @@ See \`.loop-it/LAUNCH.md\` for the Codex, Claude Code, and Cursor launch prompts
 `;
 }
 
-function renderLaunchGuide(loop) {
-  const sections = loop.agents.map((name) => renderAgentLaunch(name, loop)).join("\n");
+function renderLaunchGuide(loop, options = {}) {
+  const hasLocalContract = Boolean(options.hasLocalContract);
+  const sections = loop.agents
+    .map((name) => renderAgentLaunch(name, loop, { hasLocalContract }))
+    .join("\n");
+  const usageNote = hasLocalContract
+    ? "Use this file to run the loop in an agent. The generated `.loop-it` files prepare the contract; the pasted launch prompt starts execution mode. A run is not successful when it only creates or edits `.loop-it` files."
+    : "Use the prompt below as one self-contained normal message. Print mode does not create local Loop It state; the agent must return the requested proof in its response.";
   return `# ${loop.name} Launch
 
 Goal: ${loop.goal}
 
-Verifier: ${loop.check}
+Proof requirement: ${displayProof(loop.check, { hasLocalContract })}
 
 Iteration cap: ${loop.maxIterations}
 
 Stop: ${loop.stop}
 
-Use this file to run the loop in an agent. The generated \`.loop-it\` files prepare the contract; the pasted launch prompt starts execution mode. A run is not successful when it only creates or edits \`.loop-it\` files.
+${usageNote}
 
 ${sections}
 `;
 }
 
-function renderAgentLaunch(agentName, loop) {
-  if (agentName === "codex") {
-    return `## Codex Launch
+function renderAgentLaunch(agentName, loop, options = {}) {
+  const hasLocalContract = Boolean(options.hasLocalContract);
+  const heading = {
+    codex: "Codex Launch",
+    claude: "Claude Code Launch",
+    cursor: "Cursor Launch",
+  }[agentName];
+  return `## ${heading}
 
-Preferred: start a native Codex Goal. Paste this single-line command into an interactive Codex task:
-
-\`\`\`text
-/goal ${inline(loop.goal)} Scope: ${inline(loop.scope)}. Treat .loop-it/LOOP.md as the portable contract when it exists. Run ${inline(loop.check)} before editing and after every iteration. Use at most ${loop.maxIterations} iterations. Make only scoped changes. Record verifier evidence in .loop-it/progress.json when that file exists. Stop when ${inline(loop.stop)}. Pause and ask for approval before ${inline(loop.approval)}.
-\`\`\`
-
-Native \`/goal\` owns the live running, paused, and completed state. The \`.loop-it\` files remain the portable contract and evidence record.
-
-If \`/goal\` is unavailable, or this is a non-interactive Codex run, paste this fallback as a normal message:
+Paste this as a normal message:
 
 \`\`\`text
-Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled. If not, run the bounded task directly from this prompt.
+Run this bounded Loop It task now in the current workspace.
 
-Goal: ${plain(loop.goal)}
-Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
+Goal
+${plain(loop.goal)}
 
-Run The Loop mode. You are not being asked to create another loop.
-Read .loop-it/LOOP.md as state when it exists, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
-First action: run the verifier, or the closest available equivalent, and capture the actual failure.
-If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
-Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
-Scope: ${plain(loop.scope)}
-Verifier: ${plain(loop.check)}
-Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.
-After each iteration, run the verifier, record evidence in .loop-it/progress.json, and continue only if the next pass has a clear expected improvement.
-Stop when: ${plain(loop.stop)}
-Approval required for: ${plain(loop.approval)}
+Scope
+${plain(loop.scope)}
+
+Proof required
+${plain(displayProof(loop.check, { hasLocalContract }))}
+
+Use at most ${loop.maxIterations} focused iterations.
+
+Protocol
+DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE
+
+Inspect the smallest relevant context and apply the proof requirement above directly. If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result. If print mode did not create a contract and the supplied proof was command-shaped, infer the narrowest safe local proof from the workspace. Make only scoped changes, and continue only when the next pass has a clear expected improvement.
+
+Changes only to Loop It state files do not count as completing the task. Record evidence, changed files or artifacts, blockers, remaining risks, and the next safe action.
+
+Stop when
+${plain(loop.stop)}
+
+Approval required before
+${plain(loop.approval)}
+
+Do not ask me to run or copy terminal commands. Do not publish, send external messages, deploy, purchase, change credentials, run destructive git operations, or make irreversible data changes without explicit approval.
 \`\`\`
 
-If nothing starts after pasting the fallback, send a follow-up message: "Run the loop now from the prompt above."`;
-  }
-
-  if (agentName === "claude") {
-    return `## Claude Code Launch
-
-Paste this into Claude Code as a normal message:
-
-\`\`\`text
-Use /loop-it if this Claude Code workspace has the Loop It skill installed. If not, run the bounded task directly from this prompt.
-
-Goal: ${plain(loop.goal)}
-Done only when the verifier passes, or when ${loop.maxIterations} iterations are reached.
-
-Run The Loop mode. You are not being asked to create another loop.
-Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
-First action: run the verifier, or the closest available equivalent, and capture the actual failure.
-If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
-Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
-Scope: ${plain(loop.scope)}
-Verifier: ${plain(loop.check)}
-Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.
-After each iteration, run the verifier, record evidence in .loop-it/progress.json, and continue only if the next pass has a clear expected improvement.
-Stop when: ${plain(loop.stop)}
-Approval required for: ${plain(loop.approval)}
-\`\`\`
-
-Use Claude Code \`/loop\` only for polling or interval work. For finish-line work with a verifier, run this as a bounded goal with proof.`;
-  }
-
-  return `## Cursor Launch
-
-Paste this into Cursor Agent chat as a normal message:
-
-\`\`\`text
-Use /loop-it if this Cursor workspace has the Loop It skill installed. If not, run the bounded task directly from this prompt.
-
-Run The Loop mode. You are not being asked to create another loop.
-Read .loop-it/LOOP.md as state, then execute the repair. Do not run loop-it write, loop-it new, or loop-it start.
-First action: run the verifier, or the closest available equivalent, and capture the actual failure.
-If the verifier fails, inspect the target repo, make the smallest credible change when needed, and rerun the verifier.
-Changes only under .loop-it do not count as a successful iteration. If you only updated loop files, keep going.
-Goal: ${plain(loop.goal)}
-Scope: ${plain(loop.scope)}
-Verifier: ${plain(loop.check)}
-Iteration cap: ${loop.maxIterations}
-Protocol: DISCOVER -> PLAN -> EXECUTE -> VERIFY -> ITERATE.
-After each iteration, run the verifier, record evidence in .loop-it/progress.json, and continue only if the next pass has a clear expected improvement.
-Stop when: ${plain(loop.stop)}
-Approval required for: ${plain(loop.approval)}
-\`\`\`
-
-Cursor Agent chat should treat this as the verifier-gated task contract. Loop It supplies the durable state, stop rules, and evidence requirements.`;
+${
+  hasLocalContract
+    ? "The prompt starts the task. The local Loop It files remain the portable contract and evidence record."
+    : "The prompt starts the task. Return the evidence in the final response because print mode did not create local Loop It state."
+}`;
 }
 
 function progressState(loop) {
@@ -267,7 +241,7 @@ function progressState(loop) {
     blockers: [],
     remainingRisks: [],
     evidenceToRecord: ["iteration number", "verifier output", "changed files", "blockers", "remaining risks"],
-    recommendedNextAction: "Start the native Codex /goal command or paste another host launch prompt from .loop-it/LAUNCH.md; .loop-it-only changes do not count as progress.",
+    recommendedNextAction: "Open the generated prompt in the selected agent; changes only to Loop It state files do not count as progress.",
     updatedAt: loop.now,
   };
 }
@@ -342,8 +316,23 @@ function plain(value) {
   return String(value).replaceAll("```", "'''");
 }
 
-function inline(value) {
-  return plain(value).replace(/\s+/g, " ").trim();
+function safePromptObjective(value, options) {
+  try {
+    return sanitizePromptObjective(value, options);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+}
+
+function displayProof(check, options = {}) {
+  const proof = String(check ?? "").trim();
+  if (!hasPromptCommandSyntax(proof)) {
+    return proof;
+  }
+  if (options.hasLocalContract) {
+    return "Run the project verifier recorded in the local Loop It contract inside the agent workflow and report whether it passed.";
+  }
+  return "Infer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.";
 }
 
 function printUsage() {

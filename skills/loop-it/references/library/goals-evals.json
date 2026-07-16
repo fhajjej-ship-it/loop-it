@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "goal": "reduce friction before a new user creates their first project",
+      "expectedGoalId": "first-value-sprint",
+      "forbiddenGoalIds": ["mobile-journey-rescue"],
+      "minimumConfidence": "high",
+      "reason": "A bounded activation problem should use the First Value Sprint goal."
+    },
+    {
+      "goal": "review this onboarding flow and fix its biggest dead end",
+      "expectedGoalId": "first-value-sprint",
+      "minimumConfidence": "high",
+      "reason": "The request names one onboarding obstacle and outcome."
+    },
+    {
+      "goal": "make the goal picker usable at mobile width",
+      "expectedGoalId": "mobile-journey-rescue",
+      "forbiddenGoalIds": ["first-value-sprint"],
+      "minimumConfidence": "high",
+      "reason": "A small-screen blocker should use the Mobile Journey Rescue goal."
+    },
+    {
+      "goal": "repair the clipped primary action in this responsive flow",
+      "expectedGoalId": "mobile-journey-rescue",
+      "minimumConfidence": "high",
+      "reason": "The visible responsive blocker is explicit."
+    },
+    {
+      "goal": "make this card match the rest of the product",
+      "expectedGoalId": "visual-consistency-pass",
+      "forbiddenGoalIds": ["clickable-flow-prototype"],
+      "minimumConfidence": "high",
+      "reason": "Existing product patterns should guide a consistency pass."
+    },
+    {
+      "goal": "align this page with our existing visual language",
+      "expectedGoalId": "visual-consistency-pass",
+      "minimumConfidence": "high",
+      "reason": "The request is visual alignment, not new interaction design."
+    },
+    {
+      "goal": "build a clickable onboarding concept for one user path",
+      "expectedGoalId": "clickable-flow-prototype",
+      "forbiddenGoalIds": ["visual-consistency-pass"],
+      "minimumConfidence": "high",
+      "reason": "A working interaction concept should use the Clickable Flow Prototype goal."
+    },
+    {
+      "goal": "turn this workflow sketch into a reviewable local prototype",
+      "expectedGoalId": "clickable-flow-prototype",
+      "minimumConfidence": "high",
+      "reason": "The output is a bounded prototype."
+    },
+    {
+      "goal": "find themes in these numbered customer interview notes",
+      "expectedGoalId": "feedback-theme-synthesis",
+      "forbiddenGoalIds": ["competitor-evidence-brief"],
+      "minimumConfidence": "high",
+      "reason": "Local customer evidence should become traceable themes."
+    },
+    {
+      "goal": "synthesize this feedback set into one product decision",
+      "expectedGoalId": "feedback-theme-synthesis",
+      "minimumConfidence": "high",
+      "reason": "The task is feedback synthesis for a decision."
+    },
+    {
+      "goal": "compare competitor onboarding flows with cited evidence",
+      "expectedGoalId": "competitor-evidence-brief",
+      "forbiddenGoalIds": ["feedback-theme-synthesis"],
+      "minimumConfidence": "high",
+      "reason": "Current competitor research requires cited evidence."
+    },
+    {
+      "goal": "research how three products position verification",
+      "expectedGoalId": "competitor-evidence-brief",
+      "minimumConfidence": "high",
+      "reason": "A narrow external comparison should create a competitor brief."
+    },
+    {
+      "goal": "create three positioning concepts from this customer research",
+      "expectedGoalId": "landing-page-message-pass",
+      "forbiddenGoalIds": ["source-to-content-pack"],
+      "minimumConfidence": "high",
+      "reason": "The task is message direction, not content repurposing."
+    },
+    {
+      "goal": "tighten the landing page message for one audience",
+      "expectedGoalId": "landing-page-message-pass",
+      "minimumConfidence": "high",
+      "reason": "The output is a focused landing-page concept."
+    },
+    {
+      "goal": "turn this article into a LinkedIn draft in our brand voice",
+      "expectedGoalId": "source-to-content-pack",
+      "forbiddenGoalIds": ["landing-page-message-pass"],
+      "minimumConfidence": "high",
+      "reason": "Repurposing an approved source belongs in the Source-to-Content Pack goal."
+    },
+    {
+      "goal": "repurpose this approved transcript into three content formats",
+      "expectedGoalId": "source-to-content-pack",
+      "minimumConfidence": "high",
+      "reason": "One source becomes several draft formats."
+    },
+    {
+      "goal": "audit this csv for missing and duplicate values",
+      "expectedGoalId": "data-quality-snapshot",
+      "forbiddenGoalIds": ["experiment-results-brief"],
+      "minimumConfidence": "high",
+      "reason": "The request is dataset quality inspection."
+    },
+    {
+      "goal": "create a read-only quality snapshot for this spreadsheet",
+      "expectedGoalId": "data-quality-snapshot",
+      "minimumConfidence": "high",
+      "reason": "A non-mutating spreadsheet audit is explicit."
+    },
+    {
+      "goal": "turn these ab test results into a cautious decision brief",
+      "expectedGoalId": "experiment-results-brief",
+      "forbiddenGoalIds": ["data-quality-snapshot"],
+      "minimumConfidence": "high",
+      "reason": "Experiment evidence should become a bounded decision."
+    },
+    {
+      "goal": "verify the experiment metrics and recommend the next step",
+      "expectedGoalId": "experiment-results-brief",
+      "minimumConfidence": "high",
+      "reason": "The task combines metric checking with an experiment decision."
+    },
+    {
+      "goal": "turn these messy handoff notes into an sop",
+      "expectedGoalId": "sop-from-messy-notes",
+      "forbiddenGoalIds": ["support-knowledge-gap-audit"],
+      "minimumConfidence": "high",
+      "reason": "Process notes should become an operating procedure."
+    },
+    {
+      "goal": "convert this process transcript into a reviewable procedure",
+      "expectedGoalId": "sop-from-messy-notes",
+      "minimumConfidence": "high",
+      "reason": "The requested artifact is a procedure."
+    },
+    {
+      "goal": "find the biggest gap between these support questions and our faq",
+      "expectedGoalId": "support-knowledge-gap-audit",
+      "forbiddenGoalIds": ["sop-from-messy-notes"],
+      "minimumConfidence": "high",
+      "reason": "The task compares support demand with current coverage."
+    },
+    {
+      "goal": "draft one missing support answer without sending it",
+      "expectedGoalId": "support-knowledge-gap-audit",
+      "minimumConfidence": "high",
+      "reason": "The output is a review-only support answer."
+    },
+    {
+      "goal": "fix data quality validation test",
+      "expectedGoalId": null,
+      "forbiddenGoalIds": ["data-quality-snapshot", "experiment-results-brief"],
+      "minimumConfidence": "low",
+      "reason": "An explicit failing-test repair belongs to the advanced engineering loop library."
+    },
+    {
+      "goal": "implement a clickable prototype component and run tests",
+      "expectedGoalId": null,
+      "forbiddenGoalIds": ["clickable-flow-prototype", "visual-consistency-pass"],
+      "minimumConfidence": "low",
+      "reason": "An implementation request with repository tests must not be captured by a creative prototype goal."
+    }
+  ]
+}

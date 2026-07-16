@@ -1,0 +1,685 @@
+{
+  "version": "1",
+  "categories": [
+    {
+      "id": "product-ux",
+      "title": "Product & UX",
+      "description": "Improve the path from first interaction to useful product value.",
+      "order": 10
+    },
+    {
+      "id": "design-prototyping",
+      "title": "Design & Prototyping",
+      "description": "Turn visual direction into a coherent, reviewable experience.",
+      "order": 20
+    },
+    {
+      "id": "research-decisions",
+      "title": "Research & Decisions",
+      "description": "Convert evidence into decisions while keeping sources and assumptions visible.",
+      "order": 30
+    },
+    {
+      "id": "content-messaging",
+      "title": "Content & Messaging",
+      "description": "Create focused messages and reusable content from approved source material.",
+      "order": 40
+    },
+    {
+      "id": "data-evaluation",
+      "title": "Data & Evaluation",
+      "description": "Inspect evidence, quantify quality, and explain what the results support.",
+      "order": 50
+    },
+    {
+      "id": "operations-support",
+      "title": "Operations & Support",
+      "description": "Turn operational knowledge into clear, usable workflows and support coverage.",
+      "order": 60
+    }
+  ],
+  "goals": [
+    {
+      "id": "first-value-sprint",
+      "title": "First Value Sprint",
+      "category": "product-ux",
+      "summary": "Find and remove the biggest obstacle between a new user and the product's first useful result.",
+      "tags": ["onboarding", "activation", "friction", "user journey"],
+      "aliases": ["first value", "onboarding friction", "activation flow", "time to value"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Walk through the first-time user journey, identify the single biggest barrier to reaching value, make the smallest credible improvement, and prove the journey is clearer on desktop and mobile.",
+      "requiredInputs": [
+        {
+          "id": "product-surface",
+          "label": "Product surface",
+          "description": "The local app, prototype, screenshots, or flow to review.",
+          "required": true
+        },
+        {
+          "id": "first-value-event",
+          "label": "First value event",
+          "description": "The user action that proves the product became useful.",
+          "required": true
+        }
+      ],
+      "sampleInput": "A new user should create their first project and understand what to do next without assistance.",
+      "expectedArtifact": "A focused product change or review-ready recommendation with before-and-after journey evidence.",
+      "proof": {
+        "mode": "hybrid",
+        "criteria": [
+          "The first value event is stated in observable terms.",
+          "The highest-impact friction point is supported by inspected evidence.",
+          "The revised journey completes at desktop and mobile widths without introducing a new dead end."
+        ],
+        "evidence": ["Journey notes", "Before-and-after evidence", "Remaining risks"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "browser"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "An experimental loop goal for one bounded onboarding improvement; it still requires product review."
+      },
+      "approvalGates": ["production writes", "external messages", "customer data access", "deploys", "irreversible changes"],
+      "goodExamples": [
+        "reduce friction before a new user creates their first project",
+        "make the first value moment easier to reach on mobile",
+        "review this onboarding flow and fix its biggest dead end"
+      ],
+      "badExamples": [
+        "redesign the entire product",
+        "run a broad feature roadmap workshop",
+        "fix a failing unit test"
+      ]
+    },
+    {
+      "id": "mobile-journey-rescue",
+      "title": "Mobile Journey Rescue",
+      "category": "product-ux",
+      "summary": "Repair the first mobile usability blocker in one important product journey.",
+      "tags": ["mobile", "responsive", "accessibility", "journey"],
+      "aliases": ["mobile rescue", "responsive flow", "mobile usability", "small screen journey"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Complete the primary journey on a narrow mobile screen, repair the first blocking usability issue, and prove the important controls remain readable, reachable, and keyboard accessible.",
+      "requiredInputs": [
+        {
+          "id": "journey",
+          "label": "Primary journey",
+          "description": "The user path and final action that must work on mobile.",
+          "required": true
+        },
+        {
+          "id": "product-surface",
+          "label": "Product surface",
+          "description": "The local app, prototype, or screenshots to inspect.",
+          "required": true
+        }
+      ],
+      "sampleInput": "A user must select a loop, customize the goal, and open the generated prompt from a phone-sized viewport.",
+      "expectedArtifact": "One scoped mobile usability fix with responsive and accessibility evidence.",
+      "proof": {
+        "mode": "hybrid",
+        "criteria": [
+          "The primary action is visible and usable without horizontal scrolling.",
+          "Text and controls do not clip, overlap, or become unreachable.",
+          "Keyboard focus and accessible labels remain clear for the changed interaction."
+        ],
+        "evidence": ["Mobile screenshot", "Interaction result", "Accessibility notes"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "browser"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A focused experimental goal for one journey, not a full responsive redesign."
+      },
+      "approvalGates": ["production writes", "external messages", "customer data access", "deploys", "irreversible changes"],
+      "goodExamples": [
+        "fix the first blocker in checkout on a phone",
+        "make the goal picker usable at mobile width",
+        "repair the clipped primary action in this responsive flow"
+      ],
+      "badExamples": [
+        "redesign every mobile screen",
+        "create native iOS and Android apps",
+        "investigate a backend timeout"
+      ]
+    },
+    {
+      "id": "visual-consistency-pass",
+      "title": "Visual Consistency Pass",
+      "category": "design-prototyping",
+      "summary": "Find and repair the most visible inconsistency against an existing interface language.",
+      "tags": ["visual design", "design system", "brand", "polish"],
+      "aliases": ["visual consistency", "design polish", "brand alignment", "interface consistency"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Compare the selected interface with the product's established visual patterns, repair the most visible inconsistency, and provide restrained before-and-after evidence.",
+      "requiredInputs": [
+        {
+          "id": "target-interface",
+          "label": "Target interface",
+          "description": "The screen, component, or local route to improve.",
+          "required": true
+        },
+        {
+          "id": "reference-language",
+          "label": "Reference language",
+          "description": "Existing screens, tokens, or brand guidance that define the intended direction.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Align the loop-goal cards with the site's calm Vercel-inspired controls and spacing.",
+      "expectedArtifact": "One reviewable interface improvement with before-and-after visual evidence.",
+      "proof": {
+        "mode": "hybrid",
+        "criteria": [
+          "The change reuses established product tokens and interaction patterns.",
+          "The repaired inconsistency is visible in before-and-after evidence.",
+          "The result remains coherent at desktop and mobile widths."
+        ],
+        "evidence": ["Before screenshot", "After screenshot", "Pattern rationale"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "browser", "screenshots"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A bounded visual-polish goal that depends on a real reference interface."
+      },
+      "approvalGates": ["production writes", "external publishing", "deploys", "brand asset replacement", "irreversible changes"],
+      "goodExamples": [
+        "make this card match the rest of the product",
+        "repair inconsistent spacing and controls on this screen",
+        "align this page with our existing visual language"
+      ],
+      "badExamples": [
+        "invent a complete brand from nothing",
+        "replace the whole design system",
+        "write a competitive research report"
+      ]
+    },
+    {
+      "id": "clickable-flow-prototype",
+      "title": "Clickable Flow Prototype",
+      "category": "design-prototyping",
+      "summary": "Turn a clear workflow idea into the smallest clickable interface that can be reviewed.",
+      "tags": ["prototype", "interaction", "flow", "interface"],
+      "aliases": ["clickable prototype", "interaction prototype", "flow prototype", "working mockup"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Build the smallest clickable version of the supplied user flow, keep it consistent with the existing product language, and prove the primary path can be completed without explanation.",
+      "requiredInputs": [
+        {
+          "id": "user-job",
+          "label": "User job",
+          "description": "The one outcome the prototype must help a user complete.",
+          "required": true
+        },
+        {
+          "id": "flow-boundary",
+          "label": "Flow boundary",
+          "description": "The starting state, final state, and anything explicitly out of scope.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Let a user choose a loop goal, review its proof criteria, and open the populated prompt in Codex.",
+      "expectedArtifact": "A local clickable prototype covering one primary path and its essential states.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "The prototype covers one complete path from entry to outcome.",
+          "Every visible control performs a real action or communicates its disabled state.",
+          "A reviewer can identify and complete the primary action without additional explanation."
+        ],
+        "evidence": ["Prototype artifact", "Primary-path walkthrough", "Known limitations"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "browser"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "An experimental goal for one reviewable flow; it does not imply production readiness."
+      },
+      "approvalGates": ["production writes", "external publishing", "deploys", "payments", "irreversible changes"],
+      "goodExamples": [
+        "build a clickable onboarding concept for one user path",
+        "turn this workflow sketch into a reviewable local prototype",
+        "make a small interaction prototype for selecting and launching a prompt"
+      ],
+      "badExamples": [
+        "build a complete SaaS platform",
+        "ship the prototype to production",
+        "create every possible product state"
+      ]
+    },
+    {
+      "id": "feedback-theme-synthesis",
+      "title": "Feedback Theme Synthesis",
+      "category": "research-decisions",
+      "summary": "Turn a bounded set of feedback into traceable themes and one evidence-backed next decision.",
+      "tags": ["customer research", "feedback", "themes", "prioritization"],
+      "aliases": ["feedback synthesis", "research themes", "customer insight", "interview synthesis"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Analyze the supplied feedback, group recurring themes, cite the source item behind every conclusion, and recommend one bounded next action without inventing customer evidence.",
+      "requiredInputs": [
+        {
+          "id": "feedback-set",
+          "label": "Feedback set",
+          "description": "A bounded collection of interview notes, survey answers, or support items with stable IDs.",
+          "required": true
+        },
+        {
+          "id": "decision-context",
+          "label": "Decision context",
+          "description": "The product decision this research should inform.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Synthesize twelve numbered onboarding comments to decide which activation problem to address first.",
+      "expectedArtifact": "A concise research brief with themes, source references, confidence, and one recommended next action.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "Every theme cites at least one supplied source item.",
+          "Observed evidence, interpretation, and assumptions are visibly separated.",
+          "The recommended action follows from the strongest theme and names remaining uncertainty."
+        ],
+        "evidence": ["Theme table", "Source map", "Decision recommendation"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A traceable synthesis goal for bounded local feedback, not live customer intake."
+      },
+      "approvalGates": ["customer data access", "external messages", "ticket creation", "production writes", "irreversible changes"],
+      "goodExamples": [
+        "find themes in these numbered customer interview notes",
+        "synthesize this feedback set into one product decision",
+        "turn survey comments into cited themes and risks"
+      ],
+      "badExamples": [
+        "automatically reply to every customer",
+        "invent a persona without research",
+        "collect private feedback from an unapproved system"
+      ]
+    },
+    {
+      "id": "competitor-evidence-brief",
+      "title": "Competitor Evidence Brief",
+      "category": "research-decisions",
+      "summary": "Compare a narrow competitor question using current, cited evidence and explicit uncertainty.",
+      "tags": ["competitive research", "market", "evidence", "strategy"],
+      "aliases": ["competitor brief", "competitive analysis", "market evidence", "competitor research"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Research the supplied competitor question, compare only the dimensions that affect the decision, cite current primary evidence, and produce a concise brief that separates facts from inference.",
+      "requiredInputs": [
+        {
+          "id": "decision-question",
+          "label": "Decision question",
+          "description": "The specific product or positioning decision the comparison must inform.",
+          "required": true
+        },
+        {
+          "id": "comparison-set",
+          "label": "Comparison set",
+          "description": "The products or organizations in scope.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Compare how three agent products explain proof and stopping conditions on their public product pages.",
+      "expectedArtifact": "An evidence-backed comparison brief with citations, inference labels, and a bounded recommendation.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "Every time-sensitive claim links to a current primary source.",
+          "The comparison stays within the supplied decision question.",
+          "Facts, inference, missing evidence, and recommendation are clearly separated."
+        ],
+        "evidence": ["Source list", "Comparison table", "Decision implications"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["web", "files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "An experimental research goal that requires current source access and careful citation review."
+      },
+      "approvalGates": ["paid research access", "external messages", "publishing", "account changes", "irreversible changes"],
+      "goodExamples": [
+        "compare competitor onboarding flows with cited evidence",
+        "research how three products position verification",
+        "create a current competitor brief for this pricing decision"
+      ],
+      "badExamples": [
+        "copy a competitor product",
+        "scrape private customer data",
+        "write an uncited market overview"
+      ]
+    },
+    {
+      "id": "landing-page-message-pass",
+      "title": "Landing Page Message Pass",
+      "category": "content-messaging",
+      "summary": "Turn approved evidence into one clear landing-page message direction and primary action.",
+      "tags": ["landing page", "positioning", "copy", "conversion"],
+      "aliases": ["landing page copy", "message pass", "value proposition", "positioning concept"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Create three distinct landing-page message directions from the supplied audience, offer, and evidence, select the strongest direction using a clear rubric, and produce one review-ready concept without inventing claims.",
+      "requiredInputs": [
+        {
+          "id": "audience",
+          "label": "Audience",
+          "description": "The one audience this message should help.",
+          "required": true
+        },
+        {
+          "id": "offer",
+          "label": "Offer",
+          "description": "The product or outcome being offered.",
+          "required": true
+        },
+        {
+          "id": "evidence",
+          "label": "Approved evidence",
+          "description": "Customer language, product proof, or constraints that claims may use.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Explain Loop It to product builders who want a safe Codex prompt without learning terminal commands.",
+      "expectedArtifact": "Three message directions and one selected landing-page concept with assumptions marked.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "The concept names one audience, one problem, and one clear promise.",
+          "Every factual claim is supported by supplied evidence or marked as an assumption.",
+          "A reviewer can identify the primary action without additional explanation."
+        ],
+        "evidence": ["Message directions", "Selection rationale", "Final concept"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "An experimental messaging goal that creates a local draft and requires human approval before publishing."
+      },
+      "approvalGates": ["publishing", "external messages", "paid promotion", "production writes", "irreversible changes"],
+      "goodExamples": [
+        "create three positioning concepts from this customer research",
+        "tighten the landing page message for one audience",
+        "turn these product facts into a reviewable value proposition"
+      ],
+      "badExamples": [
+        "publish the landing page now",
+        "invent customer testimonials",
+        "run paid ads without approval"
+      ]
+    },
+    {
+      "id": "source-to-content-pack",
+      "title": "Source-to-Content Pack",
+      "category": "content-messaging",
+      "summary": "Repurpose one approved source into a small channel-ready content set without adding unsupported claims.",
+      "tags": ["content", "repurpose", "brand voice", "editorial"],
+      "aliases": ["content pack", "repurpose content", "brand voice", "source to social"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Turn the supplied source into a concise article summary, email draft, and social post, preserve the approved voice, and trace every factual claim back to the source.",
+      "requiredInputs": [
+        {
+          "id": "source",
+          "label": "Approved source",
+          "description": "The document, transcript, or notes that contain the usable facts.",
+          "required": true
+        },
+        {
+          "id": "voice",
+          "label": "Voice guidance",
+          "description": "Existing examples or constraints that define the intended tone.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Repurpose the Loop It release explanation into a short product update, an email draft, and a LinkedIn draft.",
+      "expectedArtifact": "A three-format content pack with a source-claim checklist and no external publishing.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "Every factual claim can be traced to the supplied source.",
+          "Each format follows its channel constraints without changing the core message.",
+          "All outputs remain drafts and clearly identify assumptions or missing evidence."
+        ],
+        "evidence": ["Content pack", "Source-claim map", "Editorial risks"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A local content-drafting goal; publishing and outreach stay behind approval."
+      },
+      "approvalGates": ["publishing", "external messages", "paid promotion", "account access", "irreversible changes"],
+      "goodExamples": [
+        "turn this article into a LinkedIn draft in our brand voice",
+        "repurpose this approved transcript into three content formats",
+        "create a content pack without inventing claims"
+      ],
+      "badExamples": [
+        "publish these posts automatically",
+        "send the email to our list",
+        "make up statistics to improve the story"
+      ]
+    },
+    {
+      "id": "data-quality-snapshot",
+      "title": "Data Quality Snapshot",
+      "category": "data-evaluation",
+      "summary": "Measure the most important quality risks in a supplied dataset without modifying the source.",
+      "tags": ["data quality", "missing values", "duplicates", "validation"],
+      "aliases": ["data quality", "dataset audit", "quality snapshot", "data validation"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Inspect the supplied dataset without mutating it, quantify missing, duplicate, invalid, and suspicious values, and produce a prioritized remediation brief with reproducible counts.",
+      "requiredInputs": [
+        {
+          "id": "dataset",
+          "label": "Dataset",
+          "description": "A local table, spreadsheet, or structured file safe to inspect.",
+          "required": true
+        },
+        {
+          "id": "quality-rules",
+          "label": "Quality rules",
+          "description": "Known required fields, valid ranges, uniqueness rules, or business invariants.",
+          "required": false
+        }
+      ],
+      "sampleInput": "Inspect a synthetic signup export for missing emails, duplicate IDs, invalid dates, and unexplained status values.",
+      "expectedArtifact": "A data-quality report with reconciled counts, prioritized risks, and no source mutation.",
+      "proof": {
+        "mode": "hybrid",
+        "criteria": [
+          "Row and column totals reconcile with the inspected source.",
+          "Every reported issue includes a count, rule, and representative evidence.",
+          "The source remains unchanged and remediation steps are prioritized by impact."
+        ],
+        "evidence": ["Profile summary", "Issue table", "Remediation priorities"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "data-analysis"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A read-only data goal for bounded local files, not production databases."
+      },
+      "approvalGates": ["customer data access", "production database access", "data mutation", "external uploads", "irreversible changes"],
+      "goodExamples": [
+        "audit this csv for missing and duplicate values",
+        "create a read-only quality snapshot for this spreadsheet",
+        "quantify the biggest data quality risks in this local export"
+      ],
+      "badExamples": [
+        "clean the production database automatically",
+        "upload customer data to an external service",
+        "design an analytics dashboard"
+      ]
+    },
+    {
+      "id": "experiment-results-brief",
+      "title": "Experiment Results Brief",
+      "category": "data-evaluation",
+      "summary": "Turn bounded experiment evidence into a decision brief without overstating what the data proves.",
+      "tags": ["experiment", "evaluation", "metrics", "decision"],
+      "aliases": ["experiment brief", "results analysis", "evaluation summary", "test results"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Analyze the supplied experiment results, verify the metric calculations, separate observed effects from interpretation, and recommend continue, revise, or stop with explicit uncertainty.",
+      "requiredInputs": [
+        {
+          "id": "hypothesis",
+          "label": "Hypothesis",
+          "description": "The statement the experiment was designed to test.",
+          "required": true
+        },
+        {
+          "id": "results",
+          "label": "Results",
+          "description": "The local measurements, sample details, and known caveats.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Review activation results for two onboarding variants and decide whether the evidence supports a wider rollout.",
+      "expectedArtifact": "A concise decision brief with verified metrics, caveats, and a bounded recommendation.",
+      "proof": {
+        "mode": "hybrid",
+        "criteria": [
+          "Reported metrics reconcile with the supplied results.",
+          "Observed effects, interpretation, and causal claims are clearly separated.",
+          "The recommendation names uncertainty, risk, and the next evidence needed."
+        ],
+        "evidence": ["Metric check", "Decision brief", "Uncertainty and next test"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files", "data-analysis"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A bounded evaluation goal that does not replace statistical or domain review."
+      },
+      "approvalGates": ["production rollout", "customer data access", "external reporting", "payments", "irreversible changes"],
+      "goodExamples": [
+        "turn these ab test results into a cautious decision brief",
+        "verify the experiment metrics and recommend the next step",
+        "explain what this evaluation supports without overstating causality"
+      ],
+      "badExamples": [
+        "roll out the winning variant automatically",
+        "claim causality from incomplete data",
+        "change production metrics definitions"
+      ]
+    },
+    {
+      "id": "sop-from-messy-notes",
+      "title": "SOP From Messy Notes",
+      "category": "operations-support",
+      "summary": "Turn incomplete process notes into a usable procedure with gaps and approval points exposed.",
+      "tags": ["sop", "process", "documentation", "operations"],
+      "aliases": ["write sop", "process notes", "operating procedure", "workflow documentation"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Turn the supplied process notes into a concise standard operating procedure, preserve unresolved gaps as questions, and make ownership, inputs, decisions, and completion evidence explicit.",
+      "requiredInputs": [
+        {
+          "id": "process-notes",
+          "label": "Process notes",
+          "description": "The approved local notes, transcript, or checklist describing the workflow.",
+          "required": true
+        },
+        {
+          "id": "operator",
+          "label": "Operator",
+          "description": "The role expected to follow the finished procedure.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Turn release handoff notes into an SOP for a maintainer preparing a plugin release for review.",
+      "expectedArtifact": "A review-ready SOP with prerequisites, steps, decision points, evidence, owners, and open questions.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "The procedure identifies its operator, trigger, inputs, and completion evidence.",
+          "Decision points, approval gates, and failure paths are explicit.",
+          "Missing information remains visible as an open question instead of being invented."
+        ],
+        "evidence": ["SOP artifact", "Gap list", "Approval map"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A documentation goal that requires an operator to review real-world accuracy."
+      },
+      "approvalGates": ["production actions", "external messages", "credential changes", "payments", "irreversible changes"],
+      "goodExamples": [
+        "turn these messy handoff notes into an sop",
+        "document this support escalation process with owners and gaps",
+        "convert this process transcript into a reviewable procedure"
+      ],
+      "badExamples": [
+        "run the procedure in production",
+        "invent missing compliance requirements",
+        "send the SOP to external recipients"
+      ]
+    },
+    {
+      "id": "support-knowledge-gap-audit",
+      "title": "Support Knowledge Gap Audit",
+      "category": "operations-support",
+      "summary": "Compare recurring support questions with existing guidance and prioritize one missing answer.",
+      "tags": ["support", "knowledge base", "faq", "coverage"],
+      "aliases": ["support gap", "faq audit", "knowledge coverage", "support documentation"],
+      "loopType": "goal-based",
+      "workflow": "workspace-artifact-to-proof",
+      "defaultGoal": "Compare the supplied support questions with the approved help content, identify the highest-impact knowledge gap, and draft one review-ready answer without contacting customers.",
+      "requiredInputs": [
+        {
+          "id": "support-questions",
+          "label": "Support questions",
+          "description": "A bounded, approved set of anonymized questions with stable IDs.",
+          "required": true
+        },
+        {
+          "id": "help-content",
+          "label": "Existing help content",
+          "description": "The approved documentation or FAQ set to compare against.",
+          "required": true
+        }
+      ],
+      "sampleInput": "Review anonymized questions about installing Loop It and compare them with the current setup guidance.",
+      "expectedArtifact": "A prioritized gap report and one draft knowledge-base answer with source references.",
+      "proof": {
+        "mode": "rubric",
+        "criteria": [
+          "Every identified gap cites a supplied support item and the relevant existing guidance.",
+          "The selected gap is prioritized using frequency and user impact.",
+          "The drafted answer is accurate, actionable, and remains an internal review draft."
+        ],
+        "evidence": ["Coverage map", "Prioritized gap", "Draft answer"]
+      },
+      "maxIterations": 3,
+      "capabilities": ["files"],
+      "reliability": {
+        "status": "experimental",
+        "summary": "A local support-content goal; it never sends replies or reads unapproved queues."
+      },
+      "approvalGates": ["customer data access", "external messages", "publishing", "ticket updates", "irreversible changes"],
+      "goodExamples": [
+        "find the biggest gap between these support questions and our faq",
+        "audit help content coverage using anonymized tickets",
+        "draft one missing support answer without sending it"
+      ],
+      "badExamples": [
+        "reply to customers automatically",
+        "read the live support queue without approval",
+        "publish help content immediately"
+      ]
+    }
+  ]
+}

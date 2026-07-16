@@ -1,49 +1,29 @@
 # Codex
 
-Install Loop it into a project:
-
-```bash
-npx @fhajjej/loop-it@latest install --agent codex --scope project
-```
-
-This creates:
+Install Loop It from the Codex plugin interface, then start with a normal message. The plugin supplies the bounded prompt; users do not need a terminal command or slash command.
 
 ```text
-.agents/skills/loop-it/SKILL.md
+Turn these customer comments into traceable themes and recommend one evidence-backed next action.
 ```
-
-Run the command from the project root, or pass `--cwd /real/path/to/your-project`.
-
-Invoke it in Codex:
 
 ```text
-Use $loop-it to create a bounded repair loop for this bug.
+Inspect this repository, repair the highest-confidence issue with the smallest scoped change, and return proof from the project check.
 ```
 
-Generate a Codex launch prompt:
+## Prompt behavior
 
-```bash
-npx @fhajjej/loop-it@latest start \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --agent codex
-```
-
-Codex launch behavior:
-
-- For interactive finish-line work, Loop it generates a preferred native `/goal` command with the goal, verifier, iteration cap, stop conditions, and approval gates.
-- Native Goal state owns the live running, paused, and completed lifecycle. `.loop-it` remains the portable contract and evidence record.
-- It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
-- Those files are the contract, not the repair. Paste the native Goal command or fallback prompt before expecting changed files.
-- If `/goal` is unavailable, enable `features.goals` in Codex or use the generated normal-message fallback. The fallback remains fully usable without `$loop-it`.
-- `loop-it run --execute codex` remains the non-interactive bounded runner and does not require native Goals.
-
-See OpenAI's [Follow a goal](https://developers.openai.com/codex/use-cases/follow-goals) guide for native Goal lifecycle commands and feature enablement.
+- A matching loop goal supplies the required inputs, expected deliverable, proof rubric, iteration cap, stop rules, and approval gates.
+- Product, design, research, content, data, and operations loop goals work toward review-ready local deliverables and return rubric evidence or a clear blocker.
+- Advanced repository prompts ask Codex to run safe local verification inside the task and return the evidence.
+- The prompt works as a normal message even when the plugin is unavailable.
+- Publishing, external messages, deploys, payments, credential changes, destructive operations, and irreversible data changes require explicit approval.
 
 Recommended Codex use:
 
-- repo-grounded bug fixes;
-- PR hardening;
-- docs sweeps;
-- release-readiness loops;
-- one bounded verification pass at a time.
+- bounded product and UX improvements;
+- research synthesis with source traceability;
+- review-ready content and operational artifacts;
+- repo-grounded bug fixes and release-readiness passes;
+- one explicit proof contract at a time.
+
+Maintainers working on a project-local development copy can use the [local installation notes](../install.md).

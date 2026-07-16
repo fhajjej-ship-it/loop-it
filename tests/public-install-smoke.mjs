@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { assertUserFacingPromptOnly } from "./helpers/prompt-only.mjs";
 
 const args = new Set(process.argv.slice(2));
 const keep = args.has("--keep");
@@ -34,6 +35,10 @@ try {
   for (const target of [
     ".agents/skills/loop-it/SKILL.md",
     ".agents/skills/loop-it/references/library/loops.json",
+    ".agents/skills/loop-it/references/library/goals.json",
+    ".agents/skills/loop-it/references/library/goals-schema.json",
+    ".agents/skills/loop-it/references/library/goals-evals.json",
+    ".agents/skills/loop-it/scripts/goal-library.mjs",
     ".agents/skills/loop-it/scripts/start-loop.mjs",
     ".agents/skills/loop-it/scripts/run-loop.mjs",
   ]) {
@@ -55,28 +60,19 @@ try {
     "--print",
   ], { cwd: projectDir }).stdout;
 
-  if (
-    !printedLaunch.includes("Preferred: start a native Codex Goal.") &&
-    !printedLaunch.includes("Paste this into Codex as a normal message:")
-  ) {
-    fail("Expected generated Codex launch prompt to include either native Goal or legacy normal-message launch guidance");
-  }
-  if (
-    !printedLaunch.includes("If nothing starts after pasting the fallback") &&
-    !printedLaunch.includes("If nothing starts after pasting this")
-  ) {
-    fail("Expected generated Codex launch prompt to include fallback execution guidance");
-  }
-
   for (const text of [
-    "Use $loop-it if this Codex workspace has the Loop It skill or plugin enabled.",
-    "If not, run the bounded task directly from this prompt.",
-    "Run The Loop mode. You are not being asked to create another loop.",
-    "First action: run the verifier",
-    "Changes only under .loop-it do not count as a successful iteration.",
+    "Paste this as a normal message:",
+    "Run this bounded Loop It task now in the current workspace.",
+    "Goal\nFix the failing project checks with the smallest safe change",
+    "Proof required\nInfer and run the narrowest relevant project check inside the agent workflow, then report whether it passed.",
+    "Print mode does not create local Loop It state",
+    "If it refers to a project verifier recorded in a local Loop It contract, run that verifier inside the agent workflow and capture the actual result.",
+    "Changes only to Loop It state files do not count as completing the task.",
+    "Do not ask me to run or copy terminal commands.",
   ]) {
     assertIncludes(printedLaunch, text, "generated Codex launch prompt");
   }
+  assertUserFacingPromptOnly(printedLaunch, "generated Codex launch prompt");
 
   if (existsSync(resolve(projectDir, ".loop-it"))) {
     fail("Expected --print launch generation not to create .loop-it state");
@@ -90,7 +86,7 @@ try {
 
   console.log("Public install smoke passed");
   console.log(`Package: ${packageSpec}`);
-  console.log("Verified: npm latest install, project skill files, and Codex native-goal or fallback launch wording");
+  console.log("Verified: npm latest install, prompt-library skill files, and normal-message Codex launch wording");
   if (runCodex) {
     console.log("Verified: public loop-it run --execute codex fixed the failing fixture and recorded proof");
   }

@@ -1,44 +1,28 @@
 # Claude Code
 
-Install Loop it into a project:
-
-```bash
-npx @fhajjej/loop-it@latest install --agent claude --scope project
-```
-
-This creates:
+Add the Loop It skill to the workspace, then paste or write a normal-language goal. Users do not need to generate a terminal command to begin.
 
 ```text
-.claude/skills/loop-it/SKILL.md
+Turn these process notes into a review-ready SOP. Keep missing information visible as questions and score the result against a clear rubric.
 ```
-
-Run the command from the project root, or pass `--cwd /real/path/to/your-project`.
-
-Invoke it in Claude Code:
 
 ```text
-/loop-it create a docs sweep loop for this repository
+Fix the failing checkout behavior with the smallest scoped change, run the narrowest safe project check, and return the evidence.
 ```
 
-Generate a Claude Code launch prompt:
+## Prompt behavior
 
-```bash
-npx @fhajjej/loop-it@latest start \
-  --goal "Fix failing checkout tests" \
-  --check "npm test -- checkout" \
-  --agent claude
-```
-
-Claude Code launch behavior:
-
-- For finish-line work, Loop it generates a normal-message prompt with the goal, verifier, iteration cap, stop conditions, and approval gates.
-- It also creates portable `.loop-it/LOOP.md`, `.loop-it/progress.json`, and `.loop-it/LAUNCH.md` files.
-- Those files are the contract, not the repair. Paste the launch prompt or ask Claude Code to run the loop before expecting changed files.
-- Use Claude Code `/loop` for polling or interval work. For verifier-gated finish-line work, run the generated prompt as a bounded goal with proof.
+- A matching loop goal defines the review-ready deliverable, proof rubric, iteration cap, stop rules, and approval gates.
+- Advanced repository prompts retain verifier-gated execution without exposing commands to the user.
+- Local Loop It state can preserve progress for repository work, but creating state files alone does not complete the task.
+- Recurring work still requires a real approved scheduler; a prompt does not claim background execution.
+- External writes and irreversible actions remain approval-gated.
 
 Recommended Claude Code use:
 
-- terminal-first repair loops;
+- bounded research, content, and documentation artifacts;
 - explicit verification checkpoints;
 - readable iteration notes;
 - small changes that can be reviewed between passes.
+
+Maintainers working on a project-local development copy can use the [local installation notes](../install.md).

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loop It Goals Library",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "nonBlankString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
+  "required": ["version", "categories", "goals"],
+  "properties": {
+    "version": { "$ref": "#/$defs/nonBlankString" },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "description", "order"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "$ref": "#/$defs/nonBlankString" },
+          "description": { "$ref": "#/$defs/nonBlankString" },
+          "order": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "category",
+          "summary",
+          "tags",
+          "aliases",
+          "loopType",
+          "workflow",
+          "defaultGoal",
+          "requiredInputs",
+          "sampleInput",
+          "expectedArtifact",
+          "proof",
+          "maxIterations",
+          "capabilities",
+          "reliability",
+          "approvalGates",
+          "goodExamples",
+          "badExamples"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "title": { "$ref": "#/$defs/nonBlankString" },
+          "category": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "summary": { "$ref": "#/$defs/nonBlankString" },
+          "tags": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "aliases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "loopType": { "type": "string", "enum": ["turn-based", "goal-based"] },
+          "workflow": { "type": "string", "enum": ["workspace-artifact-to-proof"] },
+          "defaultGoal": { "$ref": "#/$defs/nonBlankString" },
+          "requiredInputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "label", "description", "required"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                "label": { "$ref": "#/$defs/nonBlankString" },
+                "description": { "$ref": "#/$defs/nonBlankString" },
+                "required": { "type": "boolean" }
+              }
+            }
+          },
+          "sampleInput": { "$ref": "#/$defs/nonBlankString" },
+          "expectedArtifact": { "$ref": "#/$defs/nonBlankString" },
+          "proof": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "criteria", "evidence"],
+            "properties": {
+              "mode": { "type": "string", "enum": ["rubric", "hybrid"] },
+              "criteria": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } },
+              "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } }
+            }
+          },
+          "maxIterations": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "capabilities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "reliability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "summary"],
+            "properties": {
+              "status": { "type": "string", "enum": ["experimental", "tested"] },
+              "summary": { "$ref": "#/$defs/nonBlankString" }
+            }
+          },
+          "approvalGates": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "goodExamples": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } },
+          "badExamples": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/nonBlankString" } }
+        }
+      }
+    }
+  }
+}

@@ -120,6 +120,16 @@
       "goal": "find the next actionable issue in this codebase",
       "expectedLoopId": "codebase-intake-to-running-loop",
       "reason": "A broad next-issue request should use intake rather than guessing a fix loop."
+    },
+    {
+      "goal": "fix data quality validation test",
+      "expectedLoopId": "ticket-to-verified-fix",
+      "reason": "An explicit test repair should remain in the advanced engineering library even when its vocabulary overlaps a data goal."
+    },
+    {
+      "goal": "implement a clickable prototype component and run tests",
+      "expectedLoopId": "codebase-intake-to-running-loop",
+      "reason": "An implementation request with repository tests should use engineering intake rather than a creative prototype goal."
     }
   ]
 }
